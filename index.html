@@ -1391,9 +1391,9 @@
                                 <select id="lote-tipo" onchange="UILogic.actualizarBotonLote()">
                                     <option value="feriado">🥳 Feriados (00:00)</option>
                                     <option value="ausencia">✈️ Ausencia/Licencia (11:11)</option>
-                                    <option value="vacaciones">🏖️ Vacaciones (22:22)</option>
-                                    <option value="enfermedad">🏥 Enfermedad (09:09)</option>
+                                    <option value="vacaciones">🏖️ Vacaciones (12:12)</option>
                                     <option value="asueto">🎁 Asueto (13:13)</option>
+                                    <option value="enfermedad">🏥 Enfermedad (14:14)</option>
                                     <option value="normal">🕒 Normales (borrar)</option>
                                 </select>
                                 <button class="time-btn" onclick="UILogic.toggleModoLote()" title="Volver a modo normal"
@@ -1472,7 +1472,7 @@
                                 <div class="stat-value" id="stat-enfermedades">0</div>
                             </div>
                             <div class="stat-item">
-                                <div class="stat-label">Asuetos (día)</div>
+                                <div class="stat-label">Asuetos</div>
                                 <div class="stat-value" id="stat-asuetos-dia">0</div>
                             </div>
                             <div class="stat-item">
@@ -1926,9 +1926,9 @@
                 <ul style="list-style: none; padding-left: 0.5rem;">
                     <li>🥳 <strong>Feriados:</strong> 00:00 a 00:00</li>
                     <li>✈️ <strong>Ausencias:</strong> 11:11 a 11:11</li>
-                    <li>🏖️ <strong>Vacaciones:</strong> 22:22 a 22:22</li>
-                    <li>🏥 <strong>Enfermedades:</strong> 09:09 a 09:09</li>
+                    <li>🏖️ <strong>Vacaciones:</strong> 12:12 a 12:12</li>
                     <li>🎁 <strong>Asuetos:</strong> 13:13 a 13:13</li>
+                    <li>🏥 <strong>Enfermedades:</strong> 14:14 a 14:14</li>
                 </ul>
                 <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
 
@@ -2647,8 +2647,8 @@
                     let entrada, salida, tipoTexto;
                     switch (tipo) {
                         case 'vacaciones':
-                            entrada = '22:22';
-                            salida = '22:22';
+                            entrada = '12:12';
+                            salida = '12:12';
                             tipoTexto = '🏖️ Vacaciones';
                             break;
                         case 'ausencia':
@@ -2662,8 +2662,8 @@
                             tipoTexto = '🥳 Feriado';
                             break;
                         case 'enfermedad':
-                            entrada = '09:09';
-                            salida = '09:09';
+                            entrada = '14:14';
+                            salida = '14:14';
                             tipoTexto = '🏥 Enfermedad';
                             break;
                         case 'asueto':
@@ -2817,19 +2817,27 @@
                     const tfMinutos = tf ? tiempoEnMinutos(tf) : 0;
                     const crMinutos = cr ? tiempoEnMinutos(cr) : 0; // <--- Calculamos minutos crédito
 
-                    if (e === '09:09' && s === '09:09') {
-                        return { horas: 0, minutos: 0, total: horasDiarias, esEnfermedad: true };
-                    }
-
-                    // Asueto (día completo)
-                    if (e === '13:13' && s === '13:13') {
-                        return { horas: 0, minutos: 0, total: horasDiarias, esAsueto: true };
+                    if (e === '00:00' && s === '00:00') {
+                        return { horas: 0, minutos: 0, total: horasDiarias, esFeriado: true };
                     }
 
                     if (e === '11:11' && s === '11:11') {
                         return { horas: 0, minutos: 0, total: horasDiarias, esAusencia: true };
                     }
-                    // Vacaciones, Feriados... (mantener igual)
+
+                    if (e === '12:12' && s === '12:12') {
+                        return { horas: 0, minutos: 0, total: horasDiarias, esVacaciones: true };
+                    }
+
+                    if (e === '13:13' && s === '13:13') {
+                        return { horas: 0, minutos: 0, total: horasDiarias, esAsueto: true };
+                    }
+                    
+                    if (e === '14:14' && s === '14:14') {
+                        return { horas: 0, minutos: 0, total: horasDiarias, esEnfermedad: true };
+                    }
+
+
 
                     if (!e || !s || !e.includes(':') || !s.includes(':')) return null;
 
@@ -2863,8 +2871,8 @@
                     registros.forEach(r => {
                         const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                         const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
-                        const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                        const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                        const esVacaciones = r.entrada === '12:12' && r.salida === '12:12';
+                        const esEnfermedad = r.entrada === '14:14' && r.salida === '14:14';
                         const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
 
                         if (r.fecha >= inicio && r.fecha <= fin &&
@@ -2925,8 +2933,8 @@
                         // Verificamos si es un registro especial (estos SÍ se permiten en el futuro)
                         const esFeriado = e === '00:00' && s === '00:00';
                         const esAusencia = e === '11:11' && s === '11:11';
-                        const esVacaciones = e === '22:22' && s === '22:22';
-                        const esEnfermedad = e === '09:09' && s === '09:09';
+                        const esVacaciones = e === '12:12' && s === '12:12';
+                        const esEnfermedad = e === '14:14' && s === '14:14';
                         const esAsueto = e === '13:13' && s === '13:13';
 
                         if (!esFeriado && !esAusencia && !esVacaciones && !esEnfermedad && !esAsueto) {
@@ -3181,8 +3189,8 @@
                     if (f > hoy) {
                         const esFeriado = e === '00:00' && s === '00:00';
                         const esAusencia = e === '11:11' && s === '11:11';
-                        const esVacaciones = e === '22:22' && s === '22:22';
-                        const esEnfermedad = e === '09:09' && s === '09:09';
+                        const esVacaciones = e === '12:12' && s === '12:12';
+                        const esEnfermedad = e === '14:14' && s === '14:14';
                         const esAsueto = e === '13:13' && s === '13:13';
 
                         if (!esFeriado && !esAusencia && !esVacaciones && !esAsueto && !esEnfermedad) {
@@ -3696,8 +3704,8 @@
 
                         const esFeriado = r && r.entrada === '00:00' && r.salida === '00:00';
                         const esAusencia = r && r.entrada === '11:11' && r.salida === '11:11';
-                        const esVacaciones = r && r.entrada === '22:22' && r.salida === '22:22';
-                        const esEnfermedad = r && r.entrada === '09:09' && r.salida === '09:09';  // ← AGREGAR
+                        const esVacaciones = r && r.entrada === '12:12' && r.salida === '12:12';
+                        const esEnfermedad = r && r.entrada === '14:14' && r.salida === '14:14';  // ← AGREGAR
                         const esAsueto = r && r.entrada === '13:13' && r.salida === '13:13';      // ← AGREGAR
 
                         // Validar si el registro está cerrado o si es un día pasado
@@ -3786,8 +3794,8 @@
                         if (filtroTipo) {
                             const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                             const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
-                            const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                            const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                            const esVacaciones = r.entrada === '12:12' && r.salida === '12:12';
+                            const esEnfermedad = r.entrada === '14:14' && r.salida === '14:14';
                             const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
 
                             switch (filtroTipo) {
@@ -3818,9 +3826,9 @@
                 }
 
                 async function registrarVacacionesDirecto(desde, hasta, tipo) {
-                    const entrada = tipo === 'vacaciones' ? '22:22' :
+                    const entrada = tipo === 'vacaciones' ? '12:12' :
                         tipo === 'ausencia' ? '11:11' :
-                            tipo === 'enfermedad' ? '09:09' :
+                            tipo === 'enfermedad' ? '14:14' :
                                 tipo === 'asueto' ? '13:13' :
                                     '00:00'; // feriado por defecto
 
@@ -3899,17 +3907,17 @@
                             const dentroDelRango = r.fecha >= desde && r.fecha <= hasta;
                             const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                             const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
-                            const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                            const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                            const esVacaciones = r.entrada === '12:12' && r.salida === '12:12';
+                            const esEnfermedad = r.entrada === '14:14' && r.salida === '14:14';
                             const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
                             return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones &&
                                 !esEnfermedad && !esAsueto;
                         });
                     } else {
                         // Para tipos específicos, borrar SOLO ese tipo
-                        const entrada = tipo === 'vacaciones' ? '22:22' :
+                        const entrada = tipo === 'vacaciones' ? '12:12' :
                             tipo === 'ausencia' ? '11:11' :
-                                tipo === 'enfermedad' ? '09:09' :
+                                tipo === 'enfermedad' ? '14:14' :
                                     tipo === 'asueto' ? '13:13' :
                                         '00:00';
                         const salida = entrada;
@@ -4202,8 +4210,8 @@
 
                     if (entrada === '00:00' && salida === '00:00') return 'feriado';
                     if (entrada === '11:11' && salida === '11:11') return 'ausencia';
-                    if (entrada === '22:22' && salida === '22:22') return 'vacaciones';
-                    if (entrada === '09:09' && salida === '09:09') return 'enfermedad';
+                    if (entrada === '12:12' && salida === '12:12') return 'vacaciones';
+                    if (entrada === '14:14' && salida === '14:14') return 'enfermedad';
                     if (entrada === '13:13' && salida === '13:13') return 'asueto';
 
                     return null; // Registro normal
@@ -4299,8 +4307,8 @@
 
                     const isFeriadoContabilizado = r.entrada === '00:00' && r.salida === '00:00';
                     const isAusencia = r.entrada === '11:11' && r.salida === '11:11';
-                    const isVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                    const isEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                    const isVacaciones = r.entrada === '12:12' && r.salida === '12:12';
+                    const isEnfermedad = r.entrada === '14:14' && r.salida === '14:14';
                     const isAsueto = r.entrada === '13:13' && r.salida === '13:13';
 
                     const fechaEl = document.createElement('div');
@@ -4735,8 +4743,8 @@
                     // Contadores básicos
                     const feriados = registrosMes.filter(r => r.entrada === '00:00' && r.salida === '00:00').length;
                     const ausencias = registrosMes.filter(r => r.entrada === '11:11' && r.salida === '11:11').length;
-                    const vacaciones = registrosMes.filter(r => r.entrada === '22:22' && r.salida === '22:22').length;
-                    const enfermedades = registrosMes.filter(r => r.entrada === '09:09' && r.salida === '09:09').length;
+                    const vacaciones = registrosMes.filter(r => r.entrada === '12:12' && r.salida === '12:12').length;
+                    const enfermedades = registrosMes.filter(r => r.entrada === '14:14' && r.salida === '14:14').length;
                     const asuetosDiaCompleto = registrosMes.filter(r => r.entrada === '13:13' && r.salida === '13:13').length;
 
                     // Contar Compensaciones/Asuetos parciales (días con crédito válido)
@@ -4745,8 +4753,8 @@
                     // Filtrar solo registros válidos para promedios (excluir feriados y ausencias puras)
                     const registrosValidos = registrosMes.filter(r =>
                         r.entrada && r.salida &&
-                        r.entrada !== '00:00' && r.entrada !== '11:11' && r.entrada !== '22:22' &&
-                        r.entrada !== '09:09' && r.entrada !== '13:13'
+                        r.entrada !== '00:00' && r.entrada !== '11:11' && r.entrada !== '12:12' &&
+                        r.entrada !== '14:14' && r.entrada !== '13:13'
                     );
 
                     if (registrosValidos.length === 0) {
@@ -4924,8 +4932,8 @@
                             r.fecha >= ini && r.fecha <= fechaLimiteCalculo &&
                             !(r.entrada === '00:00' && r.salida === '00:00') &&
                             !(r.entrada === '11:11' && r.salida === '11:11') &&
-                            !(r.entrada === '22:22' && r.salida === '22:22') &&
-                            !(r.entrada === '09:09' && r.salida === '09:09') &&
+                            !(r.entrada === '12:12' && r.salida === '12:12') &&
+                            !(r.entrada === '14:14' && r.salida === '14:14') &&
                             !(r.entrada === '13:13' && r.salida === '13:13')
                         ).reduce((s, r) => s + r.total, 0);
 
@@ -4971,8 +4979,8 @@
                         if (regHoy && regHoy.entrada) {
                             const isFeriadoHoy = regHoy.entrada === '00:00' && regHoy.salida === '00:00';
                             const isAusenciaHoy = regHoy.entrada === '11:11' && regHoy.salida === '11:11';
-                            const isVacacionesHoy = regHoy.entrada === '22:22' && regHoy.salida === '22:22';
-                            const isEnfermedadHoy = regHoy.entrada === '09:09' && regHoy.salida === '09:09';
+                            const isVacacionesHoy = regHoy.entrada === '12:12' && regHoy.salida === '12:12';
+                            const isEnfermedadHoy = regHoy.entrada === '14:14' && regHoy.salida === '14:14';
                             const isAsuetoHoy = regHoy.entrada === '13:13' && regHoy.salida === '13:13';
 
                             if (isFeriadoHoy) {
@@ -5111,7 +5119,7 @@
                             let horaSalida = '';
 
                             if (regHoy && regHoy.entrada && !regHoy.salida && objetivoDiario > 0) {
-                                const esEspecial = (regHoy.entrada === '00:00' || regHoy.entrada === '11:11' || regHoy.entrada === '22:22' || regHoy.entrada === '09:09' || regHoy.entrada === '13:13');
+                                const esEspecial = (regHoy.entrada === '00:00' || regHoy.entrada === '11:11' || regHoy.entrada === '12:12' || regHoy.entrada === '14:14' || regHoy.entrada === '13:13');
 
                                 if (!esEspecial) {
                                     const [hE, mE] = regHoy.entrada.split(':').map(Number);
@@ -5410,7 +5418,7 @@
 
                     // Calcular total de horas del mes
                     const totalHoras = registrosMes
-                        .filter(r => r.entrada !== '00:00' && r.entrada !== '11:11' && r.entrada !== '22:22' && r.entrada !== '09:09' && r.entrada !== '13:13')
+                        .filter(r => r.entrada !== '00:00' && r.entrada !== '11:11' && r.entrada !== '12:12' && r.entrada !== '14:14' && r.entrada !== '13:13')
                         .reduce((sum, r) => sum + r.total, 0);
 
                     const horasTotales = Math.floor(totalHoras);
@@ -5443,7 +5451,7 @@ REPORTE DE HORAS TRABAJADAS
    • Ausencias:              ${stats.ausencias}
    • Vacaciones:             ${stats.vacaciones}
    • Enfermedades:           ${stats.enfermedades}
-   • Asuetos (día completo): ${stats.asuetosDiaCompleto}
+   • Asuetos:                ${stats.asuetosDiaCompleto}
    • Salidas Temprano:       ${stats.compensaciones}
 
    • Entrada promedio:       ${stats.entradaPromedio}
@@ -5474,9 +5482,9 @@ REPORTE DE HORAS TRABAJADAS
 
                                 const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                                 const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
-                                const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
+                                const esVacaciones = r.entrada === '12:12' && r.salida === '12:12';
                                 const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
-                                const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                                const esEnfermedad = r.entrada === '14:14' && r.salida === '14:14';
 
                                 let linea = '';
 
@@ -5486,9 +5494,9 @@ REPORTE DE HORAS TRABAJADAS
                                     linea = `${dia.padEnd(10)} ${fecha}  AUSENCIA`;
                                 } else if (esVacaciones) {
                                     linea = `${dia.padEnd(10)} ${fecha}  VACACIONES`;
-                                } else if (r.entrada === '09:09' && r.salida === '09:09') {
+                                } else if (esEnfermedad) {
                                     linea = `${dia.padEnd(10)} ${fecha}  ENFERMEDAD`;
-                                } else if (r.entrada === '13:13' && r.salida === '13:13') {
+                                } else if (esAsueto) {
                                     linea = `${dia.padEnd(10)} ${fecha}  ASUETO`;
                                 }
                                 else {
@@ -5551,9 +5559,9 @@ REPORTE DE HORAS TRABAJADAS
                                     semana.feriados.push(r);
                                 } else if (r.entrada === '11:11' && r.salida === '11:11') {
                                     semana.ausencias.push(r);
-                                } else if (r.entrada === '22:22' && r.salida === '22:22') {
+                                } else if (r.entrada === '12:12' && r.salida === '12:12') {
                                     semana.vacaciones.push(r);
-                                } else if (r.entrada === '09:09' && r.salida === '09:09') {
+                                } else if (r.entrada === '14:14' && r.salida === '14:14') {
                                     semana.enfermedades.push(r);
                                 } else if (r.entrada === '13:13' && r.salida === '13:13') {
                                     semana.asuetos.push(r);
@@ -6298,16 +6306,16 @@ Generado por Sistema Horarios
                             const dentroDelRango = r.fecha >= desde && r.fecha <= hasta;
                             const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                             const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
-                            const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                            const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                            const esVacaciones = r.entrada === '12:12' && r.salida === '12:12';
+                            const esEnfermedad = r.entrada === '14:14' && r.salida === '14:14';
                             const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
                             return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones &&
                                 !esEnfermedad && !esAsueto;
                         });
                     } else {
-                        const entrada = tipo === 'vacaciones' ? '22:22' :
+                        const entrada = tipo === 'vacaciones' ? '12:12' :
                             tipo === 'ausencia' ? '11:11' :
-                                tipo === 'enfermedad' ? '09:09' :
+                                tipo === 'enfermedad' ? '14:14' :
                                     tipo === 'asueto' ? '13:13' :
                                         '00:00'; // feriado por defecto
                         const salida = entrada;
@@ -6382,8 +6390,8 @@ Generado por Sistema Horarios
                             const dentroDelRango = r.fecha >= desde && r.fecha <= hasta;
                             const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                             const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
-                            const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                            const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                            const esVacaciones = r.entrada === '12:12' && r.salida === '12:12';
+                            const esEnfermedad = r.entrada === '14:14' && r.salida === '14:14';
                             const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
 
                             return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones &&
@@ -6401,9 +6409,9 @@ Generado por Sistema Horarios
 
                     } else {
                         // Casos Especiales (Feriado, Vacaciones, Ausencia, Enfermedad, Asueto)
-                        const entrada = tipo === 'vacaciones' ? '22:22' :
+                        const entrada = tipo === 'vacaciones' ? '12:12' :
                             tipo === 'ausencia' ? '11:11' :
-                                tipo === 'enfermedad' ? '09:09' :
+                                tipo === 'enfermedad' ? '14:14' :
                                     tipo === 'asueto' ? '13:13' :
                                         '00:00'; // feriado por defecto
                         const salida = entrada;
@@ -6736,8 +6744,8 @@ Generado por Sistema Horarios
                     // 4. Detectamos si son días especiales (para bloquear también)
                     const esEspecial = (e === '00:00' && s === '00:00') ||
                         (e === '11:11' && s === '11:11') ||
-                        (e === '22:22' && s === '22:22') ||
-                        (e === '09:09' && s === '09:09') ||
+                        (e === '12:12' && s === '12:12') ||
+                        (e === '14:14' && s === '14:14') ||
                         (e === '13:13' && s === '13:13');
 
                     // Si hay candado O es día especial O el horario NO está completo...
@@ -6808,5 +6816,6 @@ Generado por Sistema Horarios
     // ====================================================================
     1) Se agregan 2 nuevos registros especiales: enfermedad y asueto
     2) se reemplaza la funcion asueto anterior por "salida temprano", internamente es credito
+    3) Se cambian los codigos de algunos registros especiales para que sean consecutivos
 
     -->
