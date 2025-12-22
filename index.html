@@ -57,8 +57,8 @@
             --text-muted: #d1d5db;
             --border: #374151;
             --input-bg: #374151;
-            --input-focus: #4b5563;
-            --c-gray-btn: #4b5563;
+            --input-focus: #374151;
+            --c-gray-btn: #374151;
             --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
             --bg-progress-bar: rgba(255, 255, 255, 0.2);
         }
@@ -73,13 +73,17 @@
             box-sizing: border-box;
         }
 
+        html {
+            scrollbar-gutter: stable;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
             background: var(--bg-body);
             color: var(--text-main);
             overflow-anchor: none;
             transition: background 0.3s, color 0.3s;
-            overflow-y: scroll;
+            overflow-y: autos;
             scrollbar-gutter: stable;
         }
 
@@ -306,23 +310,21 @@
         }
 
         /* Variantes de botones */
-        .btn-clean,
         .btn-delete {
-            background: var(--c-red);
+            background: var(--c-gray-btn);
         }
 
         .btn-export {
-            background: var(--c-green);
+            background: var(--c-gray-btn);
         }
 
         .btn-backup,
-        .btn-edit,
-        .toast.info {
-            background: var(--c-blue);
+        .btn-edit {
+            background: var(--c-gray-btn);
         }
 
         .btn-cancel {
-            background: #4b5563;
+            background: var(--c-gray-btn);
         }
 
         .btn-action-trigger {
@@ -600,21 +602,25 @@
             background: var(--c-green);
         }
 
+        .toast.info {
+            background: var(--c-blue);
+        }
+
         .toast.error,
         .toast.warning {
             background: var(--c-red);
         }
 
         /* --- Animaciones y Textos --- */
-        @keyframes zoomIn {
+        @keyframes slideDownFade {
             from {
                 opacity: 0;
-                transform: scale(0.8);
+                transform: translateY(-20px);
             }
 
             to {
                 opacity: 1;
-                transform: scale(1);
+                transform: translateY(0);
             }
         }
 
@@ -708,7 +714,7 @@
         }
 
         .animated-card {
-            animation: zoomIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
+            animation: slideDownFade 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
         }
 
         .toggle-hint,
@@ -1270,6 +1276,11 @@
             <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
             <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
         </symbol>
+        <symbol id="icon-salida-puerta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+    <polyline points="16 17 21 12 16 7"></polyline>
+    <line x1="21" y1="12" x2="9" y2="12"></line>
+</symbol>
     </svg>
     <div class="header">
         <h1>Horarios</h1>
@@ -1349,7 +1360,7 @@
                         <div class="form-group">
                             <label>Entrada</label>
                             <div class="input-with-btn">
-                                <input type="text" id="entrada" inputmode="numeric" placeholder="hh:mm" maxlength="5" />
+                                <input type="text" id="entrada" inputmode="numeric" placeholder="Hora" maxlength="5" />
                                 <button class="time-btn" onclick="UILogic.pegarHoraActual('entrada')">
                                     <svg class="icon">
                                         <use href="#icon-clock" />
@@ -1361,7 +1372,7 @@
                         <div class="form-group">
                             <label>Salida</label>
                             <div class="input-with-btn">
-                                <input type="text" id="salida" inputmode="numeric" placeholder="hh:mm" maxlength="5" />
+                                <input type="text" id="salida" inputmode="numeric" placeholder="hora" maxlength="5" />
                                 <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')">
                                     <svg class="icon">
                                         <use href="#icon-clock" />
@@ -1381,6 +1392,8 @@
                                     <option value="feriado">🥳 Feriados (00:00)</option>
                                     <option value="ausencia">✈️ Ausencia/Licencia (11:11)</option>
                                     <option value="vacaciones">🏖️ Vacaciones (22:22)</option>
+                                    <option value="enfermedad">🏥 Enfermedad (09:09)</option>
+                                    <option value="asueto">🎁 Asueto (13:13)</option>
                                     <option value="normal">🕒 Normales (borrar)</option>
                                 </select>
                                 <button class="time-btn" onclick="UILogic.toggleModoLote()" title="Volver a modo normal"
@@ -1405,7 +1418,7 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Hasta</label>
+                                <label>Hasta (opcional)</label>
                                 <div class="input-with-btn">
                                     <input type="date" id="lote-fecha-hasta" />
                                     <button class="time-btn" onclick="UILogic.alternarFechaActual('lote-fecha-hasta')"
@@ -1454,6 +1467,19 @@
                                 <div class="stat-label">Vacaciones</div>
                                 <div class="stat-value" id="stat-vacaciones">0</div>
                             </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Enfermedades</div>
+                                <div class="stat-value" id="stat-enfermedades">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Asuetos (día)</div>
+                                <div class="stat-value" id="stat-asuetos-dia">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Salidas Temprano</div>
+                                <div class="stat-value" id="stat-compensaciones">0</div>
+                            </div>
+
                             <div class="stat-item">
                                 <div class="stat-label">Entrada promedio</div>
                                 <div class="stat-value" id="stat-entrada-promedio">--:--</div>
@@ -1523,7 +1549,7 @@
                     </svg>
                     Configuración
                 </span>
-                <span class="version-text">v6.69</span>
+                <span class="version-text">v6.77</span>
             </h3>
             <div class="form-group">
                 <label>Horas diarias</label>
@@ -1642,7 +1668,7 @@
             <div class="form-group">
                 <label>Entrada</label>
                 <div class="input-with-btn">
-                    <input type="text" id="edit-entrada" inputmode="numeric" placeholder="hh:mm" maxlength="5" />
+                    <input type="text" id="edit-entrada" inputmode="numeric" placeholder="Hora" maxlength="5" />
                     <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-entrada')"><svg class="icon">
                             <use href="#icon-clock" />
                         </svg>
@@ -1652,7 +1678,7 @@
             <div class="form-group">
                 <label>Salida</label>
                 <div class="input-with-btn">
-                    <input type="text" id="edit-salida" inputmode="numeric" placeholder="hh:mm" maxlength="5" />
+                    <input type="text" id="edit-salida" inputmode="numeric" placeholder="Hora" maxlength="5" />
                     <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-salida')"><svg class="icon">
                             <use href="#icon-clock" />
                         </svg>
@@ -1660,7 +1686,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Tiempo Fuera</label>
+                <label>Tiempo Fuera / Salida Temprano</label>
                 <div class="input-with-btn">
                     <input type="text" id="edit-tiempo-fuera" inputmode="numeric" placeholder="Ej: 00:20"
                         maxlength="5" />
@@ -1674,7 +1700,7 @@
                     <button id="btn-toggle-credito" class="time-btn" onclick="UILogic.toggleCredito()"
                         style="margin-left: 5px;" title="(Compensación/Asueto)">
                         <svg class="icon">
-                            <use href="#icon-gift" />
+                            <use href="#icon-salida-puerta" />
                         </svg>
                     </button>
                 </div>
@@ -1754,6 +1780,8 @@
                     <option value="feriado">🥳 Feriados</option>
                     <option value="ausencia">✈️ Ausencias</option>
                     <option value="vacaciones">🏖️ Vacaciones</option>
+                    <option value="enfermedad">🏥 Enfermedades</option>
+                    <option value="asueto">🎁 Asuetos</option>
                 </select>
             </div>
             <div class="btn-group">
@@ -1762,7 +1790,7 @@
                         <use href="#icon-filter" />
                     </svg> Aplicar
                 </button>
-                <button class="btn-clean" onclick="DataManagement.limpiarFiltros()">
+                <button class="btn-delete" onclick="DataManagement.limpiarFiltros()">
                     <svg class="icon">
                         <use href="#icon-cancelar" />
                     </svg> Limpiar
@@ -1899,6 +1927,8 @@
                     <li>🥳 <strong>Feriados:</strong> 00:00 a 00:00</li>
                     <li>✈️ <strong>Ausencias:</strong> 11:11 a 11:11</li>
                     <li>🏖️ <strong>Vacaciones:</strong> 22:22 a 22:22</li>
+                    <li>🏥 <strong>Enfermedades:</strong> 09:09 a 09:09</li>
+                    <li>🎁 <strong>Asuetos:</strong> 13:13 a 13:13</li>
                 </ul>
                 <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
 
@@ -2565,7 +2595,7 @@
             })();
 
             // ====================================================================
-            // II. DATA MANAGEMENT MODULE (CORREGIDO)
+            // II. DATA MANAGEMENT MODULE 
             // ====================================================================
             const DataManagement = (function (S) {
                 let registros = [], diasHabiles = [1, 2, 3, 4, 5], horasDiarias = 7, editandoId = null; let vistaActual = 'diaria';
@@ -2604,7 +2634,6 @@
 
 
 
-                // --- NUEVA FUNCIÓN AUXILIAR ---
                 async function registrarDiaEspecial(fecha, tipo) {
                     // Verificar si ya existe un registro para hoy
                     const registroExistente = registros.find(r => r.fecha === fecha);
@@ -2631,6 +2660,16 @@
                             entrada = '00:00';
                             salida = '00:00';
                             tipoTexto = '🥳 Feriado';
+                            break;
+                        case 'enfermedad':
+                            entrada = '09:09';
+                            salida = '09:09';
+                            tipoTexto = '🏥 Enfermedad';
+                            break;
+                        case 'asueto':
+                            entrada = '13:13';
+                            salida = '13:13';
+                            tipoTexto = '🎁 Asueto';
                             break;
                         default:
                             UILogic.mostrarToast('Tipo inválido', 'error');
@@ -2667,7 +2706,7 @@
                     const saved = await guardarYActualizar(true, nuevoId);
 
                     if (saved) {
-                        UILogic.mostrarToast(`Hoy registrado como ${tipoTexto}`, 'success');
+                        UILogic.mostrarToast(`Registrado como ${tipoTexto}`, 'success');
                     }
                 }
 
@@ -2774,12 +2813,19 @@
                     return (hr * 60) + mn;
                 }
 
-                function calcularHoras(e, s, tf = null, cr = null) { // <--- Agregamos cr
+                function calcularHoras(e, s, tf = null, cr = null) {
                     const tfMinutos = tf ? tiempoEnMinutos(tf) : 0;
                     const crMinutos = cr ? tiempoEnMinutos(cr) : 0; // <--- Calculamos minutos crédito
 
-                    // ... (Mantener lógica de Ausencia, Vacaciones y Feriado igual que antes) ...
-                    // Ausencia/Licencia
+                    if (e === '09:09' && s === '09:09') {
+                        return { horas: 0, minutos: 0, total: horasDiarias, esEnfermedad: true };
+                    }
+
+                    // Asueto (día completo)
+                    if (e === '13:13' && s === '13:13') {
+                        return { horas: 0, minutos: 0, total: horasDiarias, esAsueto: true };
+                    }
+
                     if (e === '11:11' && s === '11:11') {
                         return { horas: 0, minutos: 0, total: horasDiarias, esAusencia: true };
                     }
@@ -2818,13 +2864,14 @@
                         const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                         const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
                         const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
+                        const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                        const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
 
-                        if (r.fecha >= inicio && r.fecha <= fin && (esFeriado || esAusencia || esVacaciones)) {
-                            // 🔧 CORRECCIÓN: Solo descontar si el día especial cae en un día hábil
+                        if (r.fecha >= inicio && r.fecha <= fin &&
+                            (esFeriado || esAusencia || esVacaciones || esEnfermedad || esAsueto)) {
                             const fechaObj = new Date(r.fecha.replace(/-/g, '/') + ' 00:00:00');
-                            const diaSemana = fechaObj.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
+                            const diaSemana = fechaObj.getDay();
 
-                            // Solo descontar si este día estaba configurado como día laboral
                             if (diasHabilesConfig.includes(diaSemana)) {
                                 horasDescontar += horasDiariasLocal;
                             }
@@ -2879,8 +2926,10 @@
                         const esFeriado = e === '00:00' && s === '00:00';
                         const esAusencia = e === '11:11' && s === '11:11';
                         const esVacaciones = e === '22:22' && s === '22:22';
+                        const esEnfermedad = e === '09:09' && s === '09:09';
+                        const esAsueto = e === '13:13' && s === '13:13';
 
-                        if (!esFeriado && !esAusencia && !esVacaciones) {
+                        if (!esFeriado && !esAusencia && !esVacaciones && !esEnfermedad && !esAsueto) {
                             UILogic.resetearBoton(btn);
                             UILogic.mostrarToast('Fecha futura no permitida en registro regular', 'warning');
                             return;
@@ -3077,6 +3126,8 @@
 
                     // 4. Mostrar el modal y activar bloqueos
                     $('modal-editar').classList.add('show');
+                    document.body.classList.add('modal-open');
+
                     UILogic.setBloqueoEdicion(true);
 
                     requestAnimationFrame(() => {
@@ -3131,8 +3182,10 @@
                         const esFeriado = e === '00:00' && s === '00:00';
                         const esAusencia = e === '11:11' && s === '11:11';
                         const esVacaciones = e === '22:22' && s === '22:22';
+                        const esEnfermedad = e === '09:09' && s === '09:09';
+                        const esAsueto = e === '13:13' && s === '13:13';
 
-                        if (!esFeriado && !esAusencia && !esVacaciones) {
+                        if (!esFeriado && !esAusencia && !esVacaciones && !esAsueto && !esEnfermedad) {
                             UILogic.restaurarBotonGuardarEdicion(btnGuardar);
                             UILogic.mostrarToast('Fecha futura no permitida en registro regular', 'warning');
                             return;
@@ -3167,7 +3220,7 @@
                     if (!S.validarFechaSegura(f) ||
                         (e && !S.validarHoraSegura(e)) ||
                         (s && !S.validarHoraSegura(s)) ||
-                        (tf && !S.validarHoraSegura(tf))) { // El crédito calculado por sistema es seguro, no hace falta validarlo manual
+                        (tf && !S.validarHoraSegura(tf))) {
 
                         UILogic.restaurarBotonGuardarEdicion(btnGuardar);
                         UILogic.mostrarToast('Verifica los campos (hora inválida)', 'error');
@@ -3243,7 +3296,7 @@
                     if (saved) {
                         // Mensaje personalizado si se aplicó compensación
                         if (cr) {
-                            UILogic.mostrarToast(`Guardado y compensado (+${cr})`, 'success');
+                            UILogic.mostrarToast(`Guardado con Salida Temprano (+${cr})`, 'success');
                         } else {
                             UILogic.mostrarToast('Registro actualizado', 'success');
                         }
@@ -3302,6 +3355,7 @@
                             localStorage.setItem('diasHabiles', JSON.stringify(diasHabiles));
                             localStorage.setItem('horasDiarias', horasDiarias);
                             localStorage.removeItem('horasSemanales');
+                            // ✅ NO tocamos 'temaOscuro' aquí
                         }
                     } catch (e) {
                         UILogic.mostrarToast('Error al guardar', 'error');
@@ -3483,7 +3537,6 @@
                                 registros = registrosImportados;
 
                                 //Validación estricta de tipos de configuración
-                                // BLOQUE NUEVO (PEGAR)
                                 if (data.diasHabiles !== undefined) {
                                     // Caso 1: Es un Array (Backup nuevo) - Validación segura
                                     if (Array.isArray(data.diasHabiles)) {
@@ -3564,10 +3617,15 @@
 
                     if (await guardarYActualizar()) {
                         try {
-                            localStorage.setItem('diasHabiles', diasHabiles);
-                            localStorage.setItem('horasDiarias', horasDiarias);
+
+                            const esPerfilDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
+
+                            if (esPerfilDefault) {
+                                // Solo guardamos diasHabiles y horasDiarias (NO el tema)
+                                localStorage.setItem('diasHabiles', JSON.stringify(diasHabiles));
+                                localStorage.setItem('horasDiarias', horasDiarias);
+                            }
                         } catch (ex) {
-                            // Manejo explícito de errores
                             console.error('Error guardando configuración:', ex);
                             UILogic.mostrarToast('Datos importados pero configuración no guardada', 'warning');
                         }
@@ -3620,19 +3678,17 @@
                     const registrosRango = registros.filter(r => r.fecha >= inicioSemana && r.fecha <= fechaHoy);
                     const registrosMap = new Map(registrosRango.map(r => [r.fecha, r]));
 
-                    // Aseguramos que las fechas se interpreten a las 00:00 localmente para evitar errores de zona horaria
                     let fechaIteracion = new Date(inicioSemana.replace(/-/g, '/') + ' 00:00:00');
                     let fechaLimite = new Date(fechaHoy.replace(/-/g, '/') + ' 00:00:00');
 
                     while (fechaIteracion <= fechaLimite) {
-                        // Formato YYYY-MM-DD manual para evitar saltos de día por UTC
                         const y = fechaIteracion.getFullYear();
                         const m = String(fechaIteracion.getMonth() + 1).padStart(2, '0');
                         const d = String(fechaIteracion.getDate()).padStart(2, '0');
                         const isoDate = `${y}-${m}-${d}`;
 
-                        const numDia = fechaIteracion.getDay(); // 0=Dom, 1=Lun...
-                        const esDiaLaboralConfigurado = diasHabiles.includes(numDia); // Tu configuración personalizada
+                        const numDia = fechaIteracion.getDay();
+                        const esDiaLaboralConfigurado = diasHabiles.includes(numDia);
 
                         const r = registrosMap.get(isoDate);
                         let horasObjetivoDia = 0;
@@ -3641,21 +3697,22 @@
                         const esFeriado = r && r.entrada === '00:00' && r.salida === '00:00';
                         const esAusencia = r && r.entrada === '11:11' && r.salida === '11:11';
                         const esVacaciones = r && r.entrada === '22:22' && r.salida === '22:22';
+                        const esEnfermedad = r && r.entrada === '09:09' && r.salida === '09:09';  // ← AGREGAR
+                        const esAsueto = r && r.entrada === '13:13' && r.salida === '13:13';      // ← AGREGAR
 
                         // Validar si el registro está cerrado o si es un día pasado
-                        const tieneSalida = r && r.salida && !esFeriado && !esAusencia && !esVacaciones;
-                        // Comparamos cadenas de texto para evitar problemas de horas en objetos Date
+                        const tieneSalida = r && r.salida && !esFeriado && !esAusencia && !esVacaciones && !esEnfermedad && !esAsueto;  // ← MODIFICAR
                         const esDiaPasado = isoDate < fechaHoy;
 
                         // Solo sumamos objetivo si es un día configurado Y no es especial
-                        if (esDiaLaboralConfigurado && !esFeriado && !esAusencia && !esVacaciones) {
+                        if (esDiaLaboralConfigurado && !esFeriado && !esAusencia && !esVacaciones && !esEnfermedad && !esAsueto) {  // ← MODIFICAR
                             // Si es un día pasado (ya terminó) O es hoy y ya cerraste turno, cuenta el objetivo
                             if (esDiaPasado || (isoDate === fechaHoy && tieneSalida)) {
                                 horasObjetivoDia = horasDiariasLocal;
                             }
                         }
 
-                        if (r && !esFeriado && !esAusencia && !esVacaciones) {
+                        if (r && !esFeriado && !esAusencia && !esVacaciones && !esEnfermedad && !esAsueto) {  
                             if (r.salida) {
                                 horasHechasDia = r.total;
                             }
@@ -3693,7 +3750,9 @@
                             'normal': 'Normales',
                             'feriado': 'Feriados',
                             'ausencia': 'Ausencias',
-                            'vacaciones': 'Vacaciones'
+                            'vacaciones': 'Vacaciones',
+                            'enfermedad': 'Enfermedades',
+                            'asueto': 'Asuetos'
                         };
                         mensaje += `: ${tipos[tipo]}`;
                     }
@@ -3728,6 +3787,8 @@
                             const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                             const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
                             const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
+                            const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                            const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
 
                             switch (filtroTipo) {
                                 case 'feriado':
@@ -3739,8 +3800,15 @@
                                 case 'vacaciones':
                                     if (!esVacaciones) return false;
                                     break;
+                                case 'enfermedad':
+                                    if (!esEnfermedad) return false;
+                                    break;
+                                case 'asueto':
+                                    if (!esAsueto) return false;
+                                    break;
                                 case 'normal':
-                                    if (esFeriado || esAusencia || esVacaciones) return false;
+                                    if (esFeriado || esAusencia || esVacaciones ||
+                                        esEnfermedad || esAsueto) return false;
                                     break;
                             }
                         }
@@ -3750,7 +3818,12 @@
                 }
 
                 async function registrarVacacionesDirecto(desde, hasta, tipo) {
-                    const entrada = tipo === 'vacaciones' ? '22:22' : tipo === 'ausencia' ? '11:11' : '00:00';
+                    const entrada = tipo === 'vacaciones' ? '22:22' :
+                        tipo === 'ausencia' ? '11:11' :
+                            tipo === 'enfermedad' ? '09:09' :
+                                tipo === 'asueto' ? '13:13' :
+                                    '00:00'; // feriado por defecto
+
                     const salida = entrada;
 
                     let fechaActual = new Date(desde.replace(/-/g, '/') + ' 00:00:00');
@@ -3763,6 +3836,12 @@
                         const d = String(fechaActual.getDate()).padStart(2, '0');
                         fechasARegistrar.push(`${y}-${m}-${d}`);
                         fechaActual.setDate(fechaActual.getDate() + 1);
+                    }
+
+                    // VALIDACIÓN DE LÍMITE
+                    if (fechasARegistrar.length > 60) {
+                        UILogic.mostrarToast(`El rango seleccionado contiene ${fechasARegistrar.length} días.\n Máximo permitido: 60 días por operación.`, 'error');
+                        return;
                     }
 
                     const nuevosRegistros = fechasARegistrar.filter(f => !registros.some(r => r.fecha === f));
@@ -3821,11 +3900,18 @@
                             const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                             const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
                             const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                            return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones;
+                            const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                            const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
+                            return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones &&
+                                !esEnfermedad && !esAsueto;
                         });
                     } else {
                         // Para tipos específicos, borrar SOLO ese tipo
-                        const entrada = tipo === 'vacaciones' ? '22:22' : tipo === 'ausencia' ? '11:11' : '00:00';
+                        const entrada = tipo === 'vacaciones' ? '22:22' :
+                            tipo === 'ausencia' ? '11:11' :
+                                tipo === 'enfermedad' ? '09:09' :
+                                    tipo === 'asueto' ? '13:13' :
+                                        '00:00';
                         const salida = entrada;
 
                         registrosAEliminar = registros.filter(r =>
@@ -3834,6 +3920,11 @@
                             r.entrada === entrada &&
                             r.salida === salida
                         );
+                    }
+
+                    if (registrosAEliminar.length > 60) {
+                        UILogic.mostrarToast(`El rango seleccionado contiene ${registrosAEliminar.length} registros.\n Máximo permitido: 60 registros por operación.`, 'error');
+                        return;
                     }
 
                     if (registrosAEliminar.length === 0) {
@@ -4112,6 +4203,8 @@
                     if (entrada === '00:00' && salida === '00:00') return 'feriado';
                     if (entrada === '11:11' && salida === '11:11') return 'ausencia';
                     if (entrada === '22:22' && salida === '22:22') return 'vacaciones';
+                    if (entrada === '09:09' && salida === '09:09') return 'enfermedad';
+                    if (entrada === '13:13' && salida === '13:13') return 'asueto';
 
                     return null; // Registro normal
                 }
@@ -4207,6 +4300,8 @@
                     const isFeriadoContabilizado = r.entrada === '00:00' && r.salida === '00:00';
                     const isAusencia = r.entrada === '11:11' && r.salida === '11:11';
                     const isVacaciones = r.entrada === '22:22' && r.salida === '22:22';
+                    const isEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                    const isAsueto = r.entrada === '13:13' && r.salida === '13:13';
 
                     const fechaEl = document.createElement('div');
                     fechaEl.className = 'registro-fecha';
@@ -4215,13 +4310,15 @@
                     if (isFeriadoContabilizado) etiqueta = ' 🥳 (Feriado)';
                     else if (isAusencia) etiqueta = ' ✈️ (Ausencia)';
                     else if (isVacaciones) etiqueta = ' 🏖️ (Vacaciones)';
+                    else if (isEnfermedad) etiqueta = ' 🏥 (Enfermedad)';
+                    else if (isAsueto) etiqueta = ' 🎁 (Asueto)';
 
                     fechaEl.textContent = `${obtenerNombreDia(r.fecha)} ${r.fecha.substring(8)}${etiqueta}`;
 
                     // --- VISUALIZACIÓN DE EXTRAS ---
                     const tfText = r.tiempoFuera && r.tiempoFuera !== '' ? ` (${r.tiempoFuera} Fuera)` : '';
 
-                    const crText = r.credito && r.credito !== '00:00' ? ' 🎁 (Asueto)' : '';
+                    const crText = r.credito && r.credito !== '00:00' ? ' 🚪 (Salida Temprano)' : '';
 
                     const horasEl = document.createElement('div');
                     horasEl.className = 'registro-horas';
@@ -4232,8 +4329,12 @@
                         horasEl.textContent = 'Licencia / Ausencia';
                     } else if (isVacaciones) {
                         horasEl.textContent = 'Vacaciones';
-                    } else {
-                        // Agregamos crText aquí al final de la línea
+                    } else if (isEnfermedad) {
+                        horasEl.textContent = 'Enfermedad justificada';
+                    } else if (isAsueto) {
+                        horasEl.textContent = 'Día de asueto';
+                    }
+                    else {
                         horasEl.textContent = `${r.entrada || '-'} → ${r.salida || '-'}${tfText}${crText}`;
                     }
 
@@ -4242,7 +4343,7 @@
                     let totalText = 'Incompleto';
                     totalEl.classList.remove('green-text', 'red-text', 'purple-text');
 
-                    if (isFeriadoContabilizado || isAusencia || isVacaciones) {
+                    if (isFeriadoContabilizado || isAusencia || isVacaciones || isEnfermedad || isAsueto) {
                         totalText = 'Justificado';
                         totalEl.classList.add('purple-text');
                     } else if (r.entrada && r.salida) {
@@ -4417,32 +4518,91 @@
                                 const estaExpandido = detalle.classList.contains('expanded');
 
                                 if (estaExpandido) {
+                                    // Simplemente cerrar
                                     detalle.classList.remove('expanded');
                                     chevronIcon.style.transform = 'rotate(0deg)';
                                 } else {
-                                    lista.querySelectorAll('.registro-mes-detalle.expanded').forEach(otroDetalle => {
-                                        if (otroDetalle !== detalle) {
-                                            otroDetalle.classList.remove('expanded');
-                                            const otroContainer = otroDetalle.closest('.registro-mes-container');
-                                            const otroChevron = otroContainer?.querySelector('.chevron-mes');
-                                            if (otroChevron) otroChevron.style.transform = 'rotate(0deg)';
-                                        }
-                                    });
-                                    detalle.classList.add('expanded');
-                                    chevronIcon.style.transform = 'rotate(180deg)';
+                                    // SECUENCIA MEJORADA: Primero cerrar otros, luego abrir
+                                    const otrosMesesAbiertos = lista.querySelectorAll('.registro-mes-detalle.expanded');
+                                    const hayOtrosAbiertos = Array.from(otrosMesesAbiertos).some(otro => otro !== detalle);
 
-                                    setTimeout(() => {
-                                        // 1. Obtenemos la posición del contenedor del mes
-                                        const rect = contenedor.getBoundingClientRect();
+                                    if (hayOtrosAbiertos) {
+                                        // 1. Cerrar otros meses primero
+                                        otrosMesesAbiertos.forEach(otroDetalle => {
+                                            if (otroDetalle !== detalle) {
+                                                otroDetalle.classList.remove('expanded');
+                                                const otroContainer = otroDetalle.closest('.registro-mes-container');
+                                                const otroChevron = otroContainer?.querySelector('.chevron-mes');
+                                                if (otroChevron) otroChevron.style.transform = 'rotate(0deg)';
+                                            }
+                                        });
 
-                                        // 2. Definimos el margen del header (la barra blanca de arriba)
-                                        const margenHeader = 80;
+                                        // 2. Esperar a que termine la animación de cierre (300ms)
+                                        setTimeout(() => {
+                                            // 3. Ahora sí, abrir el nuevo mes
+                                            detalle.classList.add('expanded');
+                                            chevronIcon.style.transform = 'rotate(180deg)';
 
-                                        // 3. LOGICA CONDICIONAL:
-                                        if (rect.top < margenHeader) {
-                                            contenedor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                        }
-                                    }, 310);
+                                            // 4. Scroll suave después de que se expanda
+                                            setTimeout(() => {
+                                                const margenHeader = 80;
+                                                const alturaVentana = window.innerHeight;
+
+                                                // Buscar los 2 primeros registros dentro del mes expandido
+                                                const registros = detalle.querySelectorAll('.registro-item');
+
+                                                if (registros.length > 0) {
+                                                    // Verificar el primer registro
+                                                    const primerRegistro = registros[0];
+                                                    const rectPrimero = primerRegistro.getBoundingClientRect();
+
+                                                    // Verificar el segundo registro (si existe)
+                                                    const segundoRegistro = registros.length > 1 ? registros[1] : null;
+                                                    const rectSegundo = segundoRegistro ? segundoRegistro.getBoundingClientRect() : null;
+
+                                                    // Verificar si alguno de los dos primeros NO está completamente visible
+                                                    const primeroCortado = rectPrimero.top < margenHeader || rectPrimero.bottom > alturaVentana;
+                                                    const segundoCortado = rectSegundo && (rectSegundo.top < margenHeader || rectSegundo.bottom > alturaVentana);
+
+                                                    // Hacer scroll solo si alguno de los dos primeros está cortado
+                                                    if (primeroCortado || segundoCortado) {
+                                                        contenedor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                    }
+                                                }
+                                            }, 310);
+                                        }, 300);
+                                    } else {
+                                        // No hay otros abiertos, abrir inmediatamente
+                                        detalle.classList.add('expanded');
+                                        chevronIcon.style.transform = 'rotate(180deg)';
+
+                                        setTimeout(() => {
+                                            const margenHeader = 80;
+                                            const alturaVentana = window.innerHeight;
+
+                                            // Buscar los 2 primeros registros dentro del mes expandido
+                                            const registros = detalle.querySelectorAll('.registro-item');
+
+                                            if (registros.length > 0) {
+                                                // Verificar el primer registro
+                                                const primerRegistro = registros[0];
+                                                const rectPrimero = primerRegistro.getBoundingClientRect();
+
+                                                // Verificar el segundo registro (si existe)
+                                                const segundoRegistro = registros.length > 1 ? registros[1] : null;
+                                                const rectSegundo = segundoRegistro ? segundoRegistro.getBoundingClientRect() : null;
+
+                                                // Verificar si alguno de los dos primeros NO está completamente visible
+                                                const primeroCortado = rectPrimero.top < margenHeader || rectPrimero.bottom > alturaVentana;
+                                                const segundoCortado = rectSegundo && (rectSegundo.top < margenHeader || rectSegundo.bottom > alturaVentana);
+
+                                                // Hacer scroll solo si alguno de los dos primeros está cortado
+                                                if (primeroCortado || segundoCortado) {
+                                                    contenedor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                }
+                                            }
+                                        }, 310);
+                                    }
                                 }
                             };
                         })(headerMes, detalleMesActual, chevron, contenedorMesActual);
@@ -4494,9 +4654,16 @@
                     fechaEl.className = 'registro-fecha';
 
                     const emoji = grupo.subtipo === 'feriado' ? '🥳' :
-                        grupo.subtipo === 'ausencia' ? '✈️' : '🏖️';
+                        grupo.subtipo === 'ausencia' ? '✈️' :
+                            grupo.subtipo === 'vacaciones' ? '🏖️' :
+                                grupo.subtipo === 'enfermedad' ? '🏥' :
+                                    grupo.subtipo === 'asueto' ? '🎁' : '🏖️';
+
                     const label = grupo.subtipo === 'feriado' ? 'Feriados' :
-                        grupo.subtipo === 'ausencia' ? 'Ausencias' : 'Vacaciones';
+                        grupo.subtipo === 'ausencia' ? 'Ausencias' :
+                            grupo.subtipo === 'vacaciones' ? 'Vacaciones' :
+                                grupo.subtipo === 'enfermedad' ? 'Enfermedades' :
+                                    grupo.subtipo === 'asueto' ? 'Asuetos' : 'Vacaciones';
 
                     fechaEl.textContent = `${emoji} ${label} (${grupo.registros.length} días)`;
 
@@ -4569,14 +4736,17 @@
                     const feriados = registrosMes.filter(r => r.entrada === '00:00' && r.salida === '00:00').length;
                     const ausencias = registrosMes.filter(r => r.entrada === '11:11' && r.salida === '11:11').length;
                     const vacaciones = registrosMes.filter(r => r.entrada === '22:22' && r.salida === '22:22').length;
+                    const enfermedades = registrosMes.filter(r => r.entrada === '09:09' && r.salida === '09:09').length;
+                    const asuetosDiaCompleto = registrosMes.filter(r => r.entrada === '13:13' && r.salida === '13:13').length;
 
-                    // Contar Asuetos (días con crédito válido)
-                    const asuetos = registrosMes.filter(r => r.credito && r.credito !== '00:00').length;
+                    // Contar Compensaciones/Asuetos parciales (días con crédito válido)
+                    const compensaciones = registrosMes.filter(r => r.credito && r.credito !== '00:00').length;
 
                     // Filtrar solo registros válidos para promedios (excluir feriados y ausencias puras)
                     const registrosValidos = registrosMes.filter(r =>
                         r.entrada && r.salida &&
-                        r.entrada !== '00:00' && r.entrada !== '11:11' && r.entrada !== '22:22'
+                        r.entrada !== '00:00' && r.entrada !== '11:11' && r.entrada !== '22:22' &&
+                        r.entrada !== '09:09' && r.entrada !== '13:13'
                     );
 
                     if (registrosValidos.length === 0) {
@@ -4588,7 +4758,9 @@
                             feriados: feriados,
                             ausencias: ausencias,
                             vacaciones: vacaciones,
-                            asuetos: asuetos // Retornamos el nuevo dato
+                            enfermedades: enfermedades,
+                            asuetosDiaCompleto: asuetosDiaCompleto,
+                            compensaciones: compensaciones
                         };
                     }
 
@@ -4626,7 +4798,9 @@
                         feriados: feriados,
                         ausencias: ausencias,
                         vacaciones: vacaciones,
-                        asuetos: asuetos // Retornamos el nuevo dato
+                        enfermedades: enfermedades,
+                        asuetosDiaCompleto: asuetosDiaCompleto,
+                        compensaciones: compensaciones
                     };
                 }
 
@@ -4639,7 +4813,10 @@
                     const elPromedio = $('stat-promedio-diario');
                     const elFeriados = $('stat-feriados');
                     const elAusencias = $('stat-ausencias');
-                    const elVacaciones = $('stat-vacaciones')
+                    const elVacaciones = $('stat-vacaciones');
+                    const elEnfermedades = $('stat-enfermedades');
+                    const elAsuetosDia = $('stat-asuetos-dia');
+                    const elCompensaciones = $('stat-compensaciones');
 
                     if (elEntrada) elEntrada.textContent = stats.entradaPromedio;
                     if (elSalida) elSalida.textContent = stats.salidaPromedio;
@@ -4648,6 +4825,9 @@
                     if (elFeriados) elFeriados.textContent = stats.feriados;
                     if (elAusencias) elAusencias.textContent = stats.ausencias;
                     if (elVacaciones) elVacaciones.textContent = stats.vacaciones;
+                    if (elEnfermedades) elEnfermedades.textContent = stats.enfermedades;
+                    if (elAsuetosDia) elAsuetosDia.textContent = stats.asuetosDiaCompleto;
+                    if (elCompensaciones) elCompensaciones.textContent = stats.compensaciones;
                 }
 
                 function actualizarUI(idNuevo = null, soloReloj = false) {
@@ -4678,7 +4858,7 @@
                     }
                     const esDiaDeDescanso = !esDiaHabilHoy;
 
-                    // --- LÓGICA DE SEMANA ABIERTA/CERRADA (v6.63) ---
+                    // --- LÓGICA DE SEMANA ABIERTA/CERRADA  ---
                     // Mapa para ordenar Lun(1) a Dom(7) y facilitar cálculo de "futuro"
                     const mapDia = d => d === 0 ? 7 : d;
                     const hoyIndex = mapDia(diaSemanaHoy);
@@ -4744,7 +4924,9 @@
                             r.fecha >= ini && r.fecha <= fechaLimiteCalculo &&
                             !(r.entrada === '00:00' && r.salida === '00:00') &&
                             !(r.entrada === '11:11' && r.salida === '11:11') &&
-                            !(r.entrada === '22:22' && r.salida === '22:22')
+                            !(r.entrada === '22:22' && r.salida === '22:22') &&
+                            !(r.entrada === '09:09' && r.salida === '09:09') &&
+                            !(r.entrada === '13:13' && r.salida === '13:13')
                         ).reduce((s, r) => s + r.total, 0);
 
                         const horasDescontar = D.calcularHorasFeriadoEnRango(ini, fn);
@@ -4790,6 +4972,8 @@
                             const isFeriadoHoy = regHoy.entrada === '00:00' && regHoy.salida === '00:00';
                             const isAusenciaHoy = regHoy.entrada === '11:11' && regHoy.salida === '11:11';
                             const isVacacionesHoy = regHoy.entrada === '22:22' && regHoy.salida === '22:22';
+                            const isEnfermedadHoy = regHoy.entrada === '09:09' && regHoy.salida === '09:09';
+                            const isAsuetoHoy = regHoy.entrada === '13:13' && regHoy.salida === '13:13';
 
                             if (isFeriadoHoy) {
                                 if (statsEl) statsEl.innerHTML = `<div>🥳 Feriado</div>`;
@@ -4806,7 +4990,23 @@
                                 if (progressEl) { progressEl.style.width = '100%'; setProgressBarColor(progressEl, 'purple'); }
                                 if (mensajeEl) mensajeEl.textContent = `¡Día de vacaciones!`;
 
-                            } else {
+                            } else if (isEnfermedadHoy) {
+                                if (statsEl) statsEl.innerHTML = `<div>🏥 Enfermedad</div>`;
+                                if (progressEl) {
+                                    progressEl.style.width = '100%';
+                                    setProgressBarColor(progressEl, 'purple');
+                                }
+                                if (mensajeEl) mensajeEl.textContent = `¡Día justificado por enfermedad!`;
+
+                            } else if (isAsuetoHoy) {
+                                if (statsEl) statsEl.innerHTML = `<div>🎁 Asueto</div>`;
+                                if (progressEl) {
+                                    progressEl.style.width = '100%';
+                                    setProgressBarColor(progressEl, 'purple');
+                                }
+                                if (mensajeEl) mensajeEl.textContent = `¡Día de asueto!`;
+                            }
+                            else {
                                 // --- DÍA NORMAL CON REGISTRO ---
                                 if (regHoy.salida) {
                                     tiempoTranscurrido = regHoy.total;
@@ -4911,7 +5111,7 @@
                             let horaSalida = '';
 
                             if (regHoy && regHoy.entrada && !regHoy.salida && objetivoDiario > 0) {
-                                const esEspecial = (regHoy.entrada === '00:00' || regHoy.entrada === '11:11' || regHoy.entrada === '22:22');
+                                const esEspecial = (regHoy.entrada === '00:00' || regHoy.entrada === '11:11' || regHoy.entrada === '22:22' || regHoy.entrada === '09:09' || regHoy.entrada === '13:13');
 
                                 if (!esEspecial) {
                                     const [hE, mE] = regHoy.entrada.split(':').map(Number);
@@ -4956,12 +5156,17 @@
                 function alternarTema() {
                     let temaOscuro = !D.cargarConfiguracion().temaOscuro;
                     document.body.classList.toggle('dark-mode');
-                    try { localStorage.setItem('temaOscuro', temaOscuro); } catch (e) { }
 
+                    // ✅ Guardar en la raíz (NO dentro del perfil)
+                    try {
+                        localStorage.setItem('temaOscuro', temaOscuro);
+                    } catch (e) { }
+
+                    // Actualizar iconos de todos los botones
                     const botonesTema = [
-                        'theme-toggle',         // Botón del header (PC)
-                        'theme-toggle-modal',   // (Legacy, por si acaso)
-                        'btn-tema-selector'     // El botón en tu Selector de Perfiles
+                        'theme-toggle',
+                        'theme-toggle-modal',
+                        'btn-tema-selector'
                     ];
 
                     botonesTema.forEach(id => {
@@ -5099,14 +5304,17 @@
 
                     UILogic.actualizarFeedbackConfig();
                     $('modal-config').classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
 
                 function cerrarConfig() {
                     $('modal-config').classList.remove('show');
+                    document.body.classList.remove('modal-open');
                 }
 
                 function cerrarEdicion() {
                     $('modal-editar').classList.remove('show');
+                    document.body.classList.remove('modal-open');
                     D.setEditandoId(null);
                 }
 
@@ -5114,11 +5322,13 @@
                     $('modal-config').classList.remove('show');
                     $('file-import').value = '';
                     $('modal-importar').classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
 
                 function cerrarImportar() {
                     $('modal-importar').classList.remove('show');
                     $('modal-config').classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
 
                 function poblarSelectorMeses() {
@@ -5200,7 +5410,7 @@
 
                     // Calcular total de horas del mes
                     const totalHoras = registrosMes
-                        .filter(r => r.entrada !== '00:00' && r.entrada !== '11:11' && r.entrada !== '22:22')
+                        .filter(r => r.entrada !== '00:00' && r.entrada !== '11:11' && r.entrada !== '22:22' && r.entrada !== '09:09' && r.entrada !== '13:13')
                         .reduce((sum, r) => sum + r.total, 0);
 
                     const horasTotales = Math.floor(totalHoras);
@@ -5232,8 +5442,10 @@ REPORTE DE HORAS TRABAJADAS
    • Feriados:               ${stats.feriados}
    • Ausencias:              ${stats.ausencias}
    • Vacaciones:             ${stats.vacaciones}
-   • Asuetos/Compensados:    ${stats.asuetos}
-   
+   • Enfermedades:           ${stats.enfermedades}
+   • Asuetos (día completo): ${stats.asuetosDiaCompleto}
+   • Salidas Temprano:       ${stats.compensaciones}
+
    • Entrada promedio:       ${stats.entradaPromedio}
    • Salida promedio:        ${stats.salidaPromedio}
    • Promedio diario:        ${stats.promedioDiario}
@@ -5263,6 +5475,8 @@ REPORTE DE HORAS TRABAJADAS
                                 const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                                 const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
                                 const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
+                                const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
+                                const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
 
                                 let linea = '';
 
@@ -5272,14 +5486,19 @@ REPORTE DE HORAS TRABAJADAS
                                     linea = `${dia.padEnd(10)} ${fecha}  AUSENCIA`;
                                 } else if (esVacaciones) {
                                     linea = `${dia.padEnd(10)} ${fecha}  VACACIONES`;
-                                } else {
+                                } else if (r.entrada === '09:09' && r.salida === '09:09') {
+                                    linea = `${dia.padEnd(10)} ${fecha}  ENFERMEDAD`;
+                                } else if (r.entrada === '13:13' && r.salida === '13:13') {
+                                    linea = `${dia.padEnd(10)} ${fecha}  ASUETO`;
+                                }
+                                else {
                                     const entrada = r.entrada || '--:--';
                                     const salida = r.salida || '--:--';
                                     const total = r.salida ? `${r.horas}h ${r.minutos}m` : 'Incompleto';
 
                                     // Detalles extras
                                     const tiempoFuera = r.tiempoFuera ? ` (${r.tiempoFuera} fuera)` : '';
-                                    const infoAsueto = (r.credito && r.credito !== '00:00') ? ' [ASUETO]' : '';
+                                    const infoAsueto = (r.credito && r.credito !== '00:00') ? ' [SALIDA TEMPRANO]' : '';
 
                                     // Determinar si cumplió objetivo
                                     let indicador = '  ';
@@ -5321,6 +5540,7 @@ REPORTE DE HORAS TRABAJADAS
                                         feriados: [],
                                         ausencias: [],
                                         vacaciones: [],
+                                        enfermedades: [],
                                         asuetos: []
                                     });
                                 }
@@ -5333,9 +5553,12 @@ REPORTE DE HORAS TRABAJADAS
                                     semana.ausencias.push(r);
                                 } else if (r.entrada === '22:22' && r.salida === '22:22') {
                                     semana.vacaciones.push(r);
+                                } else if (r.entrada === '09:09' && r.salida === '09:09') {
+                                    semana.enfermedades.push(r);
+                                } else if (r.entrada === '13:13' && r.salida === '13:13') {
+                                    semana.asuetos.push(r);
                                 } else {
                                     semana.trabajados.push(r);
-                                    // Si tiene crédito, lo contamos como asueto en esta semana
                                     if (r.credito && r.credito !== '00:00') {
                                         semana.asuetos.push(r);
                                     }
@@ -5377,6 +5600,7 @@ REPORTE DE HORAS TRABAJADAS
                                 if (datos.feriados.length > 0) notasExtras.push(`${datos.feriados.length} feriado(s)`);
                                 if (datos.ausencias.length > 0) notasExtras.push(`${datos.ausencias.length} ausencia(s)`);
                                 if (datos.vacaciones.length > 0) notasExtras.push(`${datos.vacaciones.length} vacacion(es)`);
+                                if (datos.enfermedades.length > 0) notasExtras.push(`${datos.enfermedades.length} enfermedad(es)`);
                                 if (datos.asuetos.length > 0) notasExtras.push(`${datos.asuetos.length} asueto(s)`);
 
                                 if (notasExtras.length > 0) {
@@ -5700,6 +5924,7 @@ Generado por Sistema Horarios
                     // --------------------------------------------------
 
                     document.getElementById('modal-selector-perfiles').classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
 
 
@@ -5766,6 +5991,7 @@ Generado por Sistema Horarios
 
                 function cerrarSelectorPerfiles() {
                     document.getElementById('modal-selector-perfiles').classList.remove('show');
+                    document.body.classList.remove('modal-open');
                 }
 
                 function abrirConfigDesdePerfiles() {
@@ -5800,6 +6026,7 @@ Generado por Sistema Horarios
                     // Cerrar selector y abrir editor
                     document.getElementById('modal-selector-perfiles').classList.remove('show');
                     document.getElementById('modal-editar-perfil').classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
 
                 function cerrarEditorPerfil() {
@@ -6010,7 +6237,7 @@ Generado por Sistema Horarios
                     const hasta = document.getElementById('lote-fecha-hasta').value;
                     const tipo = document.getElementById('lote-tipo').value;
 
-                    // --- Lógica para registrar HOY si no hay fechas ---
+                    // --- CASO 1: Sin fechas (registrar HOY) ---
                     if (!desde && !hasta) {
                         if (tipo === 'normal') {
                             mostrarToast('Para borrar normales, selecciona un rango "Desde" y "Hasta".', 'info');
@@ -6018,8 +6245,6 @@ Generado por Sistema Horarios
                         }
 
                         const fechaHoy = UILogic.obtenerFechaHoy();
-
-                        // Verificamos si ya existe algo hoy
                         const registroExistente = DataManagement.registros().find(r => r.fecha === fechaHoy);
                         if (registroExistente) {
                             mostrarToast('Ya existe un registro para hoy', 'warning');
@@ -6027,12 +6252,36 @@ Generado por Sistema Horarios
                         }
 
                         await DataManagement.registrarDiaEspecial(fechaHoy, tipo);
+                        // LIMPIAR campos después de registro exitoso
+                        document.getElementById('lote-fecha-desde').value = '';
+                        document.getElementById('lote-fecha-hasta').value = '';
                         return;
                     }
 
-                    // Validación de Rango (Solo si el usuario intentó poner fechas)
-                    if ((desde && !hasta) || (!desde && hasta)) {
-                        mostrarToast('Para un rango, debes completar "Desde" y "Hasta"', 'warning');
+                    // --- CASO 2: Solo campo "Desde" (registrar día único) ---
+                    if (desde && !hasta) {
+                        if (tipo === 'normal') {
+                            mostrarToast('Para borrar normales, necesitas un rango completo', 'info');
+                            return;
+                        }
+
+                        // Verificar si ya existe algo en esa fecha
+                        const registroExistente = DataManagement.registros().find(r => r.fecha === desde);
+                        if (registroExistente) {
+                            mostrarToast('Ya existe un registro para esa fecha', 'warning');
+                            return;
+                        }
+
+                        await DataManagement.registrarDiaEspecial(desde, tipo);
+                        // LIMPIAR campos después de registro exitoso
+                        document.getElementById('lote-fecha-desde').value = '';
+                        document.getElementById('lote-fecha-hasta').value = '';
+                        return;
+                    }
+
+                    // --- CASO 3: Solo "Hasta" sin "Desde" (error) ---
+                    if (!desde && hasta) {
+                        mostrarToast('Debes completar "Desde" primero', 'warning');
                         return;
                     }
 
@@ -6041,7 +6290,7 @@ Generado por Sistema Horarios
                         return;
                     }
 
-                    // Lógica de Rango (Igual que antes)
+                    // Lógica de Rango
                     let registrosDelTipoEnRango;
 
                     if (tipo === 'normal') {
@@ -6050,10 +6299,17 @@ Generado por Sistema Horarios
                             const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                             const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
                             const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                            return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones;
+                            const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                            const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
+                            return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones &&
+                                !esEnfermedad && !esAsueto;
                         });
                     } else {
-                        const entrada = tipo === 'vacaciones' ? '22:22' : tipo === 'ausencia' ? '11:11' : '00:00';
+                        const entrada = tipo === 'vacaciones' ? '22:22' :
+                            tipo === 'ausencia' ? '11:11' :
+                                tipo === 'enfermedad' ? '09:09' :
+                                    tipo === 'asueto' ? '13:13' :
+                                        '00:00'; // feriado por defecto
                         const salida = entrada;
 
                         registrosDelTipoEnRango = DataManagement.registros().filter(r =>
@@ -6069,6 +6325,10 @@ Generado por Sistema Horarios
                     } else {
                         await DataManagement.registrarVacacionesDirecto(desde, hasta, tipo);
                     }
+
+                    // LIMPIAR campos después de operación exitosa (registrar o borrar)
+                    document.getElementById('lote-fecha-desde').value = '';
+                    document.getElementById('lote-fecha-hasta').value = '';
                 }
 
                 function actualizarBotonLote() {
@@ -6078,13 +6338,39 @@ Generado por Sistema Horarios
                     const btn = document.getElementById('btn-agregar');
                     const btnTexto = document.getElementById('btn-registrar-texto');
 
-                    // 1. LIMPIEZA: Reseteamos siempre al estilo original (Transparente / Color texto normal)
+                    // 1. LIMPIEZA: Reseteamos siempre al estilo original
                     btn.style.background = '';
                     btn.style.color = '';
 
                     // 2. Si faltan fechas, mostramos "Registrar" estándar y salimos
-                    if (!desde || !hasta) {
+                    if (!desde && !hasta) {
                         btnTexto.textContent = 'Registrar';
+                        return;
+                    }
+
+                    // Solo "Desde" (día único)
+                    if (desde && !hasta) {
+                        if (tipo === 'normal') {
+                            btnTexto.textContent = 'Requiere rango';
+                            btn.style.color = 'var(--text-muted)';
+                            return;
+                        }
+
+                        // Verificar si ya existe
+                        const registroExiste = DataManagement.registros().find(r => r.fecha === desde);
+                        if (registroExiste) {
+                            btnTexto.textContent = 'Ya ocupado';
+                            btn.style.color = 'var(--text-muted)';
+                        } else {
+                            btnTexto.textContent = 'Registrar día';
+                        }
+                        return;
+                    }
+
+                    // Solo "Hasta" (error)
+                    if (!desde && hasta) {
+                        btnTexto.textContent = 'Falta "Desde"';
+                        btn.style.color = 'var(--c-red)';
                         return;
                     }
 
@@ -6097,21 +6383,29 @@ Generado por Sistema Horarios
                             const esFeriado = r.entrada === '00:00' && r.salida === '00:00';
                             const esAusencia = r.entrada === '11:11' && r.salida === '11:11';
                             const esVacaciones = r.entrada === '22:22' && r.salida === '22:22';
-                            return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones;
+                            const esEnfermedad = r.entrada === '09:09' && r.salida === '09:09';
+                            const esAsueto = r.entrada === '13:13' && r.salida === '13:13';
+
+                            return dentroDelRango && !esFeriado && !esAusencia && !esVacaciones &&
+                                !esEnfermedad && !esAsueto;
                         });
 
                         // Caso Normal: Siempre es una acción de borrado
                         if (registrosDelTipoEnRango.length > 0) {
                             btnTexto.textContent = 'Borrar Normales';
-                            btn.style.color = 'var(--c-red)'; // <--- Texto rojo
+                            btn.style.color = 'var(--c-red)';
                         } else {
                             btnTexto.textContent = 'Borrar (Vacío)';
-                            btn.style.color = 'var(--text-muted)'; // Gris para indicar vacío
+                            btn.style.color = 'var(--text-muted)';
                         }
 
                     } else {
-                        // Casos Especiales (Feriado, Vacaciones, Ausencia)
-                        const entrada = tipo === 'vacaciones' ? '22:22' : tipo === 'ausencia' ? '11:11' : '00:00';
+                        // Casos Especiales (Feriado, Vacaciones, Ausencia, Enfermedad, Asueto)
+                        const entrada = tipo === 'vacaciones' ? '22:22' :
+                            tipo === 'ausencia' ? '11:11' :
+                                tipo === 'enfermedad' ? '09:09' :
+                                    tipo === 'asueto' ? '13:13' :
+                                        '00:00'; // feriado por defecto
                         const salida = entrada;
 
                         registrosDelTipoEnRango = DataManagement.registros().filter(r =>
@@ -6208,7 +6502,7 @@ Generado por Sistema Horarios
                         toggleCredito, init, toggleFormulario
                     };
 
-                    // === LISTENERS E INTERACTIVIDAD (CORREGIDO) ===
+                    // === LISTENERS E INTERACTIVIDAD ===
 
                     // A) Inputs normales del formulario principal (Solo formato)
                     ['entrada', 'salida'].forEach(id => {
@@ -6318,22 +6612,24 @@ Generado por Sistema Horarios
 
                     // Si no hay filtro, mostrar modal
                     $('modal-filtros').classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
 
                 function cerrarFiltros() {
                     $('modal-filtros').classList.remove('show');
+                    document.body.classList.remove('modal-open');
                 }
-
-                // Busca estas funciones dentro de UILogic (cerca de la línea 2030) y reemplázalas:
 
                 function mostrarAyuda() {
                     $('modal-config').classList.remove('show');
                     $('modal-ayuda').classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
 
                 function cerrarAyuda() {
                     $('modal-ayuda').classList.remove('show');
                     $('modal-config').classList.add('show');
+                    document.body.classList.add('modal-open');
                 }
 
                 // --- FUNCIÓN GENÉRICA PARA COLAPSABLES ---
@@ -6357,9 +6653,38 @@ Generado por Sistema Horarios
                     if (isExpanded && callback) callback();
                 }
 
-                // Reemplazos simples
                 function toggleFormulario() {
+                    const el = $('form-registro');
+                    const estabaExpandido = el.classList.contains('expanded');
+
+                    // 1. Ejecuta la animación visual de contraer/expandir
                     toggleSeccionGen('form-registro', 'icon-indicator-form', 'formularioExpandido');
+
+                    // 2. Si la tarjeta estaba abierta y ahora se está cerrando...
+                    if (estabaExpandido) {
+
+                        // --- Limpieza de Modo Normal ---
+                        $('entrada').value = '';
+                        $('salida').value = '';
+                        $('fecha').value = obtenerFechaHoy(); // Resetea la fecha a hoy
+
+                        // --- Limpieza de Modo Lote ---
+                        const loteDesde = $('lote-fecha-desde');
+                        const loteHasta = $('lote-fecha-hasta');
+                        const loteTipo = $('lote-tipo');
+
+                        if (loteDesde) loteDesde.value = '';
+                        if (loteHasta) loteHasta.value = '';
+                        if (loteTipo) loteTipo.value = 'feriado'; // Vuelve al valor por defecto
+
+                        // 3. Si estaba activo el modo lote, resetearlo al modo normal
+                        if (modoLoteActivo) {
+                            toggleModoLote();
+                        } else {
+                            // Si ya estaba en modo normal, refrescamos el estado del botón principal
+                            actualizarEstadoBotonTimerMain();
+                        }
+                    }
                 }
 
                 function toggleBotonesHistorico() {
@@ -6411,7 +6736,9 @@ Generado por Sistema Horarios
                     // 4. Detectamos si son días especiales (para bloquear también)
                     const esEspecial = (e === '00:00' && s === '00:00') ||
                         (e === '11:11' && s === '11:11') ||
-                        (e === '22:22' && s === '22:22');
+                        (e === '22:22' && s === '22:22') ||
+                        (e === '09:09' && s === '09:09') ||
+                        (e === '13:13' && s === '13:13');
 
                     // Si hay candado O es día especial O el horario NO está completo...
                     if (bloqueoGlobal || esEspecial || !horarioCompleto) {
@@ -6477,10 +6804,9 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //             CAMBIOS REALIZADOS EN ESTA VERSION 6.69
+    //             CAMBIOS REALIZADOS EN ESTA VERSION 6.77
     // ====================================================================
-    1) se agrega validacion para los registros futuros, ahora no se puede crear un registro
-    con fecha mas alta que la actual, con excepcion de los registros especiales (feriados, etc)
-    2) se corrige la importacion de registros con la variable credito, las cuales no se importaban
+    1) Se agregan 2 nuevos registros especiales: enfermedad y asueto
+    2) se reemplaza la funcion asueto anterior por "salida temprano", internamente es credito
 
     -->
