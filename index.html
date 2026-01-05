@@ -249,6 +249,16 @@
             height: 48px;
         }
 
+        input:disabled,
+        select:disabled {
+            background-color: var(--bg-body);
+            color: var(--text-muted);
+            opacity: 1;
+            -webkit-text-fill-color: var(--text-muted);
+            /* Corrección para Safari/iOS */
+            cursor: not-allowed;
+        }
+
         input:focus,
         select:focus {
             outline: none;
@@ -750,7 +760,7 @@
             }
         }
 
-        select:hover {
+        select:hover:not(:disabled) {
             border-color: var(--text-muted);
         }
 
@@ -7378,6 +7388,7 @@ Generado por Sistema Horarios
     // ====================================================================
     1) Se reemplaza la funcion obtenersemanaactual para corregir el error de calculo de "esta semana"
     2) Se simplifica la funcion borrarperiododirecto
+    3) Se unifica el estilo de los imputs y selects al estar bloqueados en los modales
 
 
     -->
