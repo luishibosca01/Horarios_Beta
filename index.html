@@ -830,46 +830,6 @@
             transform: rotate(180deg);
         }
 
-        /* modal informacion transiciones suaves y scrool */
-        .ayuda-scroll-container {
-            scroll-behavior: smooth;
-        }
-
-        .indice-lista {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 1.5rem;
-            background: var(--input-bg);
-            padding: 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-
-        .indice-item {
-            margin-bottom: 0.5rem;
-        }
-
-        .indice-link {
-            color: var(--text-main);
-            text-decoration: none;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .indice-link:hover {
-            text-decoration: underline;
-        }
-
-        .volver-arriba {
-            display: inline-block;
-            margin-top: 0.5rem;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            text-decoration: none;
-        }
-
         /* Estilos para meses colapsables */
         .registro-mes-container {
             margin: 0;
@@ -1129,11 +1089,11 @@
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </g>
         </symbol>
-        <symbol id="icon-settings" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="3" class="icon-line" stroke="currentColor"></circle>
+        <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path
-                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
-                class="icon-line" stroke="currentColor"></path>
+                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
+            </path>
         </symbol>
         <symbol id="icon-clock" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="10" class="icon-line" stroke="currentColor"></circle>
@@ -1536,12 +1496,12 @@
                     <svg class="icon">
                         <use href="#icon-settings" />
                     </svg>
-                    Configuración
+                    Ajustes
                 </span>
-                <span class="version-text">v7.00</span>
+                <span class="version-text">v7.01</span>
             </h3>
             <div class="form-group">
-                <label>Horas diarias</label>
+                <label>Horas Diarias</label>
                 <div class="input-number-group">
                     <input type="number" id="config-horas-diarias" min="0" max="24" step="0.5" readonly />
                     <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(0.5)"
@@ -1555,7 +1515,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label>Días laborales</label>
+                <label>Días Laborales</label>
                 <div class="week-selector">
                     <label class="day-checkbox">
                         <input type="checkbox" name="dia-habil" value="1">
@@ -1587,34 +1547,27 @@
                 </div>
                 <div id="config-total-feedback" class="config-hint-text">(Total semanal: --hs)</div>
             </div>
-            <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0 1rem 0;">
             <div class="config-actions">
+                <label>Registros</label>
                 <button class="btn-export" onclick="UILogic.mostrarExportar()">
                     <svg class="icon">
                         <use href="#icon-download" />
                     </svg>
-                    Exportar Datos
+                    Descargar
                 </button>
 
                 <button class="btn-backup" onclick="UILogic.mostrarImportar()">
                     <svg class="icon">
                         <use href="#icon-upload" />
                     </svg>
-                    Importar Datos
+                    Restaurar
                 </button>
 
                 <button class="btn-delete" onclick="DataManagement.borrarTodoHistorial()">
                     <svg class="icon">
                         <use href="#icon-trash" />
                     </svg>
-                    Borrar Registros
-                </button>
-
-                <button onclick="UILogic.mostrarAyuda()">
-                    <svg class="icon">
-                        <use href="#icon-help" />
-                    </svg>
-                    Ayuda
+                    Borrar Todo
                 </button>
             </div>
             <div class="btn-group" style="margin-top: 1.5rem;">
@@ -1712,7 +1665,7 @@
         <div class="modal-content">
             <h3><svg class="icon">
                     <use href="#icon-upload" />
-                </svg> Importar Datos</h3>
+                </svg> Restaurar Registros</h3>
             <div class="form-group">
                 <input type="file" id="file-import" accept=".json" style="display: none;" />
                 <button type="button" class="btn-backup" onclick="document.getElementById('file-import').click()">
@@ -1728,13 +1681,14 @@
                 <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0 1rem 0;">
             </div>
             <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
-                <button class="btn-backup" onclick="DataManagement.importarDatos('merge')">
+                <button class="btn-backup" id="btn-combinar" onclick="DataManagement.importarDatos('merge')" disabled>
                     <svg class="icon">
                         <use href="#icon-list" />
                     </svg>
                     Combinar
                 </button>
-                <button class="btn-delete" onclick="DataManagement.importarDatos('replace')">
+                <button class="btn-delete" id="btn-reemplazar" onclick="DataManagement.importarDatos('replace')"
+                    disabled>
                     <svg class="icon">
                         <use href="#icon-trash" />
                     </svg>
@@ -1756,12 +1710,10 @@
                     <svg class="icon">
                         <use href="#icon-download" />
                     </svg>
-                    Exportar Datos
+                    Descargar Registros
                 </span>
             </h3>
-
             <div class="form-group">
-                <label>Selecciona qué exportar</label>
                 <select id="tipo-exportacion">
                     <option value="todo">📦 Todo el perfil</option>
                     <option value="mes-actual">📅 Mes actual</option>
@@ -1841,164 +1793,6 @@
             </div>
         </div>
     </div>
-    <div class="modal" id="modal-ayuda">
-        <div class="modal-content">
-            <h3>
-                <span class="modal-title-block">
-                    <svg class="icon">
-                        <use href="#icon-help" />
-                    </svg>
-                    Ayuda
-                </span>
-            </h3>
-            <div class="ayuda-scroll-container"
-                style="text-align: left; color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; max-height: 400px; overflow-y: auto; padding-right: 5px;">
-
-                <p><strong id="inicio-ayuda">Temas de ayuda:</strong></p>
-                <ul class="indice-lista">
-                    <li class="indice-item"><a href="#ayuda-perfiles" class="indice-link">💼 Gestión de Perfiles</a>
-                    </li>
-                    <li class="indice-item"><a href="#ayuda-entrada" class="indice-link">📥 Registrar
-                            entrada/salida</a>
-                    </li>
-                    <li class="indice-item"><a href="#ayuda-vistas" class="indice-link">👁️ Vista Diario /
-                            Semanal</a>
-                    </li>
-                    <li class="indice-item"><a href="#ayuda-manual" class="indice-link">✏️ Fecha/Hora manual</a>
-                    </li>
-                    <li class="indice-item"><a href="#ayuda-rango" class="indice-link">📅 Vacaciones y Lotes</a>
-                    </li>
-                    <li class="indice-item"><a href="#ayuda-break" class="indice-link">☕ Timer / Tiempo fuera</a>
-                    </li>
-                    <li class="indice-item"><a href="#ayuda-editar" class="indice-link">📝 Editar registro</a></li>
-                    <li class="indice-item"><a href="#ayuda-codigos" class="indice-link">🔢 Códigos horarios</a>
-                    </li>
-                    <li class="indice-item"><a href="#ayuda-extra" class="indice-link">⚙️ Backup y Configuración</a>
-                    </li>
-                </ul>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
-
-                <p id="ayuda-perfiles"><strong>¿Cómo funcionan los Perfiles?</strong></p>
-                <p>Gestiona múltiples trabajos de forma independiente:</p>
-                <ul style="padding-left: 1.5rem; margin-top: 0.5rem;">
-                    <li><strong>Cambiar:</strong> Toca el nombre del perfil en la cabecera (arriba a la derecha).
-                    </li>
-                    <li><strong>Crear:</strong> En el menú, escribe un nombre y toca <svg class="icon">
-                            <use href="#icon-plus" />
-                        </svg>.</li>
-                    <li><strong>Datos independientes:</strong> Cada perfil tiene sus propios registros,
-                        configuración de
-                        horas y días hábiles.</li>
-                </ul>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                <p id="ayuda-entrada"><strong>Registrar Entrada y Salida</strong></p>
-                <p>Simplemente toca el botón grande <svg class="icon">
-                        <use href="#icon-save" />
-                    </svg> <strong>Registrar</strong>.</p>
-                <ul style="padding-left: 1.5rem;">
-                    <li>Si no hay registro hoy: Crea la <strong>Entrada</strong>.</li>
-                    <li>Si ya hay entrada: Registra la <strong>Salida</strong>.</li>
-                </ul>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                <p id="ayuda-vistas"><strong>Cambiar vista (Hoy / Semana)</strong></p>
-                <p>Toca la <strong>tarjeta principal</strong> de estadísticas para alternar entre ver el progreso de
-                    <strong>HOY</strong> o el acumulado de la <strong>SEMANA</strong>.
-                </p>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                <p id="ayuda-manual"><strong>Fecha y Hora manual</strong></p>
-                <p>Toca la flecha <svg class="icon">
-                        <use href="#icon-chevron-down" />
-                    </svg> a la derecha del botón Registrar para desplegar los campos y elegir una fecha u hora
-                    específica.</p>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                <p id="ayuda-rango"><strong>Vacaciones y Lotes</strong></p>
-                <p>Toca el botón <svg class="icon">
-                        <use href="#icon-calendar-simple" />
-                    </svg> junto a la fecha.</p>
-                <ul style="padding-left: 1.5rem;">
-                    <li><strong>Registro rápido:</strong> Sin llenar fechas, toca <strong>Registrar</strong> para
-                        marcar
-                        HOY como el tipo seleccionado (Feriado, Ausencia o Vacaciones, etc).</li>
-                    <li><strong>Registro por lote:</strong> Llena "Desde" y "Hasta" para registrar (o borrar)
-                        múltiples
-                        días simultáneamente.</li>
-                </ul>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                <p id="ayuda-break"><strong>Timer / Tiempo fuera</strong></p>
-                <p>Toca el botón <svg class="icon">
-                        <use href="#icon-coffee" />
-                    </svg>. El timer contará el tiempo que no estás trabajando. Al detenerlo, ese tiempo se
-                    descontará
-                    automáticamente del total del día.</p>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                <p id="ayuda-editar"><strong>Editar historial</strong></p>
-                <p>Toca cualquier registro en la lista inferior para modificarlo. Puedes usar el candado <svg
-                        class="icon">
-                        <use href="#icon-lock" />
-                    </svg> para prevenir ediciones accidentales.</p>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                <p id="ayuda-codigos"><strong>Códigos internos / especiales</strong></p>
-                <p>El sistema usa estas horas para identificar días especiales:</p>
-                <ul style="list-style: none; padding-left: 0.5rem;">
-                    <li>🥳 <strong>Feriados:</strong> 00:00 a 00:00</li>
-                    <li>✈️ <strong>Ausencias:</strong> 11:11 a 11:11</li>
-                    <li>🏖️ <strong>Vacaciones:</strong> 12:12 a 12:12</li>
-                    <li>🎁 <strong>Asuetos:</strong> 13:13 a 13:13</li>
-                    <li>🏥 <strong>Enfermedades:</strong> 14:14 a 14:14</li>
-                </ul>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 0.5rem 0;">
-
-                <p id="ayuda-extra"><strong>Backup y Configuración</strong></p>
-                <ul style="padding-left: 1.5rem;">
-                    <li><strong>Exportar:</strong> Guarda una copia de seguridad (JSON) del perfil actual.</li>
-                    <li><strong>Importar:</strong> Restaura datos (puedes Combinar o Reemplazar).</li>
-                    <li><strong>Filtros:</strong> Usa el icono <svg class="icon">
-                            <use href="#icon-filter" />
-                        </svg> en el historial para buscar fechas específicas.</li>
-                    <li><strong>Datos:</strong> Se guardan de forma local en el almacenamiento del navegador
-                        (localStorage) del dispositvo en uso
-                    </li>
-                </ul>
-                <a href="#inicio-ayuda" class="volver-arriba">↑ Volver al índice</a>
-
-                <br><br>
-                <p style="font-size: 0.8rem; text-align: center; opacity: 0.7;">
-                    Sistema Luigibosca 2025
-                </p>
-            </div>
-            <div class="btn-group">
-                <button class="btn-cancel" onclick="UILogic.cerrarAyuda()">
-                    <svg class="icon">
-                        <use href="#icon-undo" />
-                    </svg> Volver
-                </button>
-            </div>
-        </div>
-    </div>
     <div class="modal" id="modal-selector-perfiles">
         <div class="modal-content">
             <h3>
@@ -2028,7 +1822,7 @@
                     <svg class="icon">
                         <use href="#icon-settings" />
                     </svg>
-                    Configuración
+                    Ajustes
                 </button>
                 <button class="time-btn" id="theme-toggle-modal" onclick="UILogic.alternarTema()" title="Cambiar Tema">
                     <svg class="icon">
@@ -4155,7 +3949,7 @@
                             }
                         } catch (ex) {
                             console.error('Error guardando configuración:', ex);
-                            UILogic.mostrarToast('Datos importados pero configuración no guardada', 'warning');
+                            UILogic.mostrarToast('Datos importados pero ajustes no guardados', 'warning');
                         }
 
                         UILogic.mostrarToast(mensajeExito, 'success');
@@ -5891,6 +5685,18 @@
                             nombreEl.style.display = 'none';
                             nombreEl.textContent = '';
                         }
+
+                        const btnCombinar = document.getElementById('btn-combinar');
+                        const btnReemplazar = document.getElementById('btn-reemplazar');
+
+                        if (btnCombinar) {
+                            btnCombinar.disabled = true;
+                            btnCombinar.style.opacity = '0.5';
+                        }
+                        if (btnReemplazar) {
+                            btnReemplazar.disabled = true;
+                            btnReemplazar.style.opacity = '0.5';
+                        }
                     });
                 }
 
@@ -6247,7 +6053,7 @@ REPORTE DE HORAS TRABAJADAS
 
 ────────────────────────────────────────────────────────────────
 
-⚙️ CONFIGURACIÓN
+⚙️ Ajustes
 ────────────────────────────────────────────────────────────────
 
    • Horas diarias:          ${D.horasDiarias()}
@@ -7346,9 +7152,8 @@ Generado por Sistema Horarios
                         cerrarEdicion, mostrarImportar, cerrarImportar, actualizarUI, mostrarToast,
                         mostrarError, limpiarError, resetearBoton, restaurarBotonGuardarEdicion,
                         limpiarCampo, obtenerFechaHoy, mostrarFiltros, poblarSelectorMeses, actualizarBotonLote,
-                        cerrarFiltros, mostrarAyuda, registrarLoteDesdeCard,
-                        cerrarAyuda, cambiarMesStats, generarReporte, toggleBotonesHistorico, toggleStats, sumarMinutosAHora,
-                        toggleTimerBreakMain, actualizarEstadoBotonTimerMain, toggleBloqueoEdicion, setBloqueoEdicion,
+                        cerrarFiltros, registrarLoteDesdeCard, cambiarMesStats, generarReporte, toggleBotonesHistorico, toggleStats,
+                        sumarMinutosAHora, toggleTimerBreakMain, actualizarEstadoBotonTimerMain, toggleBloqueoEdicion, setBloqueoEdicion,
                         actualizarFeedbackConfig, poblarSelectorMeses, abrirSelectorPerfiles, actualizarBotonLote,
                         cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil, toggleModoLote,
                         eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
@@ -7499,10 +7304,40 @@ Generado por Sistema Horarios
                     if (fileInput) {
                         fileInput.addEventListener('change', (e) => {
                             const nombreEl = document.getElementById('nombre-archivo-seleccionado');
-                            if (nombreEl && e.target.files.length > 0) {
-                                const nombreArchivo = e.target.files[0].name;
-                                nombreEl.textContent = `✓ ${nombreArchivo}`;
-                                nombreEl.style.display = 'block';
+                            const btnCombinar = document.getElementById('btn-combinar');
+                            const btnReemplazar = document.getElementById('btn-reemplazar');
+
+                            if (e.target.files.length > 0) {
+                                // ✅ Mostrar nombre del archivo
+                                if (nombreEl) {
+                                    const nombreArchivo = e.target.files[0].name;
+                                    nombreEl.textContent = `✓ ${nombreArchivo}`;
+                                    nombreEl.style.display = 'block';
+                                }
+
+                                // Habilitar botones
+                                if (btnCombinar) {
+                                    btnCombinar.disabled = false;
+                                    btnCombinar.style.opacity = '1';
+                                }
+                                if (btnReemplazar) {
+                                    btnReemplazar.disabled = false;
+                                    btnReemplazar.style.opacity = '1';
+                                }
+                            } else {
+                                // Si se cancela la selección, ocultar y deshabilitar
+                                if (nombreEl) {
+                                    nombreEl.style.display = 'none';
+                                    nombreEl.textContent = '';
+                                }
+                                if (btnCombinar) {
+                                    btnCombinar.disabled = true;
+                                    btnCombinar.style.opacity = '0.5';
+                                }
+                                if (btnReemplazar) {
+                                    btnReemplazar.disabled = true;
+                                    btnReemplazar.style.opacity = '0.5';
+                                }
                             }
                         });
                     }
@@ -7521,14 +7356,6 @@ Generado por Sistema Horarios
 
                 function cerrarFiltros() {
                     ModalManager.cerrar('modal-filtros');
-                }
-
-                function mostrarAyuda() {
-                    ModalManager.alternar('modal-config', 'modal-ayuda');
-                }
-
-                function cerrarAyuda() {
-                    ModalManager.alternar('modal-ayuda', 'modal-config');
                 }
 
                 // --- FUNCIÓN GENÉRICA PARA COLAPSABLES ---
@@ -7697,8 +7524,8 @@ Generado por Sistema Horarios
                     init, obtenerFechaHoy, pegarHoraActual, alternarTema, alternarVista, cerrarConfig,
                     cerrarEdicion, mostrarImportar, cerrarImportar, actualizarUI, mostrarToast, mostrarError,
                     limpiarError, resetearBoton, restaurarBotonGuardarEdicion, toggleFormulario,
-                    limpiarCampo, mostrarFiltros, cerrarFiltros, mostrarAyuda, registrarLoteDesdeCard,
-                    cerrarAyuda, cambiarMesStats, generarReporte, toggleBotonesHistorico, toggleStats, sumarMinutosAHora,
+                    limpiarCampo, mostrarFiltros, cerrarFiltros, registrarLoteDesdeCard,
+                    cambiarMesStats, generarReporte, toggleBotonesHistorico, toggleStats, sumarMinutosAHora,
                     toggleTimerBreakMain, actualizarEstadoBotonTimerMain, toggleBloqueoEdicion, setBloqueoEdicion,
                     actualizarFeedbackConfig, poblarSelectorMeses, abrirSelectorPerfiles, actualizarBotonLote,
                     cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil, toggleModoLote,
@@ -7738,9 +7565,9 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //             CAMBIOS REALIZADOS EN ESTA VERSION 7.00
+    //             CAMBIOS REALIZADOS EN ESTA VERSION 7.01
     // ====================================================================
-    1) Se modifican etiquetas del boton registrar principal
-    2) Se agregan funciones para una exportacion personaliza de los registros
+    1) Se modifican etiquetas del modal configuracion, exportar y importar
+    2) Se quita el modal ayuda y todo lo relacionado con sus funciones
 
     -->
