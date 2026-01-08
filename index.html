@@ -1538,7 +1538,7 @@
                     </svg>
                     Configuración
                 </span>
-                <span class="version-text">v6.99</span>
+                <span class="version-text">v7.00</span>
             </h3>
             <div class="form-group">
                 <label>Horas diarias</label>
@@ -1589,7 +1589,7 @@
             </div>
             <hr style="border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0 1rem 0;">
             <div class="config-actions">
-                <button class="btn-export" onclick="DataManagement.exportarJSON()">
+                <button class="btn-export" onclick="UILogic.mostrarExportar()">
                     <svg class="icon">
                         <use href="#icon-download" />
                     </svg>
@@ -1741,6 +1741,54 @@
                     Reemplazar
                 </button>
                 <button class="btn-cancel" onclick="UILogic.cerrarImportar()">
+                    <svg class="icon">
+                        <use href="#icon-undo" />
+                    </svg>
+                    Volver
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="modal-exportar">
+        <div class="modal-content">
+            <h3>
+                <span class="modal-title-block">
+                    <svg class="icon">
+                        <use href="#icon-download" />
+                    </svg>
+                    Exportar Datos
+                </span>
+            </h3>
+
+            <div class="form-group">
+                <label>Selecciona qué exportar</label>
+                <select id="tipo-exportacion">
+                    <option value="todo">📦 Todo el perfil</option>
+                    <option value="mes-actual">📅 Mes actual</option>
+                    <option value="rango">📊 Rango personalizado</option>
+                </select>
+            </div>
+
+            <!-- Campos de rango (ocultos por defecto) -->
+            <div id="campos-rango-exportar" style="display: none;">
+                <div class="form-group">
+                    <label>Desde</label>
+                    <input type="date" id="export-fecha-desde" />
+                </div>
+                <div class="form-group">
+                    <label>Hasta</label>
+                    <input type="date" id="export-fecha-hasta" />
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-export" onclick="UILogic.ejecutarExportacion()">
+                    <svg class="icon">
+                        <use href="#icon-download" />
+                    </svg>
+                    Descargar
+                </button>
+                <button class="btn-cancel" onclick="UILogic.cerrarExportar()">
                     <svg class="icon">
                         <use href="#icon-undo" />
                     </svg>
@@ -3824,7 +3872,7 @@
                         registros,
                         diasHabiles,
                         horasDiarias,
-                        fecha: fechaLocal, // ✅ Fecha local sin conversión UTC
+                        fecha: fechaLocal, // Fecha local sin conversión UTC
                         version: S.SECURITY_LIMITS.SCHEMA_VERSION
                     };
 
@@ -3894,7 +3942,6 @@
 
                             // Parse seguro con protección contra Prototype Pollution
                             const data = JSON.parse(contenido, (key, value) => {
-                                // Bloquear propiedades peligrosas
                                 if (['__proto__', 'constructor', 'prototype'].includes(key)) {
                                     console.warn('⚠️ Intento de prototype pollution bloqueado');
                                     return undefined;
@@ -3902,8 +3949,17 @@
                                 return value;
                             });
 
-                            // claves permitidas
-                            const allowedRootKeys = ['registros', 'diasHabiles', 'horasDiarias', 'fecha', 'version', 'hash', 'timestamp'];
+                            // VALIDACIÓN DE CLAVES PERMITIDAS (ACTUALIZADA)
+                            const allowedRootKeys = [
+                                'registros',
+                                'diasHabiles',
+                                'horasDiarias',
+                                'fecha',
+                                'version',
+                                'hash',
+                                'timestamp',
+                                'rangoExportado'
+                            ];
                             const dataKeys = Object.keys(data);
                             const hasInvalidKeys = dataKeys.some(k => !allowedRootKeys.includes(k));
 
@@ -3912,7 +3968,7 @@
                                 return;
                             }
 
-                            //Validación estricta de estructura
+                            // Validación estricta de estructura
                             if (!data || typeof data !== 'object' || Array.isArray(data)) {
                                 UILogic.mostrarToast('Estructura de archivo inválida', 'error');
                                 return;
@@ -3923,13 +3979,41 @@
                                 return;
                             }
 
-                            //Validar límite de registros antes de procesar
+                            // NUEVA VALIDACIÓN: rangoExportado
+                            if (data.rangoExportado !== undefined) {
+                                // Sanitizar y validar formato
+                                const rangoSafe = S.sanitizeString(String(data.rangoExportado), 100);
+
+                                // Validar que solo contenga caracteres seguros
+                                const regexRangoSeguro = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\-:]+$/;
+                                if (!regexRangoSeguro.test(rangoSafe)) {
+                                    UILogic.mostrarToast('Metadatos de rango inválidos', 'error');
+                                    return;
+                                }
+
+                                // Opcional: Validar coherencia (si viene rango, verificar que los registros coincidan)
+                                if (rangoSafe.includes('Mes')) {
+                                    const mesMatch = rangoSafe.match(/(\d{4}-\d{2})/);
+                                    if (mesMatch && data.registros.length > 0) {
+                                        const mesEsperado = mesMatch[1];
+                                        const todosDelMes = data.registros.every(r =>
+                                            r.fecha && r.fecha.startsWith(mesEsperado)
+                                        );
+                                        if (!todosDelMes) {
+                                            console.warn('⚠️ Advertencia: Registros no coinciden con el rango declarado');
+                                            // No bloqueamos, solo advertimos
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Validar límite de registros antes de procesar
                             if (data.registros.length > S.SECURITY_LIMITS.MAX_REGISTROS) {
                                 UILogic.mostrarToast(`Máximo ${S.SECURITY_LIMITS.MAX_REGISTROS} registros permitidos`, 'error');
                                 return;
                             }
 
-                            //Filtrar y normalizar datos
+                            // Filtrar y normalizar datos
                             const registrosImportados = data.registros
                                 .filter(r => S.validarRegistroSeguro(r))
                                 .map(r => {
@@ -3968,32 +4052,35 @@
 
                                 registros = registrosImportados;
 
-                                //Validación estricta de tipos de configuración
+                                // VALIDACIÓN MEJORADA DE diasHabiles (SOPORTA AMBOS FORMATOS)
                                 if (data.diasHabiles !== undefined) {
-                                    // Caso 1: Es un Array (Backup nuevo) - Validación segura
                                     if (Array.isArray(data.diasHabiles)) {
-                                        // Filtramos solo números válidos entre 0 (domingo) y 6 (sábado)
-                                        const diasValidos = data.diasHabiles.filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
+                                        // Formato nuevo (v6.63+)
+                                        const diasValidos = data.diasHabiles.filter(d =>
+                                            Number.isInteger(d) && d >= 0 && d <= 6
+                                        );
                                         if (diasValidos.length > 0) {
                                             diasHabiles = diasValidos;
                                         }
-                                    }
-                                    // Caso 2: Es un Número (Backup antiguo) - Conversión
-                                    else {
+                                    } else {
+                                        // Formato antiguo (número)
                                         const diasParsed = parseFloat(data.diasHabiles);
                                         if (Number.isFinite(diasParsed) && diasParsed >= 1 && diasParsed <= 7) {
-                                            // Convertimos el número antiguo al nuevo formato array
                                             const diasArray = [];
-                                            for (let i = 1; i <= diasParsed; i++) diasArray.push(i); // 1 a N
-                                            if (diasParsed === 7) diasArray.push(0); // Agregar domingo si eran 7 días
+                                            for (let i = 1; i <= diasParsed; i++) diasArray.push(i);
+                                            if (diasParsed === 7) diasArray.push(0);
                                             diasHabiles = diasArray;
                                         }
                                     }
                                 }
 
+                                // VALIDACIÓN DE horasDiarias
                                 if (data.horasDiarias !== undefined) {
-                                    const horasParsed = typeof data.horasDiarias === 'string' ? parseFloat(data.horasDiarias) : data.horasDiarias;
-                                    if (Number.isFinite(horasParsed) && horasParsed >= 1 && horasParsed <= 24) {
+                                    const horasParsed = typeof data.horasDiarias === 'string'
+                                        ? parseFloat(data.horasDiarias)
+                                        : data.horasDiarias;
+
+                                    if (Number.isFinite(horasParsed) && horasParsed >= 0 && horasParsed <= 24) {
                                         horasDiarias = horasParsed;
                                     }
                                 }
@@ -4015,7 +4102,7 @@
                                     return;
                                 }
 
-                                //Validar que no se exceda el límite total
+                                // Validar que no se exceda el límite total
                                 if (registros.length + nuevos.length > S.SECURITY_LIMITS.MAX_REGISTROS) {
                                     UILogic.mostrarToast(`Límite alcanzado. Solo se pueden agregar ${S.SECURITY_LIMITS.MAX_REGISTROS - registros.length} registros más`, 'error');
                                     return;
@@ -6936,7 +7023,7 @@ Generado por Sistema Horarios
                         return;
                     }
 
-                    // ✅ VALIDACIÓN DE FECHAS ANTES DE PROCESAR
+                    // VALIDACIÓN DE FECHAS ANTES DE PROCESAR
                     if (!S.validarFechaSegura(desde)) {
                         btnTexto.textContent = 'Fecha Inicial Inválida';
                         btn.style.color = 'var(--c-red)';
@@ -7051,6 +7138,170 @@ Generado por Sistema Horarios
                     }
                 }
 
+                function mostrarExportar() {
+                    ModalManager.alternar('modal-config', 'modal-exportar', null, () => {
+                        // Reset del selector
+                        const tipoSelect = document.getElementById('tipo-exportacion');
+                        if (tipoSelect) tipoSelect.value = 'todo';
+
+                        // Ocultar campos de rango
+                        const camposRango = document.getElementById('campos-rango-exportar');
+                        if (camposRango) camposRango.style.display = 'none';
+
+                        // Limpiar fechas
+                        document.getElementById('export-fecha-desde').value = '';
+                        document.getElementById('export-fecha-hasta').value = '';
+                    });
+                }
+
+                function cerrarExportar() {
+                    ModalManager.alternar('modal-exportar', 'modal-config');
+                }
+
+                function toggleCamposRangoExport() {
+                    const tipo = document.getElementById('tipo-exportacion').value;
+                    const camposRango = document.getElementById('campos-rango-exportar');
+
+                    if (tipo === 'rango') {
+                        camposRango.style.display = 'block';
+                    } else {
+                        camposRango.style.display = 'none';
+                    }
+                }
+
+                async function ejecutarExportacion() {
+                    const tipo = document.getElementById('tipo-exportacion').value;
+                    const btn = document.querySelector('#modal-exportar .btn-export');
+
+                    btn.disabled = true;
+
+                    try {
+                        if (tipo === 'todo') {
+                            // Exportación completa (función existente)
+                            D.exportarJSON();
+                            cerrarExportar();
+
+                        } else if (tipo === 'mes-actual') {
+                            // Exportar solo mes actual
+                            const hoy = new Date();
+                            const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+                            await exportarRango(mesActual, mesActual, true);
+
+                        } else if (tipo === 'rango') {
+                            // Exportar rango personalizado
+                            const desde = S.sanitizeString(document.getElementById('export-fecha-desde').value, 10);
+                            const hasta = S.sanitizeString(document.getElementById('export-fecha-hasta').value, 10);
+
+                            if (!desde || !hasta) {
+                                mostrarToast('Completa ambas fechas', 'error');
+                                btn.disabled = false;
+                                return;
+                            }
+
+                            if (!S.validarFechaSegura(desde) || !S.validarFechaSegura(hasta)) {
+                                mostrarToast('Fechas inválidas', 'error');
+                                btn.disabled = false;
+                                return;
+                            }
+
+                            if (desde > hasta) {
+                                mostrarToast('La fecha inicial debe ser anterior a la final', 'error');
+                                btn.disabled = false;
+                                return;
+                            }
+
+                            await exportarRango(desde, hasta, false);
+                        }
+
+                    } catch (error) {
+                        console.error('Error en exportación:', error);
+                        mostrarToast('Error al exportar', 'error');
+                    } finally {
+                        btn.disabled = false;
+                    }
+                }
+
+                async function exportarRango(desde, hasta, esMes = false) {
+                    // Filtrar registros por rango
+                    let registrosFiltrados;
+
+                    if (esMes) {
+                        // Mes completo: "2025-01" incluye del 01 al 31
+                        const [año, mes] = desde.split('-').map(Number);
+                        registrosFiltrados = D.registros().filter(r => {
+                            const [aReg, mReg] = r.fecha.split('-').map(Number);
+                            return aReg === año && mReg === mes;
+                        });
+                    } else {
+                        // Rango exacto
+                        registrosFiltrados = D.registros().filter(r =>
+                            r.fecha >= desde && r.fecha <= hasta
+                        );
+                    }
+
+                    if (registrosFiltrados.length === 0) {
+                        mostrarToast('No hay registros en ese rango', 'warning');
+                        return;
+                    }
+
+                    // Generar fecha local
+                    const ahora = new Date();
+                    const año = ahora.getFullYear();
+                    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+                    const dia = String(ahora.getDate()).padStart(2, '0');
+                    const hora = String(ahora.getHours()).padStart(2, '0');
+                    const minuto = String(ahora.getMinutes()).padStart(2, '0');
+                    const segundo = String(ahora.getSeconds()).padStart(2, '0');
+                    const fechaLocal = `${año}-${mes}-${dia} ${hora}:${minuto}:${segundo}`;
+
+                    const data = {
+                        registros: registrosFiltrados,
+                        diasHabiles: D.diasHabiles(),
+                        horasDiarias: D.horasDiarias(),
+                        fecha: fechaLocal,
+                        version: S.SECURITY_LIMITS.SCHEMA_VERSION,
+                        rangoExportado: esMes ? `Mes ${desde}` : `${desde} a ${hasta}`
+
+                    };
+
+                    if (data.rangoExportado) {
+                        data.rangoExportado = S.sanitizeString(data.rangoExportado, 100);
+                    }
+
+                    try {
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+
+                        // Nombre del archivo
+                        let nombrePerfil = 'Backup';
+                        if (window.PerfilManager) {
+                            nombrePerfil = window.PerfilManager.obtenerDatosPerfil().nombre;
+                        }
+                        const nombreSafe = nombrePerfil.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ'\-_ ]/g, '').trim().replace(/\s+/g, '_');
+                        const fechaHoy = `${año}-${mes}-${dia}`;
+
+                        const sufijo = esMes ? `_${desde}` : `_${desde}_${hasta}`;
+                        a.download = `Horarios_${nombreSafe}${sufijo}_${fechaHoy}.json`;
+
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        const mensaje = esMes
+                            ? `Exportados ${registrosFiltrados.length} registros del mes`
+                            : `Exportados ${registrosFiltrados.length} registros`;
+                        mostrarToast(mensaje, 'success');
+                        cerrarExportar();
+
+                    } catch (e) {
+                        console.error(e);
+                        mostrarToast('Error al exportar', 'error');
+                    }
+                }
+
                 async function init() {
                     if (typeof (Storage) === "undefined") {
                         alert("Tu navegador no soporta localStorage.");
@@ -7102,7 +7353,8 @@ Generado por Sistema Horarios
                         cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil, toggleModoLote,
                         eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                         iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
-                        toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo
+                        toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
+                        mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport,
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -7234,6 +7486,14 @@ Generado por Sistema Horarios
                     };
                     agregarListenersFecha(loteDesde);
                     agregarListenersFecha(loteHasta);
+
+                    // Listener para mostrar/ocultar campos de rango en exportación
+                    const tipoExportSelect = document.getElementById('tipo-exportacion');
+                    if (tipoExportSelect) {
+                        tipoExportSelect.addEventListener('change', () => {
+                            UILogic.toggleCamposRangoExport();
+                        });
+                    }
                     // Listener para mostrar nombre de archivo seleccionado
                     const fileInput = document.getElementById('file-import');
                     if (fileInput) {
@@ -7444,7 +7704,8 @@ Generado por Sistema Horarios
                     cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil, toggleModoLote,
                     eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                     iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
-                    toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo
+                    toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
+                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport,
                 };
 
             })(SecurityAndUtils, DataManagement);
@@ -7477,9 +7738,9 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //             CAMBIOS REALIZADOS EN ESTA VERSION 6.99
+    //             CAMBIOS REALIZADOS EN ESTA VERSION 7.00
     // ====================================================================
     1) Se modifican etiquetas del boton registrar principal
-
+    2) Se agregan funciones para una exportacion personaliza de los registros
 
     -->
