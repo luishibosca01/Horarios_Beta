@@ -672,19 +672,7 @@
             from {
                 opacity: 0;
                 filter: blur(5px);
-            }
-
-            to {
-                opacity: 1;
-                filter: blur(0);
-            }
-        }
-
-        @keyframes fade-blur-green {
-            from {
-                opacity: 0;
-                filter: blur(5px);
-                background-color: var(--c-green);
+                background-color: var(--c-green)
             }
 
             to {
@@ -801,7 +789,7 @@
         /* Animación al crear y eliminar registro */
 
         .nuevo-registro-animacion {
-            animation: fade-blur-green 0.5s ease-out forwards;
+            animation: fade-blur 0.5s ease-out forwards;
             transform-origin: center;
             z-index: 10;
             position: relative;
@@ -1067,19 +1055,6 @@
             border: 1px solid var(--c-green);
             font-weight: bold;
             transform: scale(1.1);
-        }
-
-        /* Animación para valores de estadísticas */
-        .stat-value {
-            transition: opacity 0.3s ease-out;
-        }
-
-        .stat-value.fade-out {
-            opacity: 0;
-        }
-
-        .stat-value.fade-in {
-            animation: fade-blur 0.3s ease-out forwards;
         }
     </style>
 </head>
@@ -5054,7 +5029,7 @@
                         }
                     }
 
-                    // CAPTURAR ALTURA ACTUAL ANTES DE HACER CAMBIOS
+                    // 🎯 CAPTURAR ALTURA ACTUAL ANTES DE HACER CAMBIOS
                     let alturaAnterior = 0;
                     if (statsGrid) {
                         alturaAnterior = statsGrid.offsetHeight;
@@ -5086,13 +5061,35 @@
                     const toggleStatItem = (element, value) => {
                         if (!element) return;
                         const statItem = element.closest('.stat-item');
-                        if (statItem) {
-                            if (value === 0) {
-                                statItem.style.display = 'none';
-                            } else {
-                                statItem.style.display = '';
-                                element.textContent = value;
+                        if (!statItem) return;
+
+                        if (value === 0) {
+                            // Ocultar con animación
+                            if (statItem.style.display !== 'none') {
+                                statItem.classList.add('hiding');
+                                statItem.classList.remove('showing');
+
+                                setTimeout(() => {
+                                    statItem.style.display = 'none';
+                                    statItem.classList.remove('hiding');
+                                }, 300);
                             }
+                        } else {
+                            // Mostrar con animación
+                            if (statItem.style.display === 'none') {
+                                statItem.style.display = '';
+                                statItem.classList.add('hiding'); // Empezar oculto
+
+                                requestAnimationFrame(() => {
+                                    statItem.classList.remove('hiding');
+                                    statItem.classList.add('showing');
+                                });
+
+                                setTimeout(() => {
+                                    statItem.classList.remove('showing');
+                                }, 300);
+                            }
+                            element.textContent = value;
                         }
                     };
 
@@ -5108,14 +5105,36 @@
                         const statItem = elTiempoFueraTotal.closest('.stat-item');
                         if (statItem) {
                             if (stats.tiempoFueraTotal === '0h 0m') {
-                                statItem.style.display = 'none';
+                                // Ocultar con animación
+                                if (statItem.style.display !== 'none') {
+                                    statItem.classList.add('hiding');
+                                    statItem.classList.remove('showing');
+
+                                    setTimeout(() => {
+                                        statItem.style.display = 'none';
+                                        statItem.classList.remove('hiding');
+                                    }, 300);
+                                }
                             } else {
-                                statItem.style.display = '';
+                                // Mostrar con animación
+                                if (statItem.style.display === 'none') {
+                                    statItem.style.display = '';
+                                    statItem.classList.add('hiding');
+
+                                    requestAnimationFrame(() => {
+                                        statItem.classList.remove('hiding');
+                                        statItem.classList.add('showing');
+                                    });
+
+                                    setTimeout(() => {
+                                        statItem.classList.remove('showing');
+                                    }, 300);
+                                }
                             }
                         }
                     }
 
-                    // ANIMACIÓN SUAVE SI CAMBIÓ LA ALTURA
+                    // 🎯 ANIMACIÓN SUAVE SI CAMBIÓ LA ALTURA
                     if (statsGrid && alturaAnterior > 0) {
                         requestAnimationFrame(() => {
                             const alturaNueva = statsGrid.offsetHeight;
@@ -7708,7 +7727,7 @@ Generado por Sistema Horarios
 <!--// ====================================================================
     //             CAMBIOS REALIZADOS EN ESTA VERSION 7.07
     // ====================================================================
-    1) Se agrega animacion a la tarjeta de estadisticas
+    1) Se Agrega animacion a tarjeta de estadisticas
 
 
     -->
