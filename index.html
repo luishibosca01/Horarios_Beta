@@ -5006,7 +5006,6 @@
 
                 function actualizarEstadisticas(mesAnio = null) {
                     const selectMes = $('select-mes-stats');
-                    const statsGrid = document.querySelector('#form-stats .stats-grid');
 
                     // Si no se especifica mes, usar el seleccionado (o el actual como fallback)
                     if (!mesAnio && selectMes) {
@@ -5027,12 +5026,6 @@
                             mesAnio = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
                             if (selectMes) selectMes.value = mesAnio;
                         }
-                    }
-
-                    // 🎯 CAPTURAR ALTURA ACTUAL ANTES DE HACER CAMBIOS
-                    let alturaAnterior = 0;
-                    if (statsGrid) {
-                        alturaAnterior = statsGrid.offsetHeight;
                     }
 
                     const stats = calcularEstadisticasMes(mesAnio);
@@ -5061,35 +5054,13 @@
                     const toggleStatItem = (element, value) => {
                         if (!element) return;
                         const statItem = element.closest('.stat-item');
-                        if (!statItem) return;
-
-                        if (value === 0) {
-                            // Ocultar con animación
-                            if (statItem.style.display !== 'none') {
-                                statItem.classList.add('hiding');
-                                statItem.classList.remove('showing');
-
-                                setTimeout(() => {
-                                    statItem.style.display = 'none';
-                                    statItem.classList.remove('hiding');
-                                }, 300);
-                            }
-                        } else {
-                            // Mostrar con animación
-                            if (statItem.style.display === 'none') {
+                        if (statItem) {
+                            if (value === 0) {
+                                statItem.style.display = 'none';
+                            } else {
                                 statItem.style.display = '';
-                                statItem.classList.add('hiding'); // Empezar oculto
-
-                                requestAnimationFrame(() => {
-                                    statItem.classList.remove('hiding');
-                                    statItem.classList.add('showing');
-                                });
-
-                                setTimeout(() => {
-                                    statItem.classList.remove('showing');
-                                }, 300);
+                                element.textContent = value;
                             }
-                            element.textContent = value;
                         }
                     };
 
@@ -5105,62 +5076,11 @@
                         const statItem = elTiempoFueraTotal.closest('.stat-item');
                         if (statItem) {
                             if (stats.tiempoFueraTotal === '0h 0m') {
-                                // Ocultar con animación
-                                if (statItem.style.display !== 'none') {
-                                    statItem.classList.add('hiding');
-                                    statItem.classList.remove('showing');
-
-                                    setTimeout(() => {
-                                        statItem.style.display = 'none';
-                                        statItem.classList.remove('hiding');
-                                    }, 300);
-                                }
+                                statItem.style.display = 'none';
                             } else {
-                                // Mostrar con animación
-                                if (statItem.style.display === 'none') {
-                                    statItem.style.display = '';
-                                    statItem.classList.add('hiding');
-
-                                    requestAnimationFrame(() => {
-                                        statItem.classList.remove('hiding');
-                                        statItem.classList.add('showing');
-                                    });
-
-                                    setTimeout(() => {
-                                        statItem.classList.remove('showing');
-                                    }, 300);
-                                }
+                                statItem.style.display = '';
                             }
                         }
-                    }
-
-                    // 🎯 ANIMACIÓN SUAVE SI CAMBIÓ LA ALTURA
-                    if (statsGrid && alturaAnterior > 0) {
-                        requestAnimationFrame(() => {
-                            const alturaNueva = statsGrid.offsetHeight;
-
-                            // Solo animar si hay cambio significativo (más de 5px)
-                            if (Math.abs(alturaNueva - alturaAnterior) > 5) {
-                                // Fijar altura actual temporalmente
-                                statsGrid.style.height = `${alturaAnterior}px`;
-                                statsGrid.style.overflow = 'hidden';
-                                statsGrid.style.transition = 'none';
-
-                                // Forzar reflow
-                                statsGrid.offsetHeight;
-
-                                // Activar transición y cambiar a nueva altura
-                                statsGrid.style.transition = 'height 0.3s ease-out';
-                                statsGrid.style.height = `${alturaNueva}px`;
-
-                                // Limpiar estilos después de la animación
-                                setTimeout(() => {
-                                    statsGrid.style.height = '';
-                                    statsGrid.style.overflow = '';
-                                    statsGrid.style.transition = '';
-                                }, 300);
-                            }
-                        });
                     }
                 }
 
@@ -5749,10 +5669,43 @@
 
                 function cambiarMesStats() {
                     const selectMes = $('select-mes-stats');
-                    if (!selectMes) return;
+                    const formStats = $('form-stats');
+                    const icon = $('icon-indicator-stats');
+                    
+                    // Seleccionamos el contenedor principal de la app
+                    const mainContainer = document.querySelector('.container'); 
+
+                    if (!selectMes || !formStats) return;
+
+                    // 1. "Congelamos" la altura TOTAL de la página en este instante.
+                    // Esto evita que el scroll salte, aunque la tarjeta se haga pequeña.
+                    if (mainContainer) {
+                        mainContainer.style.minHeight = mainContainer.offsetHeight + 'px';
+                    }
 
                     const mesSeleccionado = selectMes.value;
-                    actualizarEstadisticas(mesSeleccionado);
+
+                    // 2. Iniciamos la contracción (La tarjeta se hará pequeña visualmente)
+                    formStats.classList.remove('expanded');
+                    if(icon) icon.classList.remove('rotated');
+
+                    // 3. Esperamos a que termine la animación de cierre (300ms)
+                    setTimeout(() => {
+                        // Actualizamos los datos mientras está cerrado
+                        actualizarEstadisticas(mesSeleccionado);
+
+                        // 4. Volvemos a expandir
+                        formStats.classList.add('expanded');
+                        if(icon) icon.classList.add('rotated');
+
+                        // 5. Una vez terminada la animación de apertura, liberamos la altura de la página
+                        setTimeout(() => {
+                            if (mainContainer) {
+                                mainContainer.style.minHeight = '';
+                            }
+                        }, 350); 
+
+                    }, 350); 
                 }
 
                 function generarReporte() {
@@ -7727,7 +7680,7 @@ Generado por Sistema Horarios
 <!--// ====================================================================
     //             CAMBIOS REALIZADOS EN ESTA VERSION 7.07
     // ====================================================================
-    1) Se Agrega animacion a tarjeta de estadisticas
+    1) Se agrega animacion a la tarjeta de estadisticas
 
 
     -->
