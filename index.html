@@ -1000,8 +1000,14 @@
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
+        /* Transición suave entre meses en estadísticas */
+        #form-stats {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out, transform 0.3s ease;
+        }
+
         #modo-normal.fade-out,
-        #modo-lote.fade-out {
+        #modo-lote.fade-out,
+        #form-stats.fade-out  {
             opacity: 0;
             transform: translateY(-10px);
         }
@@ -1056,6 +1062,7 @@
             font-weight: bold;
             transform: scale(1.1);
         }
+
     </style>
 </head>
 
@@ -1502,7 +1509,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">v7.07</span>
+                <span class="version-text">v7.08</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -5727,40 +5734,21 @@
                     const formStats = $('form-stats');
                     const icon = $('icon-indicator-stats');
 
-                    // Seleccionamos el contenedor principal de la app
-                    const mainContainer = document.querySelector('.container');
-
                     if (!selectMes || !formStats) return;
-
-                    // 1. "Congelamos" la altura TOTAL de la página en este instante.
-                    // Esto evita que el scroll salte, aunque la tarjeta se haga pequeña.
-                    if (mainContainer) {
-                        mainContainer.style.minHeight = mainContainer.offsetHeight + 'px';
-                    }
 
                     const mesSeleccionado = selectMes.value;
 
-                    // 2. Iniciamos la contracción (La tarjeta se hará pequeña visualmente)
-                    formStats.classList.remove('expanded');
-                    if (icon) icon.classList.remove('rotated');
+                    // 1. Iniciamos fade-out del contenido
+                    formStats.classList.add('fade-out');
 
-                    // 3. Esperamos a que termine la animación de cierre (300ms)
+                    // 2. Esperamos a que termine la animación de fade-out (300ms)
                     setTimeout(() => {
-                        // Actualizamos los datos mientras está cerrado
+                        // Actualizamos los datos mientras está invisible
                         actualizarEstadisticas(mesSeleccionado);
 
-                        // 4. Volvemos a expandir
-                        formStats.classList.add('expanded');
-                        if (icon) icon.classList.add('rotated');
-
-                        // 5. Una vez terminada la animación de apertura, liberamos la altura de la página
-                        setTimeout(() => {
-                            if (mainContainer) {
-                                mainContainer.style.minHeight = '';
-                            }
-                        }, 350);
-
-                    }, 350);
+                        // 3. Removemos fade-out para que vuelva a aparecer
+                        formStats.classList.remove('fade-out');
+                    }, 300);
                 }
 
                 function generarReporte() {
@@ -7736,10 +7724,9 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //             CAMBIOS REALIZADOS EN ESTA VERSION 7.07
+    //             CAMBIOS REALIZADOS EN ESTA VERSION 7.08
     // ====================================================================
-    1) Se agrega animacion a la tarjeta de estadisticas
-    2) Se agrega "paro" como registro especial
+    1) Se corrige animacion de tarjeta estadisticas
 
 
     -->
