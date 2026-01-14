@@ -1508,7 +1508,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">v7.08</span>
+                <span class="version-text">LUSHIBOSCA-v7.09</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -6673,16 +6673,38 @@ Generado por Sistema Horarios
                 }
 
                 async function registrarLoteDesdeCard() {
-                    const desde = document.getElementById('lote-fecha-desde').value;
-                    const hasta = document.getElementById('lote-fecha-hasta').value;
+                    const inputDesde = document.getElementById('lote-fecha-desde');
+                    const inputHasta = document.getElementById('lote-fecha-hasta');
                     const tipo = document.getElementById('lote-tipo').value;
+
+                    // VALIDACIÓN: Verificar si el usuario escribió algo inválido
+                    if (inputDesde.value === '' && inputDesde.validity && !inputDesde.validity.valid) {
+                        mostrarToast('Fecha inicial inválida', 'error');
+                        return;
+                    }
+
+                    if (inputHasta.value === '' && inputHasta.validity && !inputHasta.validity.valid) {
+                        mostrarToast('Fecha final inválida', 'error');
+                        return;
+                    }
+
+                    const desde = inputDesde.value;
+                    const hasta = inputHasta.value;
 
                     // --- CASO 1: Sin fechas (registrar HOY) ---
                     if (!desde && !hasta) {
+                        // Verificar que realmente estén vacíos y no inválidos
+                        if (!inputDesde.checkValidity() || !inputHasta.checkValidity()) {
+                            mostrarToast('Revisa las fechas ingresadas', 'error');
+                            return;
+                        }
+
                         if (tipo === 'normal') {
                             mostrarToast('Completa los campos Desde y Hasta.', 'info');
                             return;
                         }
+
+                        // ... resto del código del CASO 1
 
                         const fechaHoy = UILogic.obtenerFechaHoy();
                         const registroExistente = DataManagement.registros().find(r => r.fecha === fechaHoy);
@@ -7729,10 +7751,9 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //             CAMBIOS REALIZADOS EN ESTA VERSION 7.08
+    //       CAMBIOS REALIZADOS EN SISTEMA LUSHIBOSCA VERSION 7.09
     // ====================================================================
-    1) Se corrige animación de tarjeta estadisticas
-    2) Se corrige animación de la tarjeta registrar
-    3)
+    1) Se agrega validacion para fechas en el modo lote si se usa una pc
+
 
     -->
