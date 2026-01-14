@@ -1062,6 +1062,28 @@
             font-weight: bold;
             transform: scale(1.1);
         }
+
+        /* Estado colapsado de botones histórico */
+        #botones-historico {
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
+            padding-top: 0;
+            margin-bottom: 0;
+        }
+
+        #botones-historico.expanded {
+            max-height: 100px;
+            opacity: 1;
+            padding-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Histórico necesita más altura que las otras tarjetas */
+        #contenido-historico.expanded {
+            max-height: 3500px;
+        }
     </style>
 </head>
 
@@ -1466,7 +1488,7 @@
             </div>
         </div>
         <div class="card animated-card" style="animation-delay: 0.3s;">
-            <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleBotonesHistorico()">
+            <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleHistorico()">
                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                     <svg class="icon">
                         <use href="#icon-list" />
@@ -1476,27 +1498,29 @@
                     <use href="#icon-chevron-down" />
                 </svg>
             </h2>
-            <div class="form-collapsible" id="botones-historico" style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
-                <div
-                    style="display: flex; justify-content: flex-end; gap: 0.5rem; padding-right: 0.5rem; margin-top: 0.5rem">
-                    <button class="filter-btn" id="btn-filtro" onclick="UILogic.mostrarFiltros()" title="Filtrar">
-                        <svg class="icon">
-                            <use href="#icon-filter" />
-                        </svg>
-                    </button>
-                    <button class="filter-btn" id="btn-undo" onclick="HistoryManager.undo()" title="Deshacer">
-                        <svg class="icon">
-                            <use href="#icon-undo" />
-                        </svg>
-                    </button>
-                    <button class="filter-btn" id="btn-redo" onclick="HistoryManager.redo()" title="Rehacer">
-                        <svg class="icon">
-                            <use href="#icon-redo" />
-                        </svg>
-                    </button>
+
+            <div class="form-collapsible" id="contenido-historico">
+                <div id="botones-historico" style="padding-top: 0.5rem; margin-bottom: 0.5rem;">
+                    <div style="display: flex; justify-content: flex-end; gap: 0.5rem; padding-right: 0.5rem;">
+                        <button class="filter-btn" id="btn-filtro" onclick="UILogic.mostrarFiltros()" title="Filtrar">
+                            <svg class="icon">
+                                <use href="#icon-filter" />
+                            </svg>
+                        </button>
+                        <button class="filter-btn" id="btn-undo" onclick="HistoryManager.undo()" title="Deshacer">
+                            <svg class="icon">
+                                <use href="#icon-undo" />
+                            </svg>
+                        </button>
+                        <button class="filter-btn" id="btn-redo" onclick="HistoryManager.redo()" title="Rehacer">
+                            <svg class="icon">
+                                <use href="#icon-redo" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+                <div id="lista-registros" class="custom-scroll"></div>
             </div>
-            <div id="lista-registros" class="custom-scroll"></div>
         </div>
     </div>
     <div class="modal" id="modal-config">
@@ -1508,7 +1532,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-v7.09</span>
+                <span class="version-text">LUSHIBOSCA-7.10</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -4305,9 +4329,16 @@
             // ====================================================================
             const UILogic = (function (S, D) {
 
-                // ====================================================================
+                let toastTimeout = null;
+                let intervaloPulsacion = null;
+                let timeoutInicial = null;
+                let edicionBloqueada = true;
+                let edicionGrupoBloqueada = true;
+                let perfilEnEdicion = null;
+                let modoLoteActivo = false;
+                let tiempoExpansionBotones = null;
+
                 // FUNCIÓN DEBOUNCE REUTILIZABLE
-                // ====================================================================
                 function debounce(func, wait) {
                     let timeout;
                     return function executedFunction(...args) {
@@ -4333,8 +4364,6 @@
                     if (input) input.classList.remove('error');
                     if (error) error.style.display = 'none';
                 }
-
-                let toastTimeout = null;
 
                 function mostrarToast(mensaje, tipo = 'info') {
                     const toast = $('toast');
@@ -5586,10 +5615,6 @@
                     }
                 }
 
-                // Sistema de mantener presionado para incrementar/decrementar
-                let intervaloPulsacion = null;
-                let timeoutInicial = null;
-
                 function iniciarCambioHoras(incremento) {
                     // Cambio inmediato al presionar
                     cambiarHorasDiarias(incremento);
@@ -6221,9 +6246,6 @@ Generado por Sistema Horarios
                     actualizarEstadoBotonTimerMain();
                 }
 
-                // --- Lógica de Bloqueo del Modal Editar ---
-                let edicionBloqueada = true;
-
                 function setBloqueoEdicion(bloqueado) {
                     edicionBloqueada = bloqueado;
 
@@ -6332,7 +6354,6 @@ Generado por Sistema Horarios
                     });
                 }
 
-
                 function crearPerfilDesdeSelector() {
                     const input = document.getElementById('nombre-nuevo-perfil-selector');
                     if (!input) return;
@@ -6423,8 +6444,6 @@ Generado por Sistema Horarios
                         UILogic.actualizarFeedbackConfig();
                     });
                 }
-
-                let perfilEnEdicion = null;
 
                 function abrirEditorPerfil(perfilId) {
                     perfilEnEdicion = perfilId;
@@ -6594,8 +6613,6 @@ Generado por Sistema Horarios
                         cerrarEditorPerfil();
                     }
                 }
-
-                let modoLoteActivo = false;
 
                 function toggleModoLote() {
                     const modoNormal = document.getElementById('modo-normal');
@@ -7174,7 +7191,7 @@ Generado por Sistema Horarios
                         cerrarEdicion, mostrarImportar, cerrarImportar, actualizarUI, mostrarToast,
                         mostrarError, limpiarError, resetearBoton, restaurarBotonGuardarEdicion,
                         limpiarCampo, obtenerFechaHoy, mostrarFiltros, poblarSelectorMeses, actualizarBotonLote,
-                        cerrarFiltros, registrarLoteDesdeCard, cambiarMesStats, generarReporte, toggleBotonesHistorico, toggleStats,
+                        cerrarFiltros, registrarLoteDesdeCard, cambiarMesStats, generarReporte, toggleHistorico, toggleStats,
                         sumarMinutosAHora, toggleTimerBreakMain, actualizarEstadoBotonTimerMain, toggleBloqueoEdicion, setBloqueoEdicion,
                         actualizarFeedbackConfig, poblarSelectorMeses, abrirSelectorPerfiles, actualizarBotonLote,
                         cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil, toggleModoLote,
@@ -7294,8 +7311,30 @@ Generado por Sistema Horarios
                     try {
                         if (localStorage.getItem('formularioExpandido') === 'true') toggleFormulario();
                         if (localStorage.getItem('statsExpandido') === 'true') toggleStats();
-                        if (localStorage.getItem('botonesHistoricoExpandido') === 'true') toggleBotonesHistorico();
-                    } catch (e) { console.warn('Error restaurando estado visual:', e); }
+
+                        // Restaurar estado de Histórico (3 estados)
+                        const estadoHistorico = localStorage.getItem('historicoExpandido');
+                        if (estadoHistorico === 'meses' || estadoHistorico === 'completo') {
+                            const contenido = $('contenido-historico');
+                            const icon = $('icon-indicator-historico');
+                            if (contenido) contenido.classList.add('expanded');
+                            if (icon) icon.classList.add('rotated');
+
+                            if (estadoHistorico === 'completo') {
+                                const botones = $('botones-historico');
+                                if (botones) {
+                                    botones.classList.add('expanded');
+                                    tiempoExpansionBotones = Date.now(); //  Iniciar timer al restaurar
+                                }
+                            }
+                        } else {
+                            // ASEGURAR que los botones estén contraídos si el estado es "cerrado" o null
+                            const botones = $('botones-historico');
+                            if (botones) botones.classList.remove('expanded');
+                        }
+                    } catch (e) {
+                        console.warn('Error restaurando estado visual:', e);
+                    }
 
                     PWAInstaller.init();
 
@@ -7599,8 +7638,53 @@ Generado por Sistema Horarios
                     }
                 }
 
-                function toggleBotonesHistorico() {
-                    toggleSeccionGen('botones-historico', 'icon-indicator-historico', 'botonesHistoricoExpandido');
+                function toggleHistorico() {
+                    const contenido = $('contenido-historico');
+                    const botones = $('botones-historico');
+                    const icon = $('icon-indicator-historico');
+
+                    if (!contenido) return;
+
+                    // Determinar estado actual
+                    const contenidoExpandido = contenido.classList.contains('expanded');
+                    const botonesExpandidos = botones.classList.contains('expanded');
+
+                    try {
+                        if (!contenidoExpandido) {
+                            // ESTADO 1 → ESTADO 2: Abrir tarjeta (solo meses, sin botones)
+                            contenido.classList.add('expanded');
+                            if (icon) icon.classList.add('rotated');
+                            localStorage.setItem('historicoExpandido', 'meses');
+                            tiempoExpansionBotones = null; // Resetear timer
+
+                        } else if (contenidoExpandido && !botonesExpandidos) {
+                            // ESTADO 2 → ESTADO 3: Mostrar botones también
+                            botones.classList.add('expanded');
+                            localStorage.setItem('historicoExpandido', 'completo');
+                            tiempoExpansionBotones = Date.now(); // ⏱INICIAR TIMER
+
+                        } else {
+                            // ESTADO 3 → Verificar tiempo transcurrido
+                            const tiempoTranscurrido = Date.now() - (tiempoExpansionBotones || 0);
+                            const han_pasado_5_segundos = tiempoTranscurrido > 1000;
+
+                            if (han_pasado_5_segundos) {
+                                //  MÁS DE 3 SEG: Solo ocultar botones (3 → 2)
+                                botones.classList.remove('expanded');
+                                localStorage.setItem('historicoExpandido', 'meses');
+                                tiempoExpansionBotones = null; // Resetear timer
+                            } else {
+                                // ⚡ MENOS DE 5 SEG: Cerrar todo (3 → 1)
+                                botones.classList.remove('expanded');
+                                contenido.classList.remove('expanded');
+                                if (icon) icon.classList.remove('rotated');
+                                localStorage.setItem('historicoExpandido', 'cerrado');
+                                tiempoExpansionBotones = null; // Resetear timer
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Error guardando estado histórico:', e);
+                    }
                 }
 
                 function toggleStats() {
@@ -7667,8 +7751,6 @@ Generado por Sistema Horarios
                     }
                 }
 
-                let edicionGrupoBloqueada = true;
-
                 function setBloqueoEdicionGrupo(bloqueado) {
                     edicionGrupoBloqueada = bloqueado;
 
@@ -7711,7 +7793,7 @@ Generado por Sistema Horarios
                     cerrarEdicion, mostrarImportar, cerrarImportar, actualizarUI, mostrarToast, mostrarError,
                     limpiarError, resetearBoton, restaurarBotonGuardarEdicion, toggleFormulario,
                     limpiarCampo, mostrarFiltros, cerrarFiltros, registrarLoteDesdeCard,
-                    cambiarMesStats, generarReporte, toggleBotonesHistorico, toggleStats, sumarMinutosAHora,
+                    cambiarMesStats, generarReporte, toggleHistorico, toggleStats, sumarMinutosAHora,
                     toggleTimerBreakMain, actualizarEstadoBotonTimerMain, toggleBloqueoEdicion, setBloqueoEdicion,
                     actualizarFeedbackConfig, poblarSelectorMeses, abrirSelectorPerfiles, actualizarBotonLote,
                     cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil, toggleModoLote,
@@ -7751,9 +7833,10 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //       CAMBIOS REALIZADOS EN SISTEMA LUSHIBOSCA VERSION 7.09
+    //       CAMBIOS REALIZADOS EN SISTEMA LUSHIBOSCA VERSION 7.10
     // ====================================================================
-    1) Se agrega validacion para fechas en el modo lote si se usa una pc
+    1) Se agrega triple estado al boton historico
+    2) se ordenan los let en uilogic para que quede al comienzo del modulo
 
 
     -->
