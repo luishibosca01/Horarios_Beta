@@ -234,6 +234,13 @@
             font-weight: 600;
             color: var(--text-muted);
             margin-bottom: 0.25rem;
+            transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+            min-height: 1.2em;
+            /* Reserva altura fija */
+            line-height: 1.2;
+            /* Altura de línea consistente */
+            will-change: transform, opacity;
+            /* Optimización para animaciones */
         }
 
         input,
@@ -1083,6 +1090,25 @@
         /* Histórico necesita más altura que las otras tarjetas */
         #contenido-historico.expanded {
             max-height: 3500px;
+        }
+
+        /* Animación de feedback en inputs de registro */
+        .input-agregado-animacion {
+            animation: fade-blur 0.5s ease-out forwards;
+        }
+
+        @keyframes input-feedback {
+            0% {
+                background-color: rgba(96, 172, 148, 0.3);
+            }
+
+            50% {
+                background-color: rgba(96, 172, 148, 0.2);
+            }
+
+            100% {
+                background-color: transparent;
+            }
         }
     </style>
 </head>
@@ -3252,6 +3278,12 @@
                         // PASAMOS EL ID DEL REGISTRO ACTUALIZADO PARA ANIMARLO
                         const saved = await guardarYActualizar(true, registroExistente.id);
                         if (saved) {
+                            // FEEDBACK VISUAL (solo salida manual)
+                            const salidaManual = !usaHoraActual;
+                            if (salidaManual) {
+                                UILogic.aplicarFeedbackRegistro(false, true); // Solo salida
+                            }
+
                             const mensaje = usaHoraActual ?
                                 `Salida registrada con hora actual \n(entrada: ${registroExistente.entrada})` :
                                 `Salida ${s} agregada \n(entrada: ${registroExistente.entrada})`;
@@ -3259,8 +3291,6 @@
                             UILogic.resetearBoton(btn);
                             $('fecha').value = UILogic.obtenerFechaHoy();
                             $('salida').value = '';
-                        } else {
-                            UILogic.resetearBoton(btn);
                         }
                         return;
                     }
@@ -3305,15 +3335,22 @@
                     const saved = await guardarYActualizar(true, nuevoId);
 
                     if (saved) {
+                        // FEEDBACK VISUAL (entrada y/o salida manual)
+                        const entradaManual = e && !usaHoraActual;
+                        const salidaManual = s && !usaHoraActual;
+
+                        if (entradaManual || salidaManual) {
+                            UILogic.aplicarFeedbackRegistro(entradaManual, salidaManual);
+                        }
+
                         const mensaje = usaHoraActual ? 'Registro agregado con hora actual' : 'Registro agregado';
                         UILogic.mostrarToast(mensaje, 'success');
                         UILogic.resetearBoton(btn);
                         $('fecha').value = UILogic.obtenerFechaHoy();
                         $('entrada').value = '';
                         $('salida').value = '';
-                    } else {
-                        UILogic.resetearBoton(btn);
                     }
+
                 }
 
                 async function eliminarRegistroActual() {
@@ -3325,7 +3362,7 @@
                         const hoy = UILogic.obtenerFechaHoy();
 
                         if (registroABorrar && registroABorrar.fecha === hoy) {
-                            // 🔧 LIMPIAR TIMER DEL PERFIL ACTUAL
+                            // LIMPIAR TIMER DEL PERFIL ACTUAL
                             const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
                             const storageKey = `breakStartTime_${perfilId}`;
                             if (localStorage.getItem(storageKey)) {
@@ -4324,9 +4361,11 @@
                 };
 
             })(SecurityAndUtils);
+
             // ====================================================================
             // UI LOGIC MODULE
             // ====================================================================
+
             const UILogic = (function (S, D) {
 
                 let toastTimeout = null;
@@ -7198,7 +7237,7 @@ Generado por Sistema Horarios
                         eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                         iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                         toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
-                        mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport,
+                        mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -7787,6 +7826,57 @@ Generado por Sistema Horarios
                     });
                 }
 
+                function aplicarFeedbackRegistro(mostrarEntrada, mostrarSalida) {
+                    const inputEntrada = $('entrada');
+                    const inputSalida = $('salida');
+
+                    const labelEntrada = inputEntrada?.closest('.form-group')?.querySelector('label');
+                    const labelSalida = inputSalida?.closest('.form-group')?.querySelector('label');
+
+                    // Guardar textos originales
+                    const textoOriginalEntrada = labelEntrada ? labelEntrada.textContent : 'Entrada';
+                    const textoOriginalSalida = labelSalida ? labelSalida.textContent : 'Salida';
+
+                    // Función helper para animar cambio de texto
+                    const cambiarTextoSuave = (label, nuevoTexto, color) => {
+                        if (!label) return;
+
+                        // Fade out
+                        label.style.opacity = '0';
+                        label.style.transform = 'translateY(-3px)';
+
+                        setTimeout(() => {
+                            label.textContent = nuevoTexto;
+                            label.style.color = color;
+                            // Fade in
+                            label.style.opacity = '1';
+                            label.style.transform = 'translateY(0)';
+                        }, 150); // Mitad del tiempo de transición
+                    };
+
+                    if (mostrarEntrada && inputEntrada && labelEntrada) {
+                        inputEntrada.classList.add('input-agregado-animacion');
+                        cambiarTextoSuave(labelEntrada, '✓ Agregado', 'var(--c-green)');
+                    }
+
+                    if (mostrarSalida && inputSalida && labelSalida) {
+                        inputSalida.classList.add('input-agregado-animacion');
+                        cambiarTextoSuave(labelSalida, '✓ Agregado', 'var(--c-green)');
+                    }
+
+                    // Remover después de 2 segundos
+                    setTimeout(() => {
+                        if (mostrarEntrada && inputEntrada && labelEntrada) {
+                            inputEntrada.classList.remove('input-agregado-animacion');
+                            cambiarTextoSuave(labelEntrada, textoOriginalEntrada, '');
+                        }
+
+                        if (mostrarSalida && inputSalida && labelSalida) {
+                            inputSalida.classList.remove('input-agregado-animacion');
+                            cambiarTextoSuave(labelSalida, textoOriginalSalida, '');
+                        }
+                    }, 2000);
+                }
 
                 return {
                     init, obtenerFechaHoy, pegarHoraActual, alternarTema, alternarVista, cerrarConfig,
@@ -7800,7 +7890,7 @@ Generado por Sistema Horarios
                     eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                     iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
-                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport,
+                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro
                 };
 
             })(SecurityAndUtils, DataManagement);
@@ -7833,10 +7923,9 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //       CAMBIOS REALIZADOS EN SISTEMA LUSHIBOSCA VERSION 7.10
+    //       CAMBIOS REALIZADOS EN SISTEMA LUSHIBOSCA VERSION 7.11
     // ====================================================================
-    1) Se agrega triple estado al boton historico
-    2) se ordenan los let en uilogic para que quede al comienzo del modulo
+    1) Se agrega feedback visual en los campos desde y hasta
 
 
     -->
