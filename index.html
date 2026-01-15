@@ -243,6 +243,14 @@
             /* Optimización para animaciones */
         }
 
+        #btn-registrar-texto {
+            display: inline-block;
+            min-height: 1.2em;
+            line-height: 1.2;
+            transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
+            will-change: transform, opacity;
+        }
+
         input,
         select {
             width: 100%;
@@ -7900,22 +7908,30 @@ Generado por Sistema Horarios
                     const btn = $('btn-agregar');
                     const textoOriginal = btnTexto.textContent;
 
-                    // Aplicar solo la animación, sin estilos inline
+                    // Función helper para animar cambio de texto (IGUAL que en los inputs)
+                    const cambiarTextoSuave = (elemento, nuevoTexto, color) => {
+                        if (!elemento) return;
+
+                        // Fade out
+                        elemento.style.opacity = '0';
+                        elemento.style.transform = 'translateY(-3px)';
+
+                        setTimeout(() => {
+                            elemento.textContent = nuevoTexto;
+                            elemento.style.color = color;
+                            // Fade in
+                            elemento.style.opacity = '1';
+                            elemento.style.transform = 'translateY(0)';
+                        }, 150); // Mitad del tiempo de transición
+                    };
+
+                    // Aplicar animación al botón
                     if (btn) {
                         btn.classList.add('input-agregado-animacion');
                     }
 
-                    // Fade out del texto (más suave)
-                    btnTexto.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                    btnTexto.style.opacity = '0';
-                    btnTexto.style.transform = 'translateY(-3px)';
-
-                    setTimeout(() => {
-                        btnTexto.textContent = '✓ Agregado';
-                        // Fade in
-                        btnTexto.style.opacity = '1';
-                        btnTexto.style.transform = 'translateY(0)';
-                    }, 300);
+                    // Cambiar texto a "✓ Agregado" en verde
+                    cambiarTextoSuave(btnTexto, '✓ Agregado', 'var(--c-green)');
 
                     // Remover después de 2 segundos
                     setTimeout(() => {
@@ -7923,22 +7939,8 @@ Generado por Sistema Horarios
                             btn.classList.remove('input-agregado-animacion');
                         }
 
-                        // Fade out antes de volver al texto original
-                        btnTexto.style.opacity = '0';
-                        btnTexto.style.transform = 'translateY(-3px)';
-
-                        setTimeout(() => {
-                            btnTexto.textContent = textoOriginal;
-                            btnTexto.style.opacity = '1';
-                            btnTexto.style.transform = 'translateY(0)';
-
-                            // Limpiar estilos inline después de la animación
-                            setTimeout(() => {
-                                btnTexto.style.transition = '';
-                                btnTexto.style.opacity = '';
-                                btnTexto.style.transform = '';
-                            }, 300);
-                        }, 300);
+                        // Volver al texto original
+                        cambiarTextoSuave(btnTexto, textoOriginal, '');
                     }, 2000);
                 }
 
