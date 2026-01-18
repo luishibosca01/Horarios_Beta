@@ -1534,7 +1534,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.14</span>
+                <span class="version-text">LUSHIBOSCA-7.15</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -4321,6 +4321,10 @@
                             if (window.UILogic && window.UILogic.actualizarBotonLote) {
                                 window.UILogic.actualizarBotonLote();
                             }
+                            // Iniciar timer de auto-cierre
+                            if (window.UILogic && window.UILogic.iniciarTimerAutoCierreBotones) {
+                                window.UILogic.iniciarTimerAutoCierreBotones();
+                            }
                         }
                     },
                     redoAction: function () {
@@ -4331,6 +4335,10 @@
                             UILogic.mostrarToast('Rehecho', 'info');
                             if (window.UILogic && window.UILogic.actualizarBotonLote) {
                                 window.UILogic.actualizarBotonLote();
+                            }
+                            // Iniciar timer de auto-cierre
+                            if (window.UILogic && window.UILogic.iniciarTimerAutoCierreBotones) {
+                                window.UILogic.iniciarTimerAutoCierreBotones();
                             }
                         }
                     }
@@ -4352,6 +4360,7 @@
                 let perfilEnEdicion = null;
                 let modoLoteActivo = false;
                 let tiempoExpansionBotones = null;
+                let timerAutoCierreBotones = null;
 
                 // FUNCIÓN DEBOUNCE REUTILIZABLE
                 function debounce(func, wait) {
@@ -7229,7 +7238,8 @@ Generado por Sistema Horarios
                         eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                         iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                         toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
-                        mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro
+                        mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
+                        iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -7685,9 +7695,12 @@ Generado por Sistema Horarios
                 }
 
                 function toggleHistorico() {
+                    cancelarTimerAutoCierreBotones();
+
                     const contenido = $('contenido-historico');
                     const botones = $('botones-historico');
                     const icon = $('icon-indicator-historico');
+
 
                     if (!contenido) return;
 
@@ -7743,6 +7756,49 @@ Generado por Sistema Horarios
                         }
                     } catch (e) {
                         console.warn('Error guardando estado histórico:', e);
+                    }
+                }
+
+                function iniciarTimerAutoCierreBotones() {
+                    // Limpiar timer anterior si existe
+                    if (timerAutoCierreBotones) {
+                        clearTimeout(timerAutoCierreBotones);
+                        timerAutoCierreBotones = null;
+                    }
+
+                    // Iniciar nuevo timer de 5 segundos
+                    timerAutoCierreBotones = setTimeout(() => {
+                        const botones = $('botones-historico');
+                        const contenido = $('contenido-historico');
+                        const icon = $('icon-indicator-historico');
+
+                        // Solo cerrar si están expandidos
+                        if (botones && botones.classList.contains('expanded')) {
+                            // ESTADO 3 → ESTADO 2 (Solo ocultar botones)
+                            botones.classList.remove('expanded');
+
+                            if (icon) {
+                                icon.style.transform = ''; // Resetear inline
+                                icon.classList.add('rotated'); // Volver a 180°
+                            }
+
+                            try {
+                                localStorage.setItem('historicoExpandido', 'meses');
+                            } catch (e) {
+                                console.warn('Error guardando estado histórico:', e);
+                            }
+
+                            tiempoExpansionBotones = null;
+                        }
+
+                        timerAutoCierreBotones = null;
+                    }, 4000); // 4 segundos
+                }
+
+                function cancelarTimerAutoCierreBotones() {
+                    if (timerAutoCierreBotones) {
+                        clearTimeout(timerAutoCierreBotones);
+                        timerAutoCierreBotones = null;
                     }
                 }
 
@@ -7910,7 +7966,8 @@ Generado por Sistema Horarios
                     eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                     iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
-                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro
+                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
+                    iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones
                 };
 
             })(SecurityAndUtils, DataManagement);
@@ -7943,12 +8000,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                    SISTEMA LUSHIBOSCA VERSION 7.14
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.15
     // ====================================================================
     
      - CAMBIOS:
-    1) Se cambia la etiqueta de estado cuando no hay registro en dia laboral y no laboral
-    2) Se reemplaza innerhtml por text content en algunos lugares de la tarjeta estado
+    1) Se agrega autocierre luego de hacer undo y/o redo
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
