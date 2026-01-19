@@ -1534,7 +1534,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.17</span>
+                <span class="version-text">LUSHIBOSCA-7.18</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -5473,7 +5473,6 @@
                             let minutosTotal = 0;
 
                             if (regHoy && regHoy.entrada && !regHoy.salida && objetivoDiario > 0) {
-                                // Solo es especial si AMBOS (entrada Y salida) tienen el código
                                 const esEspecial = TiposRegistro.esRegistroEspecial(regHoy.entrada, regHoy.salida);
 
                                 if (!esEspecial) {
@@ -5505,24 +5504,36 @@
                             }
 
                             if (mostrarEstimacion) {
+                                // 🔧 NUEVO: Detectar si hay días previos en la semana con registros
+                                const hayDiasPreviosConRegistros = registros.some(r =>
+                                    r.fecha >= ini &&
+                                    r.fecha < hoy &&
+                                    !TiposRegistro.esRegistroEspecial(r.entrada, r.salida)
+                                );
+
+                                // 🔧 NUEVO: Solo mostrar buffer si hay contexto previo O si el buffer es significativo
+                                const mostrarConBuffer = hayDiasPreviosConRegistros && Math.abs(bufferSemanal) > 0.01;
+
                                 let textoFinal = `Salida estimada: <strong>${horaSalida}</strong>`;
 
-                                // Calcular salida considerando el buffer (positivo o negativo)
-                                const minutosBuffer = bufferSemanal * 60;
-                                const minutosConBuffer = minutosTotal - minutosBuffer;
+                                if (mostrarConBuffer) {
+                                    // Calcular salida considerando el buffer
+                                    const minutosBuffer = bufferSemanal * 60;
+                                    const minutosConBuffer = minutosTotal - minutosBuffer;
 
-                                let hSB = Math.floor(minutosConBuffer / 60);
-                                const mSB = Math.round(minutosConBuffer % 60);
-                                if (hSB >= 24) hSB = hSB % 24;
+                                    let hSB = Math.floor(minutosConBuffer / 60);
+                                    const mSB = Math.round(minutosConBuffer % 60);
+                                    if (hSB >= 24) hSB = hSB % 24;
 
-                                const horaSalidaBuffer = `${String(hSB).padStart(2, '0')}:${String(mSB).padStart(2, '0')}`;
+                                    const horaSalidaBuffer = `${String(hSB).padStart(2, '0')}:${String(mSB).padStart(2, '0')}`;
 
-                                // Color según el buffer
-                                const colorBuffer = bufferSemanal > 0 ? 'var(--c-green)' :
-                                    bufferSemanal < 0 ? 'var(--c-red)' :
-                                        'var(--text-main)';
+                                    // Color según el buffer
+                                    const colorBuffer = bufferSemanal > 0 ? 'var(--c-green)' :
+                                        bufferSemanal < 0 ? 'var(--c-red)' :
+                                            'var(--text-main)';
 
-                                textoFinal = `Salida estimada: <strong>${horaSalida}</strong> <span style="color: ${colorBuffer};">(<strong>${horaSalidaBuffer}</strong>)</span>`;
+                                    textoFinal = `Salida estimada: <strong>${horaSalida}</strong> <span style="color: ${colorBuffer};">(<strong>${horaSalidaBuffer}</strong>)</span>`;
+                                }
 
                                 hintEl.innerHTML = textoFinal;
                             } else {
@@ -7792,7 +7803,7 @@ Generado por Sistema Horarios
                         }
 
                         timerAutoCierreBotones = null;
-                    }, 4000); // 4 segundos
+                    }, 4000); // 4 segundos timer autocierre
                 }
 
                 function cancelarTimerAutoCierreBotones() {
@@ -8000,15 +8011,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.17
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.18
     // ====================================================================
     
      - CAMBIOS:
-    1) Se corrige el bug si la entrada actual coincide con hora actual y con el codigo de un registro especial
-    el sistema detectaba que pasaron las 7 horas.
-    2) Se corrige el bug de la etiqueta con objetivo horario 0, y toda la semana con dia especial, se 
-    borraba el 2do indicador debajo de la barra al cambiar a esta semana y volver
-    3) Se refactoriza "LÓGICA DE SALIDA ESTIMADA" para que haga uso del modulo TIPOS DE REGISTRO
+    1) Se quita del texto salida estima, el buffer si es el primer dia laboral o no hay buffer que calcular
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
