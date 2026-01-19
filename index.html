@@ -3241,7 +3241,9 @@
                     }
 
                     if (registroExistente && !e && s && registroExistente.entrada && !registroExistente.salida) {
-                        detenerYRegistrarTimer(registroExistente);
+                        // Capturamos si el timer fue detenido
+                        const timerDetenido = detenerYRegistrarTimer(registroExistente);
+
                         registroExistente.salida = s;
                         let t = calcularHoras(registroExistente.entrada, s, registroExistente.tiempoFuera || null);
                         registroExistente.horas = t?.horas || 0;
@@ -3259,9 +3261,20 @@
                                 UILogic.aplicarFeedbackRegistro(false, true); // Solo salida
                             }
 
-                            const mensaje = usaHoraActual ?
-                                `Salida registrada con hora actual \n(entrada: ${registroExistente.entrada})` :
-                                `Salida ${s} agregada \n(entrada: ${registroExistente.entrada})`;
+                            // Mensaje diferenciado según si había timer activo
+                            let mensaje;
+                            if (timerDetenido && usaHoraActual) {
+                                // Caso: Salida con hora actual Y timer activo
+                                const tiempoFuera = registroExistente.tiempoFuera || '00:00';
+                                mensaje = `Salida registrada con hora actual\n⏱️ Descanso finalizado: +${tiempoFuera}\n(entrada: ${registroExistente.entrada})`;
+                            } else if (usaHoraActual) {
+                                // Caso: Salida con hora actual SIN timer
+                                mensaje = `Salida registrada con hora actual\n(entrada: ${registroExistente.entrada})`;
+                            } else {
+                                // Caso: Salida manual
+                                mensaje = `Salida ${s} agregada\n(entrada: ${registroExistente.entrada})`;
+                            }
+
                             UILogic.mostrarToast(mensaje, 'success');
                             UILogic.resetearBoton(btn);
                             $('fecha').value = UILogic.obtenerFechaHoy();
@@ -5449,7 +5462,7 @@
                             if (esDiaDeDescanso) {
                                 if (statsEl) statsEl.textContent = "😴 ...";
                                 if (mensajeEl) {
-                                    // 👇 Solo ocultar si NO hay objetivo de horas
+                                    // Solo ocultar si NO hay objetivo de horas
                                     if (horasDiarias === 0) {
                                         mensajeEl.style.display = 'none';
                                     } else {
@@ -5504,14 +5517,14 @@
                             }
 
                             if (mostrarEstimacion) {
-                                // 🔧 NUEVO: Detectar si hay días previos en la semana con registros
+                                // Detectar si hay días previos en la semana con registros
                                 const hayDiasPreviosConRegistros = registros.some(r =>
                                     r.fecha >= ini &&
                                     r.fecha < hoy &&
                                     !TiposRegistro.esRegistroEspecial(r.entrada, r.salida)
                                 );
 
-                                // 🔧 NUEVO: Solo mostrar buffer si hay contexto previo O si el buffer es significativo
+                                // Solo mostrar buffer si hay contexto previo O si el buffer es significativo
                                 const mostrarConBuffer = hayDiasPreviosConRegistros && Math.abs(bufferSemanal) > 0.01;
 
                                 let textoFinal = `Salida estimada: <strong>${horaSalida}</strong>`;
@@ -8015,7 +8028,9 @@ Generado por Sistema Horarios
     // ====================================================================
     
      - CAMBIOS:
-    1) Se quita del texto salida estima, el buffer si es el primer dia laboral o no hay buffer que calcular
+    1) Se quita del texto salida estimada, el buffer si es el primer dia laboral o no hay buffer 
+    que calcular
+    2) Se mejora el feedback visual al agregar una salida con timer iniciado
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
