@@ -7317,6 +7317,7 @@ Generado por Sistema Horarios
                         inputSalida.addEventListener('keydown', (e) => {
                             if (e.key === 'Enter') {
                                 e.preventDefault();
+                                inputSalida.blur();
                                 const btnAgregar = document.getElementById('btn-agregar');
                                 if (btnAgregar && !btnAgregar.disabled) {
                                     btnAgregar.click();
