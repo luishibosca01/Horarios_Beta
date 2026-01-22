@@ -420,8 +420,12 @@
         }
 
         /* ========================================
-         FEEDBACK VISUAL TARJETA DE ESTADO
-         ======================================== */
+   FEEDBACK VISUAL TARJETA DE ESTADO
+   ======================================== */
+
+        .stats-card {
+            position: relative;
+        }
 
         /* Bordes de color por estado */
         .stats-card.con-registro-hoy {
@@ -434,6 +438,13 @@
 
         .stats-card.dia-especial {
             border-left: 4px solid var(--c-purple);
+        }
+
+        /* 🔧 NUEVO: Borde rojo cuando hay timer */
+        .stats-card.timer-running {
+            border-left: 4px solid var(--c-red);
+            /* Quitar la animación anterior */
+            animation: none !important;
         }
 
         /* Badge */
@@ -459,11 +470,11 @@
             transform: scale(1) translateY(0);
         }
 
-        /* Ocultar cuando timer está activo */
+        /* 🔧 MODIFICADO: Mostrar badge rojo cuando timer activo */
         .stats-card.timer-running .estado-badge {
-            opacity: 0 !important;
-            transform: scale(0.6) translateY(-15px) !important;
-            transition: all 0.25s ease-out !important;
+            opacity: 1 !important;
+            transform: scale(1) translateY(0) !important;
+            transition: all 0.3s ease !important;
         }
 
         /* Colores del badge */
@@ -485,6 +496,29 @@
             border: 1px solid var(--c-purple);
         }
 
+        /* 🔧 NUEVO: Estado tiempo fuera */
+        .estado-badge.tiempo-fuera {
+            background: rgba(192, 93, 118, 0.15);
+            color: var(--c-red);
+            border: 1px solid var(--c-red);
+            animation: pulse-badge 2s ease-in-out infinite;
+        }
+
+        /* Animación sutil del badge (en lugar de la tarjeta) */
+        @keyframes pulse-badge {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(192, 93, 118, 0.4);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 4px rgba(192, 93, 118, 0);
+            }
+        }
+
         /* Modo oscuro */
         body.dark-mode .stats-card.con-registro-hoy {
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(96, 172, 148, 0.25);
@@ -498,9 +532,8 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.25);
         }
 
-        .stats-card.timer-running {
-            border: 1px solid var(--c-red);
-            animation: pulse-card 2s infinite;
+        body.dark-mode .stats-card.timer-running {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(192, 93, 118, 0.25);
         }
 
         .stats-number {
@@ -534,8 +567,8 @@
             transition: width 0.5s;
         }
 
-        .progress-fill.blue {
-            background: var(--c-blue) !important;
+        .progress-fill.gold {
+            background: var(--c-gold) !important;
         }
 
         .progress-fill.green {
@@ -5324,7 +5357,20 @@
                     }
 
                     // Resetear badge
-                    badge.classList.remove('visible', 'completado', 'en-curso', 'especial');
+                    badge.classList.remove('visible', 'completado', 'en-curso', 'especial', 'tiempo-fuera');
+
+                    // 🔧 VERIFICAR SI HAY TIMER ACTIVO
+                    const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
+                    const storageKey = `breakStartTime_${perfilId}`;
+                    const timerActivo = localStorage.getItem(storageKey) !== null;
+
+                    // Si hay timer activo, mostrar estado "TIEMPO FUERA"
+                    if (timerActivo && regHoy && regHoy.entrada && !regHoy.salida) {
+                        badge.style.display = 'block';
+                        badge.textContent = '⏱ TIEMPO FUERA';
+                        badge.classList.add('tiempo-fuera', 'visible');
+                        return; // Salir aquí para no procesar otros estados
+                    }
 
                     // Sin registro o día de descanso
                     if (!regHoy || !regHoy.entrada || esDiaDeDescanso) {
@@ -5346,7 +5392,7 @@
                     } else if (regHoy.entrada && regHoy.salida) {
                         // Registro completo
                         card.classList.add('con-registro-hoy');
-                        badge.textContent = '✓ COMPLETADO';
+                        badge.textContent = '✓ FINALIZADO';
                         badge.classList.add('completado', 'visible');
 
                     } else if (regHoy.entrada && !regHoy.salida) {
@@ -5473,7 +5519,7 @@
                         if (statsEl) statsEl.textContent = horasATexto(tot);
                         if (progressEl) {
                             progressEl.style.width = prog + '%';
-                            setProgressBarColor(progressEl, (horasDiarias > 0 && tot >= objetivoAjustado) ? 'green' : 'blue');
+                            setProgressBarColor(progressEl, (horasDiarias > 0 && tot >= objetivoAjustado) ? 'green' : 'gold');
                         }
 
                         if (mensajeEl) {
@@ -5546,7 +5592,7 @@
                                     // CASO 1: DÍA CERRADO (Ya marcaste salida)
                                     // -------------------------------------------------
                                     if (objetivoDiario === 0) {
-                                        setProgressBarColor(progressEl, 'blue');
+                                        setProgressBarColor(progressEl, 'gold');
                                         if (mensajeEl) mensajeEl.style.display = 'none';
                                     } else {
                                         if (mensajeEl) mensajeEl.style.display = 'block';
@@ -5559,7 +5605,7 @@
                                     // CASO 2: DÍA ABIERTO (Estás trabajando ahora)
                                     // -------------------------------------------------
                                     if (objetivoDiario === 0) {
-                                        setProgressBarColor(progressEl, 'blue');
+                                        setProgressBarColor(progressEl, 'gold');
                                         if (mensajeEl) mensajeEl.style.display = 'none';
                                     } else {
                                         if (mensajeEl) mensajeEl.style.display = 'block';
@@ -5568,7 +5614,7 @@
                                         const objetivoCumplido = tiempoTranscurrido >= objetivoDiario;
 
                                         // Barra: Verde si cumpliste, Azul si falta
-                                        setProgressBarColor(progressEl, objetivoCumplido ? 'green' : 'blue');
+                                        setProgressBarColor(progressEl, objetivoCumplido ? 'green' : 'gold');
 
                                         const faltante = Math.max(0, objetivoDiario - tiempoTranscurrido);
 
@@ -5608,7 +5654,7 @@
                             }
                         } else {
                             // SIN REGISTRO HOY
-                            if (progressEl) { progressEl.style.width = '0%'; setProgressBarColor(progressEl, 'blue'); }
+                            if (progressEl) { progressEl.style.width = '0%'; setProgressBarColor(progressEl, 'gold'); }
 
                             if (esDiaDeDescanso) {
                                 if (statsEl) statsEl.textContent = "😴 ...";
@@ -6357,6 +6403,8 @@ Generado por Sistema Horarios
 
                         if (card) {
                             card.classList.add('timer-running');
+                            card.style.borderLeft = '4px solid var(--c-red)';
+
                             const titulo = card.querySelector('h2');
 
                             // Mantener contexto de vista
@@ -6367,9 +6415,15 @@ Generado por Sistema Horarios
 
                             const contexto = vistaActual === 'semana' ? 'Esta Semana' : 'Hoy';
 
+                            // 🔧 Solo mostrar el título sin "Tiempo fuera"
                             if (titulo) {
-                                titulo.innerHTML = `${icono} ${contexto} - <svg class="icon"><use href="#icon-coffee"/></svg> Tiempo fuera`;
+                                titulo.innerHTML = `${icono} ${contexto}`;
                             }
+
+                            // Actualizar badge
+                            const hoy = obtenerFechaHoy();
+                            const registroHoy = D.registros().find(r => r.fecha === hoy);
+                            actualizarEstadoVisualCard(registroHoy, false);
                         }
 
                     } else {
@@ -6379,7 +6433,15 @@ Generado por Sistema Horarios
                         btn.style.borderColor = 'var(--border)';
                         icon.setAttribute('href', '#icon-coffee');
 
-                        if (card) card.classList.remove('timer-running');
+                        if (card) {
+                            card.classList.remove('timer-running');
+                            card.style.borderLeft = '';
+
+                            // Actualizar badge
+                            const hoy = obtenerFechaHoy();
+                            const registroHoy = D.registros().find(r => r.fecha === hoy);
+                            actualizarEstadoVisualCard(registroHoy, false);
+                        }
                     }
                 }
 
@@ -8216,6 +8278,7 @@ Generado por Sistema Horarios
     
      - CAMBIOS:
     1) Se añade badge a la tarjeta de estado para mayor feedback visual sobre los estados
+    2) Se mueve la etiqueta de tiempo fuera al badge
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
