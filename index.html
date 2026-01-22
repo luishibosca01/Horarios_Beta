@@ -3349,10 +3349,10 @@
                             if (timerDetenido && usaHoraActual) {
                                 // Caso: Salida con hora actual Y timer activo
                                 const tiempoFuera = registroExistente.tiempoFuera || '00:00';
-                                mensaje = `Salida registrada con hora actual\n⏱️ Descanso finalizado: +${tiempoFuera}\n(entrada: ${registroExistente.entrada})`;
+                                mensaje = `Salida registrada con hora actual ⏱️ Descanso finalizado: +${tiempoFuera}\n(entrada: ${registroExistente.entrada})`;
                             } else if (usaHoraActual) {
                                 // Caso: Salida con hora actual SIN timer
-                                mensaje = `Salida registrada con hora actual\n(entrada: ${registroExistente.entrada})`;
+                                mensaje = `Salida registrada con hora actual (entrada: ${registroExistente.entrada})`;
                             } else {
                                 // Caso: Salida manual
                                 mensaje = `Salida ${s} agregada\n(entrada: ${registroExistente.entrada})`;
