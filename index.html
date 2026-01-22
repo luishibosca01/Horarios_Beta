@@ -415,7 +415,87 @@
         .stats-card {
             cursor: pointer;
             transition: transform 0.15s ease-out, opacity 0.15s ease-out, box-shadow 0.3s !important;
-            border: 1px solid transparent
+            border: 1px solid transparent;
+            position: relative
+        }
+
+        /* ========================================
+         FEEDBACK VISUAL TARJETA DE ESTADO
+         ======================================== */
+
+        /* Bordes de color por estado */
+        .stats-card.con-registro-hoy {
+            border-left: 4px solid var(--c-green);
+        }
+
+        .stats-card.registro-en-curso {
+            border-left: 4px solid var(--c-gold);
+        }
+
+        .stats-card.dia-especial {
+            border-left: 4px solid var(--c-purple);
+        }
+
+        /* Badge */
+        .stats-card .estado-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            opacity: 0;
+            transform: scale(0.8) translateY(-5px);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .stats-card .estado-badge.visible {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        /* Ocultar cuando timer está activo */
+        .stats-card.timer-running .estado-badge {
+            opacity: 0 !important;
+            transform: scale(0.6) translateY(-15px) !important;
+            transition: all 0.25s ease-out !important;
+        }
+
+        /* Colores del badge */
+        .estado-badge.completado {
+            background: rgba(96, 172, 148, 0.15);
+            color: var(--c-green);
+            border: 1px solid var(--c-green);
+        }
+
+        .estado-badge.en-curso {
+            background: rgba(214, 175, 102, 0.15);
+            color: var(--c-gold);
+            border: 1px solid var(--c-gold);
+        }
+
+        .estado-badge.especial {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--c-purple);
+            border: 1px solid var(--c-purple);
+        }
+
+        /* Modo oscuro */
+        body.dark-mode .stats-card.con-registro-hoy {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(96, 172, 148, 0.25);
+        }
+
+        body.dark-mode .stats-card.registro-en-curso {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(214, 175, 102, 0.25);
+        }
+
+        body.dark-mode .stats-card.dia-especial {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.25);
         }
 
         .stats-card.timer-running {
@@ -752,6 +832,11 @@
         @media (max-width: 640px) {
             .stats-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .stats-card .estado-badge {
+                font-size: 0.6rem;
+                padding: 3px 6px;
             }
         }
 
@@ -1532,7 +1617,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.21</span>
+                <span class="version-text">LUSHIBOSCA-7.22</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -5223,6 +5308,55 @@
                     }
                 }
 
+                function actualizarEstadoVisualCard(regHoy, esDiaDeDescanso) {
+                    const card = document.getElementById('stats-card');
+                    if (!card) return;
+
+                    // Limpiar estados anteriores
+                    card.classList.remove('con-registro-hoy', 'registro-en-curso', 'dia-especial');
+
+                    // Buscar o crear badge
+                    let badge = card.querySelector('.estado-badge');
+                    if (!badge) {
+                        badge = document.createElement('div');
+                        badge.className = 'estado-badge';
+                        card.appendChild(badge);
+                    }
+
+                    // Resetear badge
+                    badge.classList.remove('visible', 'completado', 'en-curso', 'especial');
+
+                    // Sin registro o día de descanso
+                    if (!regHoy || !regHoy.entrada || esDiaDeDescanso) {
+                        badge.style.display = 'none';
+                        return;
+                    }
+
+                    badge.style.display = 'block';
+
+                    // Detectar tipo de registro
+                    const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(regHoy.entrada, regHoy.salida);
+
+                    if (tipoEspecial) {
+                        // Día especial
+                        card.classList.add('dia-especial');
+                        badge.textContent = `${tipoEspecial.emoji} ${tipoEspecial.label.toUpperCase()}`;
+                        badge.classList.add('especial', 'visible');
+
+                    } else if (regHoy.entrada && regHoy.salida) {
+                        // Registro completo
+                        card.classList.add('con-registro-hoy');
+                        badge.textContent = '✓ COMPLETADO';
+                        badge.classList.add('completado', 'visible');
+
+                    } else if (regHoy.entrada && !regHoy.salida) {
+                        // Registro en curso
+                        card.classList.add('registro-en-curso');
+                        badge.textContent = '● EN CURSO';
+                        badge.classList.add('en-curso', 'visible');
+                    }
+                }
+
                 function actualizarUI(idNuevo = null, soloReloj = false) {
                     const registros = D.registros();
                     const horasSemanales = D.horasSemanales();
@@ -5363,8 +5497,12 @@
                         // VISTA DIARIA (HOY)
                         // =========================================================
                     } else {
+                        // VISTA DIARIA (HOY)
                         tituloEl.innerHTML = `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`;
                         const regHoy = registros.find(r => r.fecha === hoy);
+
+                        actualizarEstadoVisualCard(regHoy, esDiaDeDescanso);
+
                         let tiempoTranscurrido = 0;
                         let objetivoDiario = horasDiarias;
 
@@ -7268,7 +7406,7 @@ Generado por Sistema Horarios
                         iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                         toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                         mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
-                        iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones
+                        iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, actualizarEstadoVisualCard
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -8040,7 +8178,7 @@ Generado por Sistema Horarios
                     iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
-                    iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones
+                    iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, actualizarEstadoVisualCard
                 };
 
             })(SecurityAndUtils, DataManagement);
@@ -8073,13 +8211,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.21
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.22
     // ====================================================================
     
      - CAMBIOS:
-    1) Se corrige el texto de estimacion, para que tenga en cuenta si no hay registro el dia anterior
-    laboral, ahora muestra nuevamente la salida con el faltante del buffer.
-    2) Se rediseña de forma minima la barra de progreso
+    1) Se añade badge a la tarjeta de estado para mayor feedback visual sobre los estados
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
