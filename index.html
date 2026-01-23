@@ -420,8 +420,9 @@
             transition: all 0.3s ease;
         }
 
-        #stats-card.timer-running {
-            border-left-color: var(--c-red) !important;
+        .stats-card.timer-running {
+            border: 1px solid var(--c-red);
+            animation: pulse-card 2s infinite;
         }
 
         .stats-number {
@@ -710,6 +711,22 @@
                 opacity: 0;
                 filter: blur(10px);
                 transform: scale(0.8);
+            }
+        }
+
+        /* Animación de pulso específica para la tarjeta (más suave) */
+        @keyframes pulse-card {
+            0% {
+                box-shadow: 0 0 0 0 rgba(192, 93, 118, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(192, 93, 118, 0);
+                /* Expansión de la sombra */
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(192, 93, 118, 0);
             }
         }
 
@@ -1538,7 +1555,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.23</span>
+                <span class="version-text">LUSHIBOSCA-7.22</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -4961,25 +4978,6 @@
                 }
 
                 function calcularEstadisticasMes(mesAnio = null) {
-                    // Función auxiliar para animar el cambio de texto
-                    const animarTexto = (elemento, nuevoTexto) => {
-                        // Si el texto es igual, no hacemos nada
-                        if (elemento.textContent === nuevoTexto) return;
-
-                        // 1. Desvanecer (Fade Out) y mover ligeramente
-                        elemento.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-                        elemento.style.opacity = '0';
-                        elemento.style.transform = 'translateY(-5px)'; // Efecto de subida
-
-                        // 2. Esperar a que desaparezca, cambiar texto y reaparecer
-                        setTimeout(() => {
-                            elemento.textContent = nuevoTexto;
-
-                            // 3. Reaparecer (Fade In)
-                            elemento.style.opacity = '1';
-                            elemento.style.transform = 'translateY(0)';
-                        }, 200); // 200ms coincide con la transición
-                    };
                     // Si no se especifica mes, usar el actual
                     let mesActual, añoActual;
 
@@ -5358,10 +5356,7 @@
                         const objetivoAjustado = Math.max(0, horasSemanales - horasDescontar);
                         const prog = objetivoAjustado > 0 ? Math.min((tot / objetivoAjustado) * 100, 100) : 100;
 
-                        if (statsEl) {
-                            // Usamos la función de animación directa
-                            animarTexto(statsEl, horasATexto(tot));
-                        }
+                        if (statsEl) statsEl.textContent = horasATexto(tot);
 
                         if (progressEl) {
                             progressEl.style.width = prog + '%';
@@ -5475,6 +5470,7 @@
                                     progressEl.style.width = prog + '%';
                                 }
 
+                                //  AQUÍ EMPIEZA LO QUE TIENES QUE REEMPLAZAR/AGREGAR
                                 if (regHoy.salida) {
                                     // -------------------------------------------------
                                     // CASO 1: DÍA CERRADO (Ya marcaste salida)
@@ -8178,11 +8174,12 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.23
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.22
     // ====================================================================
     
      - CAMBIOS:
-    1) Se quita la animación del boton timer break
+    1) Se agrega borde badge en la tarjeta de estado para mayor feedback visual del estado
+    2) Se solucionan bugs y estados incompletos en el badge y barra de progreso
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
