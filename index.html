@@ -490,6 +490,12 @@
             border: 1px solid var(--c-gold);
         }
 
+        .estado-badge.incompleto {
+            background: rgba(192, 93, 118, 0.15);
+            color: var(--c-red);
+            border: 1px solid var(--c-red);
+        }
+
         .estado-badge.especial {
             background: rgba(139, 92, 246, 0.15);
             color: var(--c-purple);
@@ -1650,7 +1656,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.22</span>
+                <span class="version-text">LUSHIBOSCA-7.23</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -5347,6 +5353,7 @@
 
                     // Limpiar estados anteriores
                     card.classList.remove('con-registro-hoy', 'registro-en-curso', 'dia-especial');
+                    card.style.borderLeft = ''; // Resetear borde
 
                     // Buscar o crear badge
                     let badge = card.querySelector('.estado-badge');
@@ -5356,8 +5363,9 @@
                         card.appendChild(badge);
                     }
 
-                    // Resetear badge
-                    badge.classList.remove('visible', 'completado', 'en-curso', 'especial', 'tiempo-fuera');
+                    // 🆕 RESETEAR TODAS LAS CLASES del badge
+                    badge.className = 'estado-badge'; // Esto limpia todas las clases
+                    badge.style.display = 'none'; // Ocultar por defecto
 
                     // 🔧 VERIFICAR SI HAY TIMER ACTIVO
                     const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
@@ -5390,17 +5398,74 @@
                         badge.classList.add('especial', 'visible');
 
                     } else if (regHoy.entrada && regHoy.salida) {
-                        // Registro completo
+                        // REGISTRO COMPLETO - Color y texto dinámico según vista y objetivo
                         card.classList.add('con-registro-hoy');
-                        badge.textContent = '✓ FINALIZADO';
-                        badge.classList.add('completado', 'visible');
+
+                        const vistaActual = D.vistaActual();
+                        const horasDiarias = D.horasDiarias();
+
+                        // Determinar color y texto según vista y cumplimiento
+                        let colorClase = 'completado'; // verde por defecto
+                        let textoEstado = '✓ COMPLETADO';
+
+                        if (vistaActual === 'diaria') {
+                            // Vista HOY: basado en si cumplió el objetivo diario
+                            if (horasDiarias > 0) {
+                                if (regHoy.total >= horasDiarias) {
+                                    colorClase = 'completado'; // verde
+                                    textoEstado = '✓ COMPLETADO';
+                                } else {
+                                    colorClase = 'incompleto'; // rojo
+                                    textoEstado = '✓ COMPLETADO';
+                                }
+                            }
+                        } else {
+                            // Vista SEMANA: basado en si cumplió el objetivo semanal
+                            const { inicio: ini, fin: fn } = obtenerSemanaActual();
+                            const hoy = obtenerFechaHoy();
+                            const horasSemanales = D.horasSemanales();
+
+                            const tot = D.registros().filter(r =>
+                                r.fecha >= ini && r.fecha <= hoy &&
+                                !TiposRegistro.esRegistroEspecial(r.entrada, r.salida)
+                            ).reduce((s, r) => s + r.total, 0);
+
+                            const horasDescontar = D.calcularHorasFeriadoEnRango(ini, fn);
+                            const objetivoAjustado = Math.max(0, horasSemanales - horasDescontar);
+
+                            if (objetivoAjustado > 0) {
+                                if (tot >= objetivoAjustado) {
+                                    colorClase = 'completado'; // verde - cumplió semana
+                                    textoEstado = '✓ SEMANA COMPLETA';
+                                } else {
+                                    colorClase = 'en-curso'; // gold - semana incompleta
+                                    textoEstado = '● SEMANA EN CURSO';
+                                }
+                            } else {
+                                textoEstado = '✓ COMPLETADO';
+                            }
+                        }
+
+                        badge.textContent = textoEstado;
+                        badge.classList.add(colorClase, 'visible');
+
+                        // Actualizar color del borde de la tarjeta según el estado
+                        if (colorClase === 'completado') {
+                            card.style.borderLeft = '4px solid var(--c-green)';
+                        } else if (colorClase === 'incompleto') {
+                            card.style.borderLeft = '4px solid var(--c-red)';
+                        } else if (colorClase === 'en-curso') {
+                            card.style.borderLeft = '4px solid var(--c-gold)';
+                        }
 
                     } else if (regHoy.entrada && !regHoy.salida) {
                         // Registro en curso
                         card.classList.add('registro-en-curso');
                         badge.textContent = '● EN CURSO';
                         badge.classList.add('en-curso', 'visible');
+                        card.style.borderLeft = '4px solid var(--c-gold)';
                     }
+
                 }
 
                 function actualizarUI(idNuevo = null, soloReloj = false) {
@@ -5747,6 +5812,29 @@
                     poblarSelectorMeses();
                     actualizarEstadisticas();
                     actualizarEstadoBotonTimerMain();
+
+                    poblarSelectorMeses();
+                    actualizarEstadisticas();
+                    actualizarEstadoBotonTimerMain();
+
+                    // 🆕 ACTUALIZAR BADGE SIEMPRE al final de actualizarUI
+                    if (!soloReloj) {
+                        const hoy = obtenerFechaHoy();
+                        const registroHoy = registros.find(r => r.fecha === hoy);
+                        const diasHabilesConfig = D.diasHabiles();
+                        const diaObj = new Date();
+                        const diaSemanaHoy = diaObj.getDay();
+                        let esDiaHabilHoy = true;
+                        if (Array.isArray(diasHabilesConfig)) {
+                            esDiaHabilHoy = diasHabilesConfig.includes(diaSemanaHoy);
+                        } else {
+                            if (diaSemanaHoy === 0) esDiaHabilHoy = (diasHabilesConfig === 7);
+                            else esDiaHabilHoy = (diaSemanaHoy <= diasHabilesConfig);
+                        }
+                        const esDiaDeDescanso = !esDiaHabilHoy;
+                        actualizarEstadoVisualCard(registroHoy, esDiaDeDescanso);
+                    }
+
                 }
 
                 function alternarTema() {
@@ -5793,7 +5881,20 @@
                             localStorage.setItem('vistaActual', vistaActual);
                         } catch (e) { }
 
-                        actualizarUI(); // Se actualizan los textos (mientras está invisible)
+                        actualizarUI();
+
+                        const hoy = obtenerFechaHoy();
+                        const registroHoy = D.registros().find(r => r.fecha === hoy);
+                        const diasHabilesConfig = D.diasHabiles();
+                        const diaObj = new Date();
+                        const diaSemanaHoy = diaObj.getDay();
+                        let esDiaHabilHoy = true;
+                        if (Array.isArray(diasHabilesConfig)) {
+                            esDiaHabilHoy = diasHabilesConfig.includes(diaSemanaHoy);
+                        }
+                        const esDiaDeDescanso = !esDiaHabilHoy;
+                        actualizarEstadoVisualCard(registroHoy, esDiaDeDescanso);
+
 
                         // 3. Removemos fade-out para que vuelva a aparecer
                         if (content) content.classList.remove('fade-out');
@@ -8273,12 +8374,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.22
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.23
     // ====================================================================
     
      - CAMBIOS:
-    1) Se añade badge a la tarjeta de estado para mayor feedback visual sobre los estados
-    2) Se mueve la etiqueta de tiempo fuera al badge
+    1) Se realizan mejoras visuales en el badge
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
