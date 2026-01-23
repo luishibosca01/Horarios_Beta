@@ -5357,10 +5357,27 @@
                         const prog = objetivoAjustado > 0 ? Math.min((tot / objetivoAjustado) * 100, 100) : 100;
 
                         if (statsEl) statsEl.textContent = horasATexto(tot);
-                        // ... código existente ...
+
                         if (progressEl) {
                             progressEl.style.width = prog + '%';
-                            setProgressBarColor(progressEl, (horasDiarias > 0 && tot >= objetivoAjustado) ? 'green' : 'blue');
+
+                            let colorBarra = 'blue'; // Default para semana en curso
+
+                            if (horasDiarias === 0) {
+                                // Sin objetivo configurado
+                                colorBarra = 'blue';
+                            } else if (tot >= objetivoAjustado) {
+                                // Objetivo cumplido
+                                colorBarra = 'green';
+                            } else if (semanaAbierta) {
+                                // Semana aún en curso (quedan días por delante)
+                                colorBarra = 'blue';
+                            } else {
+                                // Semana cerrada y NO se cumplió el objetivo
+                                colorBarra = 'red';
+                            }
+
+                            setProgressBarColor(progressEl, colorBarra);
                         }
 
                         const card = document.getElementById('stats-card');
@@ -5369,11 +5386,17 @@
                             card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-transparent');
 
                             if (horasDiarias === 0) {
+                                // Sin objetivo configurado
                                 card.classList.add('border-transparent');
                             } else if (tot >= objetivoAjustado) {
+                                // Objetivo cumplido
                                 card.classList.add('border-green');
-                            } else {
+                            } else if (semanaAbierta) {
+                                // Semana aún abierta (quedan días laborales por delante)
                                 card.classList.add('border-blue');
+                            } else {
+                                // Semana cerrada y NO se cumplió el objetivo
+                                card.classList.add('border-red');
                             }
                         }
 
@@ -5421,13 +5444,13 @@
                                 }
                                 if (mensajeEl) {
                                     mensajeEl.textContent = `¡${tipoEspecialHoy.descripcion}!`;
-                                    mensajeEl.style.display = 'block'; //  FIX Bug #2 también
+                                    mensajeEl.style.display = 'block';
                                 }
 
                                 const card = document.getElementById('stats-card');
                                 if (card) {
                                     card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-transparent');
-                                    card.classList.add('border-green');
+                                    card.classList.add('border-purple');
                                 }
                             } else {
                                 // --- DÍA NORMAL CON REGISTRO ---
@@ -5456,7 +5479,7 @@
                                         setProgressBarColor(progressEl, 'blue');
                                         if (mensajeEl) mensajeEl.style.display = 'none';
 
-                                        // 👈 NUEVO: Borde transparente
+                                        //  Borde transparente
                                         const card = document.getElementById('stats-card');
                                         if (card) {
                                             card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple');
@@ -5466,7 +5489,7 @@
                                         if (mensajeEl) mensajeEl.style.display = 'block';
                                         setProgressBarColor(progressEl, tiempoTranscurrido >= objetivoDiario ? 'green' : 'red');
 
-                                        // 👈 NUEVO: Borde verde o rojo
+                                        // Borde verde o rojo
                                         const card = document.getElementById('stats-card');
                                         if (card) {
                                             card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-transparent');
@@ -5484,7 +5507,7 @@
                                         setProgressBarColor(progressEl, 'blue');
                                         if (mensajeEl) mensajeEl.style.display = 'none';
 
-                                        // 👈 NUEVO: Borde transparente
+                                        // Borde transparente
                                         const card = document.getElementById('stats-card');
                                         if (card) {
                                             card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple');
@@ -5499,7 +5522,7 @@
                                         // Barra: Verde si cumpliste, Azul si falta
                                         setProgressBarColor(progressEl, objetivoCumplido ? 'green' : 'blue');
 
-                                        // 👈 NUEVO: Borde verde o azul
+                                        // Borde verde o azul
                                         const card = document.getElementById('stats-card');
                                         if (card) {
                                             card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-transparent');
@@ -5543,7 +5566,7 @@
                                 setProgressBarColor(progressEl, 'blue');
                             }
 
-                            //  NUEVO: Borde transparente si no hay registro
+                            //  Borde transparente si no hay registro
                             const card = document.getElementById('stats-card');
                             if (card) {
                                 card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple');
@@ -8155,7 +8178,8 @@ Generado por Sistema Horarios
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega borde badge en la tarjeta de estado apra mayor feedback visual del estado
+    1) Se agrega borde badge en la tarjeta de estado para mayor feedback visual del estado
+    2) Se solucionan bugs y estados incompletos en el badge y barra de progreso
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
