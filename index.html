@@ -4961,6 +4961,25 @@
                 }
 
                 function calcularEstadisticasMes(mesAnio = null) {
+                    // Función auxiliar para animar el cambio de texto
+                    const animarTexto = (elemento, nuevoTexto) => {
+                        // Si el texto es igual, no hacemos nada
+                        if (elemento.textContent === nuevoTexto) return;
+
+                        // 1. Desvanecer (Fade Out) y mover ligeramente
+                        elemento.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                        elemento.style.opacity = '0';
+                        elemento.style.transform = 'translateY(-5px)'; // Efecto de subida
+
+                        // 2. Esperar a que desaparezca, cambiar texto y reaparecer
+                        setTimeout(() => {
+                            elemento.textContent = nuevoTexto;
+
+                            // 3. Reaparecer (Fade In)
+                            elemento.style.opacity = '1';
+                            elemento.style.transform = 'translateY(0)';
+                        }, 200); // 200ms coincide con la transición
+                    };
                     // Si no se especifica mes, usar el actual
                     let mesActual, añoActual;
 
@@ -5339,30 +5358,9 @@
                         const objetivoAjustado = Math.max(0, horasSemanales - horasDescontar);
                         const prog = objetivoAjustado > 0 ? Math.min((tot / objetivoAjustado) * 100, 100) : 100;
 
-                        // código con animación
                         if (statsEl) {
-                            const nuevoTexto = horasATexto(tot);
-                            // Solo animar si el texto cambió para evitar parpadeos innecesarios
-                            if (statsEl.textContent !== nuevoTexto) {
-                                const cardContent = statsEl.closest('.stats-card-content');
-
-                                if (cardContent) {
-                                    // 1. Desaparecer (Fade Out)
-                                    cardContent.classList.add('fade-out');
-
-                                    // 2. Esperar el tiempo de la transición (300ms según tu CSS)
-                                    setTimeout(() => {
-                                        // 3. Cambiar el texto
-                                        statsEl.textContent = nuevoTexto;
-
-                                        // 4. Aparecer (Fade In)
-                                        cardContent.classList.remove('fade-out');
-                                    }, 300);
-                                } else {
-                                    // Fallback por si no encuentra el contenedor
-                                    statsEl.textContent = nuevoTexto;
-                                }
-                            }
+                            // Usamos la función de animación directa
+                            animarTexto(statsEl, horasATexto(tot));
                         }
 
                         if (progressEl) {
