@@ -1555,7 +1555,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.22</span>
+                <span class="version-text">LUSHIBOSCA-7.23</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -6815,6 +6815,10 @@ Generado por Sistema Horarios
                             btn.style.background = '';
                             btn.style.color = '';
 
+                            // Restaurar ícono al cambiar a modo lote
+                            const iconUse = btn.querySelector('svg use');
+                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
+
                             btnTimer.disabled = true;
                             btnTimer.style.opacity = '0.3';
 
@@ -6837,6 +6841,10 @@ Generado por Sistema Horarios
                             btnTexto.textContent = 'Registrar';
                             btn.style.background = '';
                             btn.style.color = '';
+
+                            // Restaurar ícono al volver a modo normal
+                            const iconUse = btn.querySelector('svg use');
+                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
 
                             btnTimer.disabled = false;
                             btnTimer.style.opacity = '1';
@@ -7009,6 +7017,11 @@ Generado por Sistema Horarios
                     // 2. Si faltan fechas, mostramos "Registrar" estándar y salimos
                     if (!desde && !hasta) {
                         btnTexto.textContent = 'Registrar';
+
+                        // Restaurar ícono original
+                        const iconUse = btn.querySelector('svg use');
+                        if (iconUse) iconUse.setAttribute('href', '#icon-save');
+
                         return;
                     }
 
@@ -7017,6 +7030,11 @@ Generado por Sistema Horarios
                         if (tipo === 'normal') {
                             btnTexto.textContent = 'Requiere Rango';
                             btn.style.color = 'var(--c-red)';
+
+                            // Restaurar ícono
+                            const iconUse = btn.querySelector('svg use');
+                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
+
                             return;
                         }
 
@@ -7025,8 +7043,14 @@ Generado por Sistema Horarios
                         if (registroExiste) {
                             btnTexto.textContent = 'Registrado';
                             btn.style.color = 'var(--text-muted)';
+
+                            const iconUse = btn.querySelector('svg use');
+                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
                         } else {
                             btnTexto.textContent = 'Registrar';
+
+                            const iconUse = btn.querySelector('svg use');
+                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
                         }
                         return;
                     }
@@ -7042,18 +7066,32 @@ Generado por Sistema Horarios
                     if (!S.validarFechaSegura(desde)) {
                         btnTexto.textContent = 'Fecha Inicial Inválida';
                         btn.style.color = 'var(--c-red)';
+
+                        // 👈 AGREGAR
+                        const iconUse = btn.querySelector('svg use');
+                        if (iconUse) iconUse.setAttribute('href', '#icon-save');
+
                         return;
                     }
 
                     if (!S.validarFechaSegura(hasta)) {
                         btnTexto.textContent = 'Fecha Final Inválida';
                         btn.style.color = 'var(--c-red)';
+
+                        // 👈 AGREGAR
+                        const iconUse = btn.querySelector('svg use');
+                        if (iconUse) iconUse.setAttribute('href', '#icon-save');
+
                         return;
                     }
 
                     if (desde > hasta) {
                         btnTexto.textContent = 'Rango Inválido';
                         btn.style.color = 'var(--c-red)';
+
+                        const iconUse = btn.querySelector('svg use');
+                        if (iconUse) iconUse.setAttribute('href', '#icon-save');
+
                         return;
                     }
 
@@ -7080,11 +7118,18 @@ Generado por Sistema Horarios
                         if (cantidadRegistros > 0) {
                             btnTexto.textContent = `Borrar (${cantidadRegistros})`;
                             btn.style.color = 'var(--c-red)';
+
+                            // Cambiar icono a papelera
+                            const iconUse = btn.querySelector('svg use');
+                            if (iconUse) iconUse.setAttribute('href', '#icon-trash');
                         } else {
                             btnTexto.textContent = 'Sin Registros';
                             btn.style.color = 'var(--text-muted)';
-                        }
 
+                            // Volver al icono original (save)
+                            const iconUse = btn.querySelector('svg use');
+                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
+                        }
                     } else {
                         // Casos Especiales - Contar días OCUPADOS y días LIBRES
                         const codigosTipo = TiposRegistro.obtenerCodigosPorTipo(tipo);
@@ -7108,22 +7153,33 @@ Generado por Sistema Horarios
                             const sobreescribirOtros = diasOcupados.length - yaRegistrados;
 
                             if (disponibles === 0 && yaRegistrados === diasTotales) {
-                                // Todos los días ya tienen este tipo
                                 btnTexto.textContent = `Registrado (${diasTotales})`;
                                 btn.style.color = 'var(--text-muted)';
+
+                                const iconUse = btn.querySelector('svg use');
+                                if (iconUse) iconUse.setAttribute('href', '#icon-save');
                             } else if (disponibles === diasTotales) {
-                                // Todos los días están libres
                                 btnTexto.textContent = `Registrar (${diasTotales})`;
+
+                                const iconUse = btn.querySelector('svg use');
+                                if (iconUse) iconUse.setAttribute('href', '#icon-save');
                             } else if (sobreescribirOtros > 0) {
-                                // Hay días con otros tipos de registro
                                 btnTexto.textContent = `Registrar (${disponibles} - ${sobreescribirOtros})`;
+
+                                const iconUse = btn.querySelector('svg use');
+                                if (iconUse) iconUse.setAttribute('href', '#icon-save');
                             } else {
-                                // Combinación de libres y ya registrados
                                 btnTexto.textContent = `Registrar (${disponibles})`;
+
+                                const iconUse = btn.querySelector('svg use');
+                                if (iconUse) iconUse.setAttribute('href', '#icon-save');
                             }
                         } else {
                             registrosDelTipoEnRango = [];
                             btnTexto.textContent = 'Registrar';
+
+                            const iconUse = btn.querySelector('svg use');
+                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
                         }
                     }
                 }
@@ -7747,6 +7803,11 @@ Generado por Sistema Horarios
                     agregarListenersFecha(loteDesde);
                     agregarListenersFecha(loteHasta);
 
+                    const loteTipo = document.getElementById('lote-tipo');
+                    if (loteTipo) {
+                        loteTipo.addEventListener('change', () => actualizarBotonLote());
+                    }
+
                     // Listener para mostrar/ocultar campos de rango en exportación
                     const tipoExportSelect = document.getElementById('tipo-exportacion');
                     if (tipoExportSelect) {
@@ -8174,12 +8235,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.22
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.23
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega borde badge en la tarjeta de estado para mayor feedback visual del estado
-    2) Se solucionan bugs y estados incompletos en el badge y barra de progreso
+    1) Se Agrega icono de borrar en el tipo de registro normal para borrar del modo lote
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
