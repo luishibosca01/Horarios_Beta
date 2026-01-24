@@ -128,7 +128,7 @@
         .modal-content {
             background: var(--bg-card);
             border-radius: var(--radius);
-            padding: 1.5rem;
+            padding: 1.5rem 1rem;
             margin-bottom: 1rem;
             box-shadow: var(--shadow);
             color: var(--text-main);
@@ -163,7 +163,6 @@
             .left-column {
                 display: flex;
                 flex-direction: column;
-                gap: 1rem;
             }
 
             .right-column {
@@ -420,9 +419,8 @@
             transition: all 0.3s ease;
         }
 
-        .stats-card.timer-running {
-            border: 1px solid var(--c-red);
-            animation: pulse-card 2s infinite;
+        #stats-card.timer-running {
+            border-left-color: var(--c-red) !important;
         }
 
         .stats-number {
@@ -1555,7 +1553,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.23</span>
+                <span class="version-text">LUSHIBOSCA-7.24</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -1953,7 +1951,7 @@
                 <label>Tipo de registro</label>
                 <div class="input-with-btn">
                     <select id="edit-grupo-tipo">
-                        <option value="feriado">🥳 Feriados</option>
+                        <option value="feriado">🥳 Feriado</option>
                         <option value="ausencia">✈️ Ausencia/Licencia</option>
                         <option value="vacaciones">🏖️ Vacaciones</option>
                         <option value="asueto">🎁 Asueto</option>
@@ -5470,7 +5468,6 @@
                                     progressEl.style.width = prog + '%';
                                 }
 
-                                //  AQUÍ EMPIEZA LO QUE TIENES QUE REEMPLAZAR/AGREGAR
                                 if (regHoy.salida) {
                                     // -------------------------------------------------
                                     // CASO 1: DÍA CERRADO (Ya marcaste salida)
@@ -6815,7 +6812,6 @@ Generado por Sistema Horarios
                             btn.style.background = '';
                             btn.style.color = '';
 
-                            // Restaurar ícono al cambiar a modo lote
                             const iconUse = btn.querySelector('svg use');
                             if (iconUse) iconUse.setAttribute('href', '#icon-save');
 
@@ -6842,7 +6838,6 @@ Generado por Sistema Horarios
                             btn.style.background = '';
                             btn.style.color = '';
 
-                            // Restaurar ícono al volver a modo normal
                             const iconUse = btn.querySelector('svg use');
                             if (iconUse) iconUse.setAttribute('href', '#icon-save');
 
@@ -7067,7 +7062,6 @@ Generado por Sistema Horarios
                         btnTexto.textContent = 'Fecha Inicial Inválida';
                         btn.style.color = 'var(--c-red)';
 
-                        // 👈 AGREGAR
                         const iconUse = btn.querySelector('svg use');
                         if (iconUse) iconUse.setAttribute('href', '#icon-save');
 
@@ -7078,7 +7072,6 @@ Generado por Sistema Horarios
                         btnTexto.textContent = 'Fecha Final Inválida';
                         btn.style.color = 'var(--c-red)';
 
-                        // 👈 AGREGAR
                         const iconUse = btn.querySelector('svg use');
                         if (iconUse) iconUse.setAttribute('href', '#icon-save');
 
@@ -7803,11 +7796,6 @@ Generado por Sistema Horarios
                     agregarListenersFecha(loteDesde);
                     agregarListenersFecha(loteHasta);
 
-                    const loteTipo = document.getElementById('lote-tipo');
-                    if (loteTipo) {
-                        loteTipo.addEventListener('change', () => actualizarBotonLote());
-                    }
-
                     // Listener para mostrar/ocultar campos de rango en exportación
                     const tipoExportSelect = document.getElementById('tipo-exportacion');
                     if (tipoExportSelect) {
@@ -8235,11 +8223,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.23
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.24
     // ====================================================================
     
      - CAMBIOS:
-    1) Se Agrega icono de borrar en el tipo de registro normal para borrar del modo lote
+    1) 
 
      - BUGS CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
