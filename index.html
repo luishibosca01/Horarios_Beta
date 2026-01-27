@@ -3170,7 +3170,14 @@
                     if (!esCalculoTemporal) {
                         const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(e, s);
                         if (tipoEspecial) {
-                            const resultado = { horas: 0, minutos: 0, total: horasDiarias };
+                            // Si es registro de TRABAJO, cuenta como horas objetivo
+                            // Si es AUSENCIA, cuenta como 0 horas
+                            const totalHoras = tipoEspecial.categoria === 'trabajo' ? horasDiarias : 0;
+                            const resultado = {
+                                horas: tipoEspecial.categoria === 'trabajo' ? horasDiarias : 0,
+                                minutos: 0,
+                                total: totalHoras
+                            };
                             resultado[`es${tipoEspecial.label}`] = true;
                             return resultado;
                         }
