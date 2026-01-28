@@ -6021,10 +6021,17 @@
                         return aReg === año && mReg === mes;
                     });
 
-                    // Calcular total de horas del mes (excluir registros especiales)
-                    const totalHoras = registrosMes
-                        .filter(r => !TiposRegistro.esRegistroEspecial(r.entrada, r.salida))
-                        .reduce((sum, r) => sum + r.total, 0);
+                    // Calcular total de horas del mes (incluir remotos como objetivo diario)
+                    let totalHoras = 0;
+                    registrosMes.forEach(r => {
+                        const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+
+                        if (tipoEspecial && tipoEspecial.id === 'remoto') {
+                            totalHoras += D.horasDiarias();
+                        } else if (!tipoEspecial) {
+                            totalHoras += r.total;
+                        }
+                    });
 
                     const horasTotales = Math.floor(totalHoras);
                     const minutosTotales = Math.round((totalHoras - horasTotales) * 60);
@@ -6113,7 +6120,7 @@ REPORTE DE HORAS TRABAJADAS
                                         }
                                     }
 
-                                    linea = `${fecha}  ${dia.padEnd(10)} ${entrada} → ${salida}  [${total}]${tiempoFuera}${infoAsueto} ${indicador}`; // 
+                                    linea = `${fecha}  ${dia.padEnd(10)} ${entrada} → ${salida}  [${total}]${tiempoFuera}${infoAsueto} ${indicador}`;
                                 }
 
                                 seccion += linea + '\n';
@@ -6132,6 +6139,8 @@ REPORTE DE HORAS TRABAJADAS
                                 lunes.setDate(date.getDate() + offset);
                                 return lunes.toISOString().split('T')[0];
                             }
+
+                            const horasDiariasObjetivo = D.horasDiarias(); // Definir aquí dentro de esta función
 
                             // Obtener el mes seleccionado del selector
                             const selectMes = $('select-mes-stats');
@@ -6168,7 +6177,7 @@ REPORTE DE HORAS TRABAJADAS
 
                                 if (tipoEspecial) {
                                     // Agregar a la categoría correspondiente
-                                    const categoria = tipoEspecial.id + 's'; // 'feriado' -> 'feriados'
+                                    const categoria = tipoEspecial.id + 's';
                                     if (semana[categoria]) {
                                         semana[categoria].push(r);
                                     }
@@ -6195,11 +6204,17 @@ REPORTE DE HORAS TRABAJADAS
 
 `;
 
-                            // Array para almacenar semanas incompletas
                             const semanasIncompletas = [];
 
                             semanasOrdenadas.forEach(([lunes, datos], index) => {
-                                const totalSemanal = datos.trabajados.reduce((sum, r) => sum + r.total, 0);
+                                // Calcular total semanal (trabajados + remotos)
+                                let totalSemanal = datos.trabajados.reduce((sum, r) => sum + r.total, 0);
+
+                                // Agregar horas de días remotos
+                                if (datos.remotos && datos.remotos.length > 0) {
+                                    totalSemanal += datos.remotos.length * horasDiariasObjetivo;
+                                }
+
                                 const horasSem = Math.floor(totalSemanal);
                                 const minutosSem = Math.round((totalSemanal - horasSem) * 60);
 
@@ -6208,7 +6223,6 @@ REPORTE DE HORAS TRABAJADAS
                                 fechaDomingo.setDate(fechaLunes.getDate() + 6);
                                 const domingo = fechaDomingo.toISOString().split('T')[0];
 
-                                // Detectar si la semana sale del mes
                                 let fechaFin = domingo;
                                 let esIncompleta = false;
                                 let continuaEn = '';
@@ -6217,7 +6231,6 @@ REPORTE DE HORAS TRABAJADAS
                                     fechaFin = ultimaFechaMes;
                                     esIncompleta = true;
 
-                                    // Calcular en qué mes continúa
                                     const mesSiguiente = mesActual === 12 ? 1 : mesActual + 1;
                                     const añoSiguiente = mesActual === 12 ? añoActual + 1 : añoActual;
                                     const fechaSiguiente = new Date(añoSiguiente, mesSiguiente - 1, 1);
@@ -6226,7 +6239,6 @@ REPORTE DE HORAS TRABAJADAS
                                 }
 
                                 if (lunes < primerDiaMes) {
-                                    const fechaInicioReal = new Date(primerDiaMes.replace(/-/g, '/') + ' 00:00:00');
                                     lunes = primerDiaMes;
                                     esIncompleta = true;
                                     const mesAnterior = mesActual === 1 ? 12 : mesActual - 1;
@@ -6260,13 +6272,11 @@ REPORTE DE HORAS TRABAJADAS
 
                                 seccion += '\n\n';
 
-                                //  Guardar info de semana incompleta
                                 if (esIncompleta && continuaEn) {
                                     semanasIncompletas.push(`* Semana ${index + 1}: ${continuaEn}`);
                                 }
                             });
 
-                            //  Agregar notas de semanas incompletas al final
                             if (semanasIncompletas.length > 0) {
                                 seccion += semanasIncompletas.join('\n') + '\n';
                             }
@@ -6326,7 +6336,6 @@ Generado por Sistema Horarios
                         mostrarToast('Error al generar reporte', 'error');
                     }
                 }
-
                 // Función auxiliar para sumar minutos a un formato HH:MM
                 function sumarMinutosAHora(horaString, minutosASumar) {
                     let totalMinutos = minutosASumar;
@@ -8337,18 +8346,19 @@ Generado por Sistema Horarios
      - CAMBIOS:
     1) Se cambia el calculo del registro "remoto" para que actue como un registro normal en los
     calculos
+    2) Se agrega el calculo de registro remoto al Reporte
 
-     - BUGS CONOCIDOS:
+     - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
      y tocar el timer, al rehacer la accion, el timer sigue corriendo
      2) al borrar un lote el boton detecta muy rapido los cambios produciendo un cambio
      repentino del estado en la etiqueta pasando de por ejemplo borrar - sin registros - registrar,
      el glujo correcto seria borrar - registrar luego de ejecutar la accion
+     3) pulsar deliberadamente undo y redo de forma reiterada mas de 20 veces aproximadamente,
+     la interfaz deja de mostrar los cambios hasta que se actualiza la pagina
 
      - IDEAS DESCARTADAS/REVISION:
-     1) Registro especial "ausencia sin justificar" con el parametro "contabiliza=false",
-     Se descarta ya que existe el tipo ausencia (justificada), y en caso de no registrar
-     un dia, el buffer muestra el restante equivalente al objetivo diario
+     1) Registro especial "ausencia sin justificar" a revisar
      
 
     -->
