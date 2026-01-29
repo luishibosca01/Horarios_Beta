@@ -1557,7 +1557,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.28</span>
+                <span class="version-text">LUSHIBOSCA-7.30</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -1639,25 +1639,6 @@
                         <use href="#icon-cancelar" />
                     </svg> Cancelar
                 </button>
-            </div>
-            <div class="form-group"
-                style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <label style="margin: 0; font-weight: 500;">
-                        🔔 Notificaciones
-                    </label>
-                    <button type="button" id="btn-activar-notificaciones" class="btn-primary"
-                        style="padding: 0.5rem 1rem; font-size: 0.875rem;" onclick="UILogic.activarNotificaciones()">
-                        Activar
-                    </button>
-                </div>
-                <small style="color: var(--text-muted); display: block; line-height: 1.4;">
-                    Te avisaremos 5 minutos antes de cumplir tu objetivo diario
-                </small>
-                <div id="estado-notificaciones"
-                    style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
-                    Desactivadas
-                </div>
             </div>
         </div>
     </div>
@@ -4579,7 +4560,6 @@
                 }
 
                 function verificarYProgramar() {
-                    // Verificar permisos y programar si corresponde
                     if (Notification.permission === 'granted') {
                         permisosConcedidos = true;
                         programarNotificacionSiCorresponde();
@@ -6862,6 +6842,9 @@ Generado por Sistema Horarios
                 function mostrarconfig() {
                     ModalManager.alternar('modal-selector-perfiles', 'modal-config', null, () => {
                         $('config-horas-diarias').value = D.horasDiarias();
+                        if (typeof actualizarEstadoNotificaciones === 'function') {
+                            actualizarEstadoNotificaciones();
+                        }
 
                         const diasActivos = D.diasHabiles();
                         const checkboxes = document.querySelectorAll('input[name="dia-habil"]');
@@ -7913,15 +7896,14 @@ Generado por Sistema Horarios
                     actualizarUI();
                     setInterval(() => actualizarUI(null, true), 60000);
                     
-                    // === INICIALIZAR NOTIFICACIONES ===
-                    NotificacionesManager.init().then(() => {
-                        // Solicitar permisos automáticamente en la primera carga
+                    // Inicializar notificaciones
+                    setTimeout(async () => {
+                        await NotificacionesManager.init();
                         if (Notification.permission === 'default') {
-                            NotificacionesManager.solicitarPermisos();
+                            await NotificacionesManager.solicitarPermisos();
                         }
-                        // Verificar y programar si ya tiene permisos
                         NotificacionesManager.verificarYProgramar();
-                    });
+                    }, 1000); // Esperar 1 segundo para que todo esté listo
                     
                     console.log('Sistema iniciado correctamente');
 
@@ -8149,6 +8131,8 @@ Generado por Sistema Horarios
                             }
                         });
                     }
+                    NotificacionesManager.init();
+                    NotificacionesManager.verificarYProgramar();
                 }
 
                 function mostrarFiltros() {
@@ -8481,6 +8465,36 @@ Generado por Sistema Horarios
                     }, 2000);
                 }
 
+                async function activarNotificaciones() {
+                    const resultado = await NotificacionesManager.solicitarPermisos();
+
+                    if (resultado) {
+                        mostrarToast('✅ Notificaciones activadas', 'success');
+                        actualizarEstadoNotificaciones();
+                    } else {
+                        mostrarToast('❌ Permisos denegados', 'error');
+                    }
+                }
+
+                function actualizarEstadoNotificaciones() {
+                    const estadoEl = document.getElementById('estado-notificaciones');
+                    const btnEl = document.getElementById('btn-activar-notificaciones');
+
+                    if (!estadoEl || !btnEl) return;
+
+                    if (NotificacionesManager.estaHabilitado()) {
+                        estadoEl.innerHTML = '<span style="color: var(--c-green);">✓ Activas</span>';
+                        btnEl.textContent = 'Activadas';
+                        btnEl.disabled = true;
+                        btnEl.style.opacity = '0.5';
+                    } else {
+                        estadoEl.innerHTML = '<span style="color: var(--text-muted);">Desactivadas</span>';
+                        btnEl.textContent = 'Activar';
+                        btnEl.disabled = false;
+                        btnEl.style.opacity = '1';
+                    }
+                }
+
                 return {
                     init, obtenerFechaHoy, pegarHoraActual, alternarTema, alternarVista, cerrarConfig,
                     cerrarEdicion, mostrarImportar, cerrarImportar, actualizarUI, mostrarToast, mostrarError,
@@ -8494,7 +8508,7 @@ Generado por Sistema Horarios
                     iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
-                    iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones
+                    iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, activarNotificaciones, actualizarEstadoNotificaciones
                 };
 
             })(SecurityAndUtils, DataManagement);
