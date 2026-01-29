@@ -1557,7 +1557,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.27</span>
+                <span class="version-text">LUSHIBOSCA-7.28</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -4426,6 +4426,160 @@
 
             })(SecurityAndUtils);
 
+            // ============================================
+            // MÓDULO DE NOTIFICACIONES
+            // ============================================
+            const NotificacionesManager = (() => {
+                let permisosConcedidos = false;
+                let swRegistration = null;
+
+                async function init() {
+                    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+                        console.warn('⚠️ Notificaciones no soportadas');
+                        return;
+                    }
+
+                    permisosConcedidos = Notification.permission === 'granted';
+
+                    if ('serviceWorker' in navigator) {
+                        swRegistration = await navigator.serviceWorker.ready;
+                    }
+
+                    console.log('📱 Sistema de notificaciones inicializado');
+                }
+
+                async function solicitarPermisos() {
+                    if (!('Notification' in window)) return false;
+
+                    if (Notification.permission === 'granted') {
+                        permisosConcedidos = true;
+                        return true;
+                    }
+
+                    if (Notification.permission !== 'denied') {
+                        const permission = await Notification.requestPermission();
+                        permisosConcedidos = permission === 'granted';
+
+                        if (permisosConcedidos) {
+                            mostrarNotificacionPrueba();
+                        }
+
+                        return permisosConcedidos;
+                    }
+
+                    return false;
+                }
+
+                function mostrarNotificacionPrueba() {
+                    if (!permisosConcedidos || !swRegistration) return;
+
+                    swRegistration.showNotification('✅ Notificaciones activadas', {
+                        body: 'Te avisaremos 5 minutos antes de cumplir tu objetivo diario',
+                        icon: './icons/icon-192.png',
+                        vibrate: [100, 50, 100],
+                        tag: 'test'
+                    });
+                }
+
+                function calcularMinutosParaNotificacion() {
+                    const horasDiarias = D.horasDiarias();
+
+                    if (horasDiarias === 0) return null;
+
+                    const hoy = UILogic.obtenerFechaHoy();
+                    const registros = D.registros();
+                    const regHoy = registros.find(r => r.fecha === hoy);
+
+                    if (!regHoy || !regHoy.entrada || regHoy.salida) return null;
+
+                    if (TiposRegistro.esRegistroEspecial(regHoy.entrada, regHoy.salida)) {
+                        return null;
+                    }
+
+                    const ahora = new Date();
+                    const horaActual = String(ahora.getHours()).padStart(2, '0') + ':' +
+                        String(ahora.getMinutes()).padStart(2, '0');
+
+                    const resultado = D.calcularHoras(
+                        regHoy.entrada,
+                        horaActual,
+                        regHoy.tiempoFuera || null,
+                        null,
+                        true
+                    );
+
+                    if (!resultado) return null;
+
+                    const horasTrabajadas = resultado.total;
+                    const horasFaltantes = horasDiarias - horasTrabajadas;
+
+                    if (horasFaltantes <= 0) return null;
+
+                    const minutosFaltantes = Math.round(horasFaltantes * 60);
+
+                    // Solo si faltan entre 6 y 60 minutos
+                    if (minutosFaltantes < 6 || minutosFaltantes > 60) return null;
+
+                    const minutosParaNotificar = minutosFaltantes - 5;
+
+                    return {
+                        minutos: minutosParaNotificar,
+                        horasObjetivo: horasDiarias
+                    };
+                }
+
+                function programarNotificacionSiCorresponde() {
+                    if (!permisosConcedidos || !swRegistration) return;
+
+                    const datos = calcularMinutosParaNotificacion();
+
+                    if (!datos) {
+                        cancelarNotificacion();
+                        return;
+                    }
+
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'PROGRAMAR_NOTIFICACION',
+                            payload: {
+                                minutosRestantes: datos.minutos,
+                                horasObjetivo: datos.horasObjetivo
+                            }
+                        });
+
+                        console.log(`🔔 Notificación programada para dentro de ${datos.minutos} minutos`);
+                    }
+                }
+
+                function cancelarNotificacion() {
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({
+                            type: 'CANCELAR_NOTIFICACION'
+                        });
+                    }
+                }
+
+                function verificarYProgramar() {
+                    // Verificar permisos y programar si corresponde
+                    if (Notification.permission === 'granted') {
+                        permisosConcedidos = true;
+                        programarNotificacionSiCorresponde();
+                    }
+                }
+
+                function estaHabilitado() {
+                    return permisosConcedidos && Notification.permission === 'granted';
+                }
+
+                return {
+                    init,
+                    solicitarPermisos,
+                    verificarYProgramar,
+                    cancelarNotificacion,
+                    estaHabilitado
+                };
+            })();
+
             // ====================================================================
             // UI LOGIC MODULE
             // ====================================================================
@@ -5732,6 +5886,9 @@
                     poblarSelectorMeses();
                     actualizarEstadisticas();
                     actualizarEstadoBotonTimerMain();
+                    if (typeof NotificacionesManager !== 'undefined') {
+                        NotificacionesManager.verificarYProgramar();
+                    }
                 }
 
                 function alternarTema() {
@@ -7736,7 +7893,18 @@ Generado por Sistema Horarios
 
                     actualizarUI();
                     setInterval(() => actualizarUI(null, true), 60000);
-                    console.log('Sistema iniciado correctamente v6.68');
+                    
+                    // === INICIALIZAR NOTIFICACIONES ===
+                    NotificacionesManager.init().then(() => {
+                        // Solicitar permisos automáticamente en la primera carga
+                        if (Notification.permission === 'default') {
+                            NotificacionesManager.solicitarPermisos();
+                        }
+                        // Verificar y programar si ya tiene permisos
+                        NotificacionesManager.verificarYProgramar();
+                    });
+                    
+                    console.log('Sistema iniciado correctamente');
 
                     // ===================================
                     // EVENT DELEGATION - LISTA REGISTROS
@@ -8340,13 +8508,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.27
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.28
     // ====================================================================
     
      - CAMBIOS:
-    1) Se cambia el calculo del registro "remoto" para que actue como un registro normal en los
-    calculos
-    2) Se agrega el calculo de registro remoto al Reporte
+    1) 
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
