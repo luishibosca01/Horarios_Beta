@@ -501,11 +501,6 @@
             contain-intrinsic-size: 85px;
         }
 
-        .registro-item.hoy {
-            border-left: 3px solid var(--text-main);
-            position: relative;
-        }
-
         .registro-item.hoy::before {
             content: "HOY";
             position: absolute;
@@ -515,7 +510,7 @@
             color: var(--text-main);
             font-size: 0.75rem;
             font-weight: 700;
-            padding: 2px 6px;
+            padding: 0.1rem 1rem 0.1rem 1rem;
             border-radius: var(--radius);
             letter-spacing: 0.5px;
         }
@@ -536,26 +531,29 @@
         }
 
         .registro-total {
-            font-size: 0.875rem;
+            font-size: 0.75rem;
             font-weight: 600;
-            color: var(--c-gold);
             margin-top: 0.25rem;
+            color: var(--c-white);
+            display: inline-block;
+            border-radius: var(--radius);
+            padding: .1rem 1rem .1rem 1rem;
         }
 
         .registro-total.green-text {
-            color: var(--c-green);
+            background: var(--c-green);
         }
 
         .registro-total.red-text {
-            color: var(--c-red);
+            background: var(--c-red);
         }
 
         .registro-total.purple-text {
-            color: var(--c-purple);
+            background: var(--c-purple);
         }
 
         .registro-total.yellow-text {
-            color: var(--c-gold);
+            background: var(--c-gold);
         }
 
         /* --- Modal & Utilidades --- */
@@ -1557,7 +1555,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.28</span>
+                <span class="version-text">LUSHIBOSCA-7.30</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -2637,14 +2635,17 @@
                             // Verificar que el historial no tenga más de 24 horas
                             const ahora = Date.now();
                             const tiempoTranscurrido = ahora - (historyData.timestamp || 0);
-                            const unDiaEnMs = 24 * 60 * 60 * 1000;
+                            const limiteEnMs = 2 * 24 * 60 * 60 * 1000;
 
-                            if (tiempoTranscurrido < unDiaEnMs) {
+                            if (tiempoTranscurrido < limiteEnMs) {
                                 // Historial válido - restaurar
                                 history = historyData.history || [];
                                 currentIndex = historyData.currentIndex !== undefined ? historyData.currentIndex : -1;
 
-                                console.log(`Historial restaurado: ${history.length} estados`);
+                                console.log(`✓ Historial restaurado: ${history.length} estados, índice actual: ${currentIndex}`);
+
+                                // CRÍTICO: Si hay estados y el índice es válido, retornar TRUE
+                                return history.length > 0 && currentIndex >= 0;
                             } else {
                                 // Historial expirado - limpiar
                                 console.log('Historial expirado (más de 24hs), limpiando...');
@@ -2660,6 +2661,7 @@
                     }
 
                     updateButtons();
+                    return false; // No se cargó historial válido
                 }
 
                 function clearStorage() {
@@ -2679,6 +2681,13 @@
                     updateButtons();
                 }
 
+                function getCurrentState() {
+                    if (currentIndex >= 0 && currentIndex < history.length) {
+                        return deepClone(history[currentIndex]);
+                    }
+                    return null;
+                }
+
                 return {
                     saveState,
                     undo,
@@ -2688,7 +2697,8 @@
                     updateButtons,
                     clear,
                     saveToLocalStorage,
-                    loadFromLocalStorage
+                    loadFromLocalStorage,
+                    getCurrentState
                 };
             })();
 
@@ -5565,7 +5575,7 @@
                             } else {
                                 mensajeEl.style.display = 'block';
                                 if (objetivoAjustado === 0) {
-                                    mensajeEl.textContent = `Semana sin objetivo. Total: ${horasATexto(tot)}`;
+                                    mensajeEl.textContent = `${horasATexto(tot)} (Sin objetivo)`;
                                 } else {
                                     if (tot >= objetivoAjustado) {
                                         mensajeEl.textContent = `Hiciste ${horasATexto(tot - objetivoAjustado)} de más`;
@@ -7765,11 +7775,19 @@ Generado por Sistema Horarios
                     D.registros().splice(0, D.registros().length, ...registrosCargados);
 
                     // Cargar historial guardado (si existe y es válido)
-                    HistoryManager.loadFromLocalStorage();
+                    const historialCargado = HistoryManager.loadFromLocalStorage();
 
-                    // Si no hay historial o está vacío, inicializar con estado actual
-                    if (!HistoryManager.canUndo()) {
+                    if (historialCargado) {
+                        // Si se cargó historial válido, restaurar el estado actual de ese historial
+                        const estadoActual = HistoryManager.getCurrentState();
+                        if (estadoActual && estadoActual.length > 0) {
+                            D.registros().splice(0, D.registros().length, ...estadoActual);
+                            console.log('✓ Registros restaurados desde historial');
+                        }
+                    } else {
+                        // Si no hay historial válido, guardar el estado inicial
                         HistoryManager.saveState(D.registros());
+                        console.log('✓ Nuevo historial inicializado');
                     }
 
                     HistoryManager.updateButtons();
@@ -8444,18 +8462,19 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.28
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.30
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega listener para cerrar los modales al hacer click o tocar fuera de ellos
+    1) Se rediseña registro-item, para mejor visualización
+    2) Se corrige bug en history manager
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
      y tocar el timer, al rehacer la accion, el timer sigue corriendo
      2) al borrar un lote el boton detecta muy rapido los cambios produciendo un cambio
      repentino del estado en la etiqueta pasando de por ejemplo borrar - sin registros - registrar,
-     el glujo correcto seria borrar - registrar luego de ejecutar la accion
+     el flujo correcto seria borrar - registrar luego de ejecutar la accion
      3) pulsar deliberadamente undo y redo de forma reiterada mas de 20 veces aproximadamente,
      la interfaz deja de mostrar los cambios hasta que se actualiza la pagina
 
