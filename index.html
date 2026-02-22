@@ -201,7 +201,7 @@
             font-size: 0.875rem;
             font-weight: 600;
             color: var(--text-muted);
-            margin: 0 0 0.25rem 0.5rem ;
+            margin: 0 0 0.25rem 0.5rem;
             transition: opacity 0.3s ease, transform 0.3s ease, color 0.3s ease;
             min-height: 1.2em;
             line-height: 1.2;
@@ -307,7 +307,7 @@
         /* Variantes de botones */
 
         .btn-register {
-            width: 70%;
+            width: auto;
             padding: 17px;
             margin: -17px;
             background: transparent;
@@ -3437,10 +3437,10 @@
                             if (timerDetenido && usaHoraActual) {
                                 // Caso: Salida con hora actual Y timer activo
                                 const tiempoFuera = registroExistente.tiempoFuera || '00:00';
-                                mensaje = `Salida registrada con hora actual\n⏱️ Descanso finalizado: +${tiempoFuera}\n(entrada: ${registroExistente.entrada})`;
+                                mensaje = `Salida registrada con hora actual \n⏱️ Descanso finalizado: +${tiempoFuera} \n(entrada: ${registroExistente.entrada})`;
                             } else if (usaHoraActual) {
                                 // Caso: Salida con hora actual SIN timer
-                                mensaje = `Salida registrada con hora actual\n(entrada: ${registroExistente.entrada})`;
+                                mensaje = `Salida registrada con hora actual \n(entrada: ${registroExistente.entrada})`;
                             } else {
                                 // Caso: Salida manual
                                 mensaje = `Salida ${s} agregada\n(entrada: ${registroExistente.entrada})`;
@@ -5307,7 +5307,8 @@
                                 );
 
                                 const label = (cant === 1 && tipoObj) ? tipoObj.label : tipoPlural;
-                                return `${cant} ${label.toLowerCase()}`;
+                                const diasTexto = cant === 1 ? 'dia de' : 'dias de';
+                                return `${cant} ${diasTexto} ${label.toLowerCase()}`;
                             })
                             .join(', ');
                         textoSemanaPasada += ` [${detalles}]`;
