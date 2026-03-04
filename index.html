@@ -5883,7 +5883,7 @@
                                     const storageKey = `breakStartTime_${perfilId}`;
                                     const inicioBreak = localStorage.getItem(storageKey);
 
-                                    if (inicioBreak) {
+                                    if (inicioBreak && !D.getIgnorarTiempoFuera()) {
                                         const ahora = Date.now();
                                         const minutosEnCurso = Math.floor((ahora - parseInt(inicioBreak)) / 60000);
                                         if (minutosEnCurso > 0) minutosTotal += minutosEnCurso;
