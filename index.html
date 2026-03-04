@@ -4476,7 +4476,7 @@
                     editandoId: () => editandoId,
                     setEditandoId: (id) => editandoId = id,
                     vistaActual: () => vistaActual,
-                    setVistaActual: (v) => vistaActual = v,                    
+                    setVistaActual: (v) => vistaActual = v,
                     cargarConfiguracion,
                     calcularHoras,
                     calcularHorasFeriadoEnRango,
@@ -5874,7 +5874,7 @@
                                     const [hE, mE] = regHoy.entrada.split(':').map(Number);
                                     minutosTotal = (hE * 60) + mE + (objetivoDiario * 60);
 
-                                    if (regHoy.tiempoFuera) {
+                                    if (regHoy.tiempoFuera && !D.getIgnorarTiempoFuera()) {
                                         const [hF, mF] = regHoy.tiempoFuera.split(':').map(Number);
                                         minutosTotal += (hF * 60) + mF;
                                     }
@@ -8613,6 +8613,8 @@ Generado por Sistema Horarios
     1) Se corrige el bug de semana pasada, ahora se muestra correctamente, independientemente de si
     hay registros o no
     2) Se corrige bug potencial en el bloque CARGAR CONFIGURACIÓN
+    3) Se corrige bug en salida estima cuando ignorar tiempo fuera esta habilitado, la funcion no tenia 
+    en cuenta el flag
     
 
      - BUGS MENORES CONOCIDOS:
