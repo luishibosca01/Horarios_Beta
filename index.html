@@ -7923,12 +7923,12 @@ Generado por Sistema Horarios
                         const estadoActual = HistoryManager.getCurrentState();
                         if (estadoActual && estadoActual.length > 0) {
                             D.registros().splice(0, D.registros().length, ...estadoActual);
-                            // Recalcular en memoria según el flag actual (sin modificar el historial)
-                            D.recalcularTotalesEnMemoria();
                             console.log('✓ Registros restaurados desde historial');
                         }
-                    } else {
-                        // Si no hay historial válido, guardar el estado inicial
+                    }
+                    // Siempre recalcular al cargar para reflejar el flag actual (cubre historial y sin historial)
+                    D.recalcularTotalesEnMemoria();
+                    if (!historialCargado) {
                         HistoryManager.saveState(D.registros());
                         console.log('✓ Nuevo historial inicializado');
                     }
@@ -8610,7 +8610,9 @@ Generado por Sistema Horarios
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega opcion para ignorar el calculo de tiempo fuera
+    1) Se corrige el bug de semana pasada, ahora se muestra correctamente, independientemente de si
+    hay registros o no
+    2) Se corrige bug potencial en el bloque CARGAR CONFIGURACIÓN
     
 
      - BUGS MENORES CONOCIDOS:
@@ -8621,12 +8623,9 @@ Generado por Sistema Horarios
      el flujo correcto seria borrar - registrar luego de ejecutar la accion
      3) pulsar deliberadamente undo y redo de forma reiterada mas de 20 veces aproximadamente,
      la interfaz deja de mostrar los cambios hasta que se actualiza la pagina
-     4) en la tarjeta de estadisticas, la semana pasada se muestra solamente, si existen
-     registros regulares en la semana actual, si hay registros especiales, el item semana pasada 
-     no muestra datos
-
+     
      - IDEAS DESCARTADAS/REVISION:
-     1) Registro especial "ausencia sin justificar" a revisar
+     1) 
      
 
     -->
