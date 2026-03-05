@@ -1032,13 +1032,13 @@
         }
 
         #btn-toggle-periodo {
-            width:100px; 
-            height:48px; 
-            padding:0.25rem 0; 
-            font-size:0.8rem; 
-            gap:0.25rem; 
-            flex-shrink:0; 
-            justify-content:center;
+            width: 100px;
+            height: 48px;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            gap: 0.25rem;
+            flex-shrink: 0;
+            justify-content: center;
         }
 
         /* moviles */
@@ -1603,7 +1603,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.37</span>
+                <span class="version-text">LUSHIBOSCA-7.38</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -6492,57 +6492,62 @@
                 }
 
                 function generarReporte() {
-                    const selectMes = $('select-mes-stats');
-                    const mesSeleccionado = selectMes ? selectMes.value : null;
+                    const esAnual = modoEstadisticas === 'anual';
+                    const horasDiariasObjetivo = D.horasDiarias();
+                    const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
-                    if (!mesSeleccionado) {
-                        mostrarToast('No hay mes seleccionado', 'error');
-                        return;
+                    // --- PERÍODO Y REGISTROS ---
+                    let periodoLabel, registrosPeriodo, stats, nombreArchivo;
+
+                    if (esAnual) {
+                        const selectAnio = $('select-anio-stats');
+                        const anioSeleccionado = selectAnio ? selectAnio.value : null;
+                        if (!anioSeleccionado) { mostrarToast('No hay año seleccionado', 'error'); return; }
+                        periodoLabel = anioSeleccionado;
+                        nombreArchivo = `reporte_${anioSeleccionado}.txt`;
+                        const anioNum = parseInt(anioSeleccionado);
+                        registrosPeriodo = D.registros().filter(r => parseInt(r.fecha.substring(0, 4)) === anioNum);
+                        stats = calcularEstadisticasAnio(anioSeleccionado);
+                    } else {
+                        const selectMes = $('select-mes-stats');
+                        const mesSeleccionado = selectMes ? selectMes.value : null;
+                        if (!mesSeleccionado) { mostrarToast('No hay mes seleccionado', 'error'); return; }
+                        periodoLabel = selectMes.options[selectMes.selectedIndex].text;
+                        nombreArchivo = `reporte_${mesSeleccionado}.txt`;
+                        const [año, mes] = mesSeleccionado.split('-').map(Number);
+                        registrosPeriodo = D.registros().filter(r => {
+                            const [aReg, mReg] = r.fecha.split('-').map(Number);
+                            return aReg === año && mReg === mes;
+                        });
+                        stats = calcularEstadisticasMes(mesSeleccionado);
                     }
 
-                    const stats = calcularEstadisticasMes(mesSeleccionado);
-                    const nombreMes = selectMes.options[selectMes.selectedIndex].text;
-
-                    // Obtener registros del mes
-                    const [año, mes] = mesSeleccionado.split('-').map(Number);
-                    const registrosMes = D.registros().filter(r => {
-                        const [aReg, mReg] = r.fecha.split('-').map(Number);
-                        return aReg === año && mReg === mes;
-                    });
-
-                    // Calcular total de horas del mes (incluir remotos como objetivo diario)
+                    // --- TOTAL HORAS ---
                     let totalHoras = 0;
-                    registrosMes.forEach(r => {
+                    registrosPeriodo.forEach(r => {
                         const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-
-                        if (tipoEspecial && tipoEspecial.id === 'remoto') {
-                            totalHoras += D.horasDiarias();
-                        } else if (!tipoEspecial) {
-                            totalHoras += r.total;
-                        }
+                        if (tipoEspecial && tipoEspecial.id === 'remoto') totalHoras += horasDiariasObjetivo;
+                        else if (!tipoEspecial) totalHoras += r.total;
                     });
-
-                    let horasTotales = Math.floor(totalHoras);
-                    let minutosTotales = Math.round((totalHoras - horasTotales) * 60);
-                    if (minutosTotales === 60) { horasTotales++; minutosTotales = 0; }
+                    let hTotal = Math.floor(totalHoras);
+                    let mTotal = Math.round((totalHoras - hTotal) * 60);
+                    if (mTotal === 60) { hTotal++; mTotal = 0; }
 
                     // ============================================
                     // ESTRUCTURA MODULAR DEL REPORTE
                     // ============================================
-
                     const reporte = {
-                        // --- ENCABEZADO ---
+
                         header: () => `
 ================================================================
 REPORTE DE HORAS TRABAJADAS                   
 ================================================================
 
-📅 Período: ${nombreMes}
+📅 Período: ${periodoLabel}
 📊 Generado: ${new Date().toLocaleDateString('es-ES')} ${new Date().toLocaleTimeString('es-ES')}
 
 ────────────────────────────────────────────────────────────────`,
 
-                        // --- RESUMEN GENERAL ---
                         resumenGeneral: () => `
 
 📈 RESUMEN GENERAL
@@ -6563,11 +6568,62 @@ REPORTE DE HORAS TRABAJADAS
    • Salida promedio:        ${stats.salidaPromedio}
    • Promedio diario:        ${stats.promedioDiario}
    
-   • Total horas trabajadas: ${horasTotales}h ${minutosTotales}m`,
+   • Total horas trabajadas: ${hTotal}h ${mTotal}m`,
 
-                        // --- DETALLE DIARIO ---
-                        detalleDiario: () => {
-                            let seccion = `
+                        detallePeriodo: () => {
+                            if (esAnual) {
+                                // --- TOTALES POR MES ---
+                                const mesesUnicos = new Set();
+                                registrosPeriodo.forEach(r => mesesUnicos.add(r.fecha.substring(0, 7)));
+                                const mesesOrdenados = Array.from(mesesUnicos).sort();
+
+                                let seccion = `
+
+────────────────────────────────────────────────────────────────
+
+📅 TOTALES POR MES
+────────────────────────────────────────────────────────────────
+
+`;
+                                mesesOrdenados.forEach(mesAnio => {
+                                    const [a, m] = mesAnio.split('-').map(Number);
+                                    const regsM = registrosPeriodo.filter(r => parseInt(r.fecha.substring(5, 7)) === m);
+
+                                    let totalMes = 0;
+                                    regsM.forEach(r => {
+                                        const t = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                                        if (t && t.id === 'remoto') totalMes += horasDiariasObjetivo;
+                                        else if (!t) totalMes += r.total;
+                                    });
+                                    let hM = Math.floor(totalMes);
+                                    let mM = Math.round((totalMes - hM) * 60);
+                                    if (mM === 60) { hM++; mM = 0; }
+
+                                    const nombreMes = new Date(a, m - 1, 1).toLocaleDateString('es-ES', { month: 'long' });
+                                    const nombreMesCap = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+                                    const normales = regsM.filter(r => !TiposRegistro.esRegistroEspecial(r.entrada, r.salida) && r.entrada && r.salida);
+                                    const especiales = regsM.filter(r => TiposRegistro.esRegistroEspecial(r.entrada, r.salida));
+
+                                    const notas = [];
+                                    const ct = (id) => especiales.filter(r => { const t = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida); return t && t.id === id; }).length;
+                                    const f = ct('feriado'); if (f) notas.push(`${f} feriado(s)`);
+                                    const au = ct('ausencia'); if (au) notas.push(`${au} ausencia(s)`);
+                                    const v = ct('vacaciones'); if (v) notas.push(`${v} vacacion(es)`);
+                                    const en = ct('enfermedad'); if (en) notas.push(`${en} enfermedad(es)`);
+                                    const as = ct('asueto'); if (as) notas.push(`${as} asueto(s)`);
+                                    const pa = ct('paro'); if (pa) notas.push(`${pa} paro(s)`);
+                                    const re = ct('remoto'); if (re) notas.push(`${re} remoto(s)`);
+                                    const ca = ct('capacitacion'); if (ca) notas.push(`${ca} capacitacion(es)`);
+
+                                    seccion += `   ${nombreMesCap.padEnd(12)} ${String(hM).padStart(3)}h ${String(mM).padStart(2, '0')}m   (${normales.length} jornadas)`;
+                                    if (notas.length > 0) seccion += `  [${notas.join(', ')}]`;
+                                    seccion += '\n';
+                                });
+                                return seccion;
+
+                            } else {
+                                // --- DETALLE DIARIO ---
+                                let seccion = `
 
 ──────────────────────────────────────────────────────────────────
 
@@ -6575,52 +6631,34 @@ REPORTE DE HORAS TRABAJADAS
 ──────────────────────────────────────────────────────────────────
 
 `;
-                            const registrosOrdenados = [...registrosMes].sort((a, b) =>
-                                new Date(a.fecha) - new Date(b.fecha)
-                            );
+                                const registrosOrdenados = [...registrosPeriodo].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-                            const horasDiariasObjetivo = D.horasDiarias();
-
-                            registrosOrdenados.forEach(r => {
-                                const dia = obtenerNombreDia(r.fecha);
-                                const fecha = r.fecha.split('-').reverse().join('/');
-
-                                const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-
-                                let linea = '';
-
-                                if (tipoEspecial) {
-                                    linea = `${fecha}  ${dia.padEnd(10)} ${tipoEspecial.label.toUpperCase()}`;
-                                } else {
-                                    const entrada = r.entrada || '--:--';
-                                    const salida = r.salida || '--:--';
-                                    const total = r.salida ? `${r.horas}h ${r.minutos}m` : 'Incompleto';
-
-                                    // Detalles extras
-                                    const tiempoFuera = r.tiempoFuera ? ` (${r.tiempoFuera} fuera)` : '';
-                                    const infoAsueto = (r.credito && r.credito !== '00:00') ? ' [SALIDA TEMPRANO]' : '';
-
-                                    // Determinar si cumplió objetivo
-                                    let indicador = '  ';
-                                    if (r.salida) {
-                                        if (r.total >= horasDiariasObjetivo) {
-                                            indicador = '✓ ';
-                                        } else {
-                                            indicador = '✗ ';
-                                        }
+                                registrosOrdenados.forEach(r => {
+                                    const dia = obtenerNombreDia(r.fecha);
+                                    const fecha = r.fecha.split('-').reverse().join('/');
+                                    const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                                    let linea = '';
+                                    if (tipoEspecial) {
+                                        linea = `${fecha}  ${dia.padEnd(10)} ${tipoEspecial.label.toUpperCase()}`;
+                                    } else {
+                                        const entrada = r.entrada || '--:--';
+                                        const salida = r.salida || '--:--';
+                                        const total = r.salida ? `${r.horas}h ${r.minutos}m` : 'Incompleto';
+                                        const tiempoFuera = r.tiempoFuera ? ` (${r.tiempoFuera} fuera)` : '';
+                                        const infoAsueto = (r.credito && r.credito !== '00:00') ? ' [SALIDA TEMPRANO]' : '';
+                                        let indicador = '  ';
+                                        if (r.salida) indicador = r.total >= horasDiariasObjetivo ? '✓ ' : '✗ ';
+                                        linea = `${fecha}  ${dia.padEnd(10)} ${entrada} → ${salida}  [${total}]${tiempoFuera}${infoAsueto} ${indicador}`;
                                     }
-
-                                    linea = `${fecha}  ${dia.padEnd(10)} ${entrada} → ${salida}  [${total}]${tiempoFuera}${infoAsueto} ${indicador}`;
-                                }
-
-                                seccion += linea + '\n';
-                            });
-
-                            return seccion;
+                                    seccion += linea + '\n';
+                                });
+                                return seccion;
+                            }
                         },
 
-                        // --- TOTALES POR SEMANA ---
                         totalesPorSemana: () => {
+                            if (esAnual) return '';
+
                             function obtenerLunesSemana(fecha) {
                                 const date = new Date(fecha.replace(/-/g, '/') + ' 00:00:00');
                                 const dia = date.getDay();
@@ -6630,59 +6668,31 @@ REPORTE DE HORAS TRABAJADAS
                                 return lunes.toISOString().split('T')[0];
                             }
 
-                            const horasDiariasObjetivo = D.horasDiarias(); // Definir aquí dentro de esta función
-
-                            // Obtener el mes seleccionado del selector
                             const selectMes = $('select-mes-stats');
                             const mesSeleccionado = selectMes ? selectMes.value : null;
-
                             if (!mesSeleccionado) return '';
 
-                            // Obtener límites del mes actual
                             const [añoActual, mesActual] = mesSeleccionado.split('-').map(Number);
                             const primerDiaMes = `${añoActual}-${String(mesActual).padStart(2, '0')}-01`;
                             const ultimoDiaMes = new Date(añoActual, mesActual, 0).getDate();
                             const ultimaFechaMes = `${añoActual}-${String(mesActual).padStart(2, '0')}-${String(ultimoDiaMes).padStart(2, '0')}`;
 
                             const semanas = new Map();
-
-                            registrosMes.forEach(r => {
+                            registrosPeriodo.forEach(r => {
                                 const lunes = obtenerLunesSemana(r.fecha);
-                                if (!semanas.has(lunes)) {
-                                    semanas.set(lunes, {
-                                        trabajados: [],
-                                        feriados: [],
-                                        ausencias: [],
-                                        vacaciones: [],
-                                        enfermedades: [],
-                                        asuetos: [],
-                                        paros: [],
-                                        remotos: [],
-                                        capacitaciones: []
-                                    });
-                                }
-
+                                if (!semanas.has(lunes)) semanas.set(lunes, { trabajados: [], feriados: [], ausencias: [], vacaciones: [], enfermedades: [], asuetos: [], paros: [], remotos: [], capacitaciones: [] });
                                 const semana = semanas.get(lunes);
                                 const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-
                                 if (tipoEspecial) {
-                                    // Agregar a la categoría correspondiente
                                     const categoria = tipoEspecial.id + 's';
-                                    if (semana[categoria]) {
-                                        semana[categoria].push(r);
-                                    }
+                                    if (semana[categoria]) semana[categoria].push(r);
                                 } else {
                                     semana.trabajados.push(r);
-                                    if (r.credito && r.credito !== '00:00') {
-                                        semana.asuetos.push(r);
-                                    }
+                                    if (r.credito && r.credito !== '00:00') semana.asuetos.push(r);
                                 }
                             });
 
-                            const semanasOrdenadas = Array.from(semanas.entries()).sort((a, b) =>
-                                new Date(a[0]) - new Date(b[0])
-                            );
-
+                            const semanasOrdenadas = Array.from(semanas.entries()).sort((a, b) => new Date(a[0]) - new Date(b[0]));
                             if (semanasOrdenadas.length === 0) return '';
 
                             let seccion = `
@@ -6693,17 +6703,11 @@ REPORTE DE HORAS TRABAJADAS
 ────────────────────────────────────────────────────────────────
 
 `;
-
                             const semanasIncompletas = [];
 
                             semanasOrdenadas.forEach(([lunes, datos], index) => {
-                                // Calcular total semanal (trabajados + remotos)
                                 let totalSemanal = datos.trabajados.reduce((sum, r) => sum + r.total, 0);
-
-                                // Agregar horas de días remotos
-                                if (datos.remotos && datos.remotos.length > 0) {
-                                    totalSemanal += datos.remotos.length * horasDiariasObjetivo;
-                                }
+                                if (datos.remotos && datos.remotos.length > 0) totalSemanal += datos.remotos.length * horasDiariasObjetivo;
 
                                 let horasSem = Math.floor(totalSemanal);
                                 let minutosSem = Math.round((totalSemanal - horasSem) * 60);
@@ -6721,12 +6725,9 @@ REPORTE DE HORAS TRABAJADAS
                                 if (domingo > ultimaFechaMes) {
                                     fechaFin = ultimaFechaMes;
                                     esIncompleta = true;
-
                                     const mesSiguiente = mesActual === 12 ? 1 : mesActual + 1;
                                     const añoSiguiente = mesActual === 12 ? añoActual + 1 : añoActual;
-                                    const fechaSiguiente = new Date(añoSiguiente, mesSiguiente - 1, 1);
-                                    const nombreMesSiguiente = fechaSiguiente.toLocaleDateString('es-ES', { month: 'long' });
-                                    continuaEn = `continúa en ${nombreMesSiguiente}`;
+                                    continuaEn = `continúa en ${new Date(añoSiguiente, mesSiguiente - 1, 1).toLocaleDateString('es-ES', { month: 'long' })}`;
                                 }
 
                                 if (lunes < primerDiaMes) {
@@ -6734,14 +6735,11 @@ REPORTE DE HORAS TRABAJADAS
                                     esIncompleta = true;
                                     const mesAnterior = mesActual === 1 ? 12 : mesActual - 1;
                                     const añoAnterior = mesActual === 1 ? añoActual - 1 : añoActual;
-                                    const fechaAnterior = new Date(añoAnterior, mesAnterior - 1, 1);
-                                    const nombreMesAnterior = fechaAnterior.toLocaleDateString('es-ES', { month: 'long' });
-                                    continuaEn = `viene de ${nombreMesAnterior}`;
+                                    continuaEn = `viene de ${new Date(añoAnterior, mesAnterior - 1, 1).toLocaleDateString('es-ES', { month: 'long' })}`;
                                 }
 
                                 const lunesFormato = (lunes < primerDiaMes ? primerDiaMes : lunes).split('-').reverse().join('/');
                                 const finFormato = fechaFin.split('-').reverse().join('/');
-
                                 const asterisco = esIncompleta ? '*' : '';
 
                                 seccion += `   Semana ${index + 1} (${lunesFormato} - ${finFormato})${asterisco}:\n`;
@@ -6756,33 +6754,17 @@ REPORTE DE HORAS TRABAJADAS
                                 if (datos.paros.length > 0) notasExtras.push(`${datos.paros.length} paro(s)`);
                                 if (datos.remotos.length > 0) notasExtras.push(`${datos.remotos.length} remoto(s)`);
                                 if (datos.capacitaciones.length > 0) notasExtras.push(`${datos.capacitaciones.length} capacitacion(es)`);
-
-                                if (notasExtras.length > 0) {
-                                    seccion += ` [${notasExtras.join(', ')}]`;
-                                }
-
+                                if (notasExtras.length > 0) seccion += ` [${notasExtras.join(', ')}]`;
                                 seccion += '\n\n';
 
-                                if (esIncompleta && continuaEn) {
-                                    semanasIncompletas.push(`* Semana ${index + 1}: ${continuaEn}`);
-                                }
+                                if (esIncompleta && continuaEn) semanasIncompletas.push(`* Semana ${index + 1}: ${continuaEn}`);
                             });
 
-                            if (semanasIncompletas.length > 0) {
-                                seccion += semanasIncompletas.join('\n') + '\n';
-                            }
-
+                            if (semanasIncompletas.length > 0) seccion += semanasIncompletas.join('\n') + '\n';
                             return seccion;
                         },
 
-                        configuracion: () => {
-                            const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-
-                            const diasTexto = D.diasHabiles()
-                                .map(d => nombresDias[d])
-                                .join(', ');
-
-                            return `
+                        configuracion: () => `
 
 ────────────────────────────────────────────────────────────────
 
@@ -6790,9 +6772,8 @@ REPORTE DE HORAS TRABAJADAS
 ────────────────────────────────────────────────────────────────
 
    • Horas diarias:          ${D.horasDiarias()}
-   • Días hábiles/semana:    ${diasTexto}
-   • Horas semanales:        ${D.horasSemanales()}`;
-                        },
+   • Días hábiles/semana:    ${D.diasHabiles().map(d => nombresDias[d]).join(', ')}
+   • Horas semanales:        ${D.horasSemanales()}`,
 
                         footer: () => `
 
@@ -6805,7 +6786,7 @@ Generado por Sistema Horarios
                     const contenido =
                         reporte.header() +
                         reporte.resumenGeneral() +
-                        reporte.detalleDiario() +
+                        reporte.detallePeriodo() +
                         reporte.totalesPorSemana() +
                         reporte.configuracion() +
                         reporte.footer();
@@ -6815,13 +6796,12 @@ Generado por Sistema Horarios
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `reporte_${mesSeleccionado}.txt`;
+                        a.download = nombreArchivo;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
                         URL.revokeObjectURL(url);
-
-                        mostrarToast('Reporte generado', 'success');
+                        mostrarToast(esAnual ? 'Reporte anual generado' : 'Reporte generado', 'success');
                     } catch (e) {
                         console.error('Error generando reporte:', e);
                         mostrarToast('Error al generar reporte', 'error');
@@ -8851,7 +8831,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.37
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.38
     // ====================================================================
     
      - CAMBIOS:
@@ -8861,6 +8841,7 @@ Generado por Sistema Horarios
     3) Se corrige bug en salida estima cuando ignorar tiempo fuera esta habilitado, la funcion no tenia 
     en cuenta el flag
     4) Se agrega togglee periodo en la tarjeta estadisticas, para cambiar de mensual a anual
+    5) Se agrega reporta anual
     
 
      - BUGS MENORES CONOCIDOS:
