@@ -1031,6 +1031,16 @@
             animation: fade-blur 0.5s ease-out forwards;
         }
 
+        #btn-toggle-periodo {
+            width:100px; 
+            height:48px; 
+            padding:0.25rem 0; 
+            font-size:0.8rem; 
+            gap:0.25rem; 
+            flex-shrink:0; 
+            justify-content:center;
+        }
+
         /* moviles */
         @media (min-width: 500px) {
             .header-profile-btn {
@@ -1449,7 +1459,19 @@
                     <div style="padding-top: 1rem;">
                         <div class="form-group">
                             <label>Período</label>
-                            <select id="select-mes-stats" onchange="UILogic.cambiarMesStats()"></select>
+                            <div style="display:flex; align-items:center; gap:0.5rem;">
+                                <select id="select-mes-stats" onchange="UILogic.cambiarMesStats()"
+                                    style="flex:1;"></select>
+                                <select id="select-anio-stats" onchange="UILogic.cambiarAnioStats()"
+                                    style="flex:1; display:none;"></select>
+                                <button id="btn-toggle-periodo" class="time-btn" onclick="UILogic.togglePeriodoStats()"
+                                    title="Alternar vista mensual / anual">
+                                    <svg class="icon" style="width:14px;height:14px;">
+                                        <use href="#icon-calendar-simple" />
+                                    </svg>
+                                    <span id="label-periodo-toggle">Anual</span>
+                                </button>
+                            </div>
                         </div>
                         <div class="stats-grid">
                             <div class="stat-item">
@@ -1512,9 +1534,10 @@
                                 <div class="stat-label">Promedio Diario</div>
                                 <div class="stat-value" id="stat-promedio-diario">0h 0m</div>
                             </div>
-                            <div style="grid-column: 1 / -1; height: 1px; background: var(--border); margin: 0.5rem 0;">
+                            <div id="stat-separador-semana"
+                                style="grid-column: 1 / -1; height: 1px; background: var(--border); margin: 0.5rem 0;">
                             </div>
-                            <div class="stat-item" style="grid-column: 1 / -1">
+                            <div class="stat-item" id="stat-item-semana-pasada" style="grid-column: 1 / -1">
                                 <div class="stat-label">Semana Pasada</div>
                                 <div class="stat-value" id="stat-semana-pasada">0h 0m</div>
                             </div>
@@ -4578,6 +4601,7 @@
                 let modoLoteActivo = false;
                 let tiempoExpansionBotones = null;
                 let timerAutoCierreBotones = null;
+                let modoEstadisticas = 'mensual'; // 'mensual' | 'anual'
 
                 // FUNCIÓN DEBOUNCE REUTILIZABLE
                 function debounce(func, wait) {
@@ -5397,10 +5421,13 @@
                     if (elPromedio) elPromedio.textContent = stats.promedioDiario;
                     if (elSemanaPasada) {
                         const statItemSP = elSemanaPasada.closest('.stat-item');
+                        const sepSP = $('stat-separador-semana');
                         if (stats.semanaPasada === '--:--') {
                             if (statItemSP) statItemSP.style.display = 'none';
+                            if (sepSP) sepSP.style.display = 'none';
                         } else {
                             if (statItemSP) statItemSP.style.display = '';
+                            if (sepSP) sepSP.style.display = '';
                             elSemanaPasada.textContent = stats.semanaPasada;
                         }
                     }
@@ -6155,6 +6182,224 @@
 
                 function cerrarImportar() {
                     ModalManager.alternar('modal-importar', 'modal-config');
+                }
+
+                function calcularEstadisticasAnio(anio) {
+                    const anioNum = parseInt(anio);
+                    const registrosAnio = D.registros().filter(r => {
+                        const [a] = r.fecha.split('-').map(Number);
+                        return a === anioNum;
+                    });
+
+                    const contarPorTipo = (tipoId) => {
+                        const tipo = TiposRegistro.obtenerTipoPorId(tipoId);
+                        if (!tipo) return 0;
+                        return registrosAnio.filter(r => r.entrada === tipo.codigo && r.salida === tipo.codigo).length;
+                    };
+
+                    const feriados = contarPorTipo('feriado');
+                    const ausencias = contarPorTipo('ausencia');
+                    const vacaciones = contarPorTipo('vacaciones');
+                    const enfermedades = contarPorTipo('enfermedad');
+                    const asuetosDiaCompleto = contarPorTipo('asueto');
+                    const paros = contarPorTipo('paro');
+                    const remotos = contarPorTipo('remoto');
+                    const capacitaciones = contarPorTipo('capacitacion');
+                    const compensaciones = registrosAnio.filter(r => r.credito && r.credito !== '00:00').length;
+
+                    let tiempoFueraTotalMinutos = 0;
+                    registrosAnio.forEach(r => {
+                        if (r.tiempoFuera && r.tiempoFuera !== '00:00') {
+                            const [h, m] = r.tiempoFuera.split(':').map(Number);
+                            if (!isNaN(h) && !isNaN(m)) tiempoFueraTotalMinutos += (h * 60) + m;
+                        }
+                    });
+                    const hTiempoFuera = Math.floor(tiempoFueraTotalMinutos / 60);
+                    const mTiempoFuera = tiempoFueraTotalMinutos % 60;
+
+                    const registrosValidos = registrosAnio.filter(r =>
+                        r.entrada && r.salida && !TiposRegistro.esRegistroEspecial(r.entrada, r.salida)
+                    );
+
+                    if (registrosValidos.length === 0) {
+                        return {
+                            entradaPromedio: '--:--', salidaPromedio: '--:--',
+                            diasTrabajados: 0, promedioDiario: '--:--',
+                            tiempoFueraTotal: '--:--', tiempoTotal: '0h 0m',
+                            semanaPasada: null,
+                            feriados, ausencias, vacaciones, enfermedades,
+                            asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones
+                        };
+                    }
+
+                    let sumaMinutosEntrada = 0;
+                    registrosValidos.forEach(r => {
+                        const [h, m] = r.entrada.split(':').map(Number);
+                        sumaMinutosEntrada += h * 60 + m;
+                    });
+                    const promedioEntrada = Math.round(sumaMinutosEntrada / registrosValidos.length);
+                    const hEntrada = Math.floor(promedioEntrada / 60);
+                    const mEntrada = promedioEntrada % 60;
+
+                    let sumaMinutosSalida = 0;
+                    registrosValidos.forEach(r => {
+                        const [h, m] = r.salida.split(':').map(Number);
+                        sumaMinutosSalida += h * 60 + m;
+                    });
+                    const promedioSalida = Math.round(sumaMinutosSalida / registrosValidos.length);
+                    const hSalida = Math.floor(promedioSalida / 60);
+                    const mSalida = promedioSalida % 60;
+
+                    const totalHoras = registrosValidos.reduce((sum, r) => sum + r.total, 0);
+                    const promedioDiario = totalHoras / registrosValidos.length;
+                    let hPromedio = Math.floor(promedioDiario);
+                    let mPromedio = Math.round((promedioDiario - hPromedio) * 60);
+                    if (mPromedio === 60) { hPromedio++; mPromedio = 0; }
+
+                    let hTotal = Math.floor(totalHoras);
+                    let mTotal = Math.round((totalHoras - hTotal) * 60);
+                    if (mTotal === 60) { hTotal++; mTotal = 0; }
+
+                    return {
+                        entradaPromedio: `${String(hEntrada).padStart(2, '0')}:${String(mEntrada).padStart(2, '0')}`,
+                        salidaPromedio: `${String(hSalida).padStart(2, '0')}:${String(mSalida).padStart(2, '0')}`,
+                        diasTrabajados: registrosValidos.length,
+                        promedioDiario: `${hPromedio}h ${mPromedio}m`,
+                        tiempoFueraTotal: `${hTiempoFuera}h ${mTiempoFuera}m`,
+                        tiempoTotal: `${hTotal}h ${mTotal}m`,
+                        semanaPasada: null,
+                        feriados, ausencias, vacaciones, enfermedades,
+                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones
+                    };
+                }
+
+                function poblarSelectorAnios() {
+                    const selectAnio = $('select-anio-stats');
+                    if (!selectAnio) return;
+
+                    const aniosUnicos = new Set();
+                    D.registros().forEach(r => aniosUnicos.add(r.fecha.substring(0, 4)));
+                    const aniosOrdenados = Array.from(aniosUnicos).sort().reverse();
+
+                    selectAnio.innerHTML = '';
+
+                    if (aniosOrdenados.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = ''; opt.textContent = 'Sin registros';
+                        selectAnio.appendChild(opt);
+                        return;
+                    }
+
+                    const anioActual = String(new Date().getFullYear());
+                    const anioASeleccionar = aniosOrdenados.includes(anioActual) ? anioActual : aniosOrdenados[0];
+
+                    aniosOrdenados.forEach(anio => {
+                        const opt = document.createElement('option');
+                        opt.value = anio;
+                        opt.textContent = anio;
+                        if (anio === anioASeleccionar) opt.selected = true;
+                        selectAnio.appendChild(opt);
+                    });
+
+                    actualizarEstadisticasAnio(anioASeleccionar);
+                }
+
+                function actualizarEstadisticasAnio(anio) {
+                    const stats = calcularEstadisticasAnio(anio);
+
+                    const elEntrada = $('stat-entrada-promedio');
+                    const elSalida = $('stat-salida-promedio');
+                    const elDias = $('stat-dias-trabajados');
+                    const elPromedio = $('stat-promedio-diario');
+                    const elTiempoFueraTotal = $('stat-tiempo-fuera-total');
+                    const elTiempoTotal = $('stat-tiempo-total');
+                    const elFeriados = $('stat-feriados');
+                    const elAusencias = $('stat-ausencias');
+                    const elVacaciones = $('stat-vacaciones');
+                    const elEnfermedades = $('stat-enfermedades');
+                    const elAsuetosDia = $('stat-asuetos-dia');
+                    const elCompensaciones = $('stat-compensaciones');
+                    const elParos = $('stat-paros');
+                    const elRemotos = $('stat-remotos');
+                    const elCapacitaciones = $('stat-capacitaciones');
+
+                    if (elEntrada) elEntrada.textContent = stats.entradaPromedio;
+                    if (elSalida) elSalida.textContent = stats.salidaPromedio;
+                    if (elTiempoFueraTotal) elTiempoFueraTotal.textContent = stats.tiempoFueraTotal;
+                    if (elTiempoTotal) elTiempoTotal.textContent = stats.tiempoTotal;
+
+                    const sep = $('stat-separador-semana');
+                    const spItem = $('stat-item-semana-pasada');
+                    if (sep) sep.style.display = 'none';
+                    if (spItem) spItem.style.display = 'none';
+
+                    const toggleStatItem = (element, value) => {
+                        if (!element) return;
+                        const statItem = element.closest('.stat-item');
+                        if (statItem) {
+                            if (value === 0) { statItem.style.display = 'none'; }
+                            else { statItem.style.display = ''; element.textContent = value; }
+                        }
+                    };
+
+                    toggleStatItem(elDias, stats.diasTrabajados);
+                    toggleStatItem(elFeriados, stats.feriados);
+                    toggleStatItem(elAusencias, stats.ausencias);
+                    toggleStatItem(elVacaciones, stats.vacaciones);
+                    toggleStatItem(elEnfermedades, stats.enfermedades);
+                    toggleStatItem(elAsuetosDia, stats.asuetosDiaCompleto);
+                    toggleStatItem(elCompensaciones, stats.compensaciones);
+                    toggleStatItem(elParos, stats.paros);
+                    toggleStatItem(elRemotos, stats.remotos);
+                    toggleStatItem(elCapacitaciones, stats.capacitaciones);
+                    if (elPromedio) {
+                        const statItem = elPromedio.closest('.stat-item');
+                        if (statItem) {
+                            if (stats.promedioDiario === '--:--') { statItem.style.display = 'none'; }
+                            else { statItem.style.display = ''; elPromedio.textContent = stats.promedioDiario; }
+                        }
+                    }
+                }
+
+                function cambiarAnioStats() {
+                    const selectAnio = $('select-anio-stats');
+                    const formStats = $('form-stats');
+                    if (!selectAnio || !formStats) return;
+                    const anioSeleccionado = selectAnio.value;
+                    formStats.classList.add('fade-out');
+                    setTimeout(() => {
+                        actualizarEstadisticasAnio(anioSeleccionado);
+                        formStats.classList.remove('fade-out');
+                    }, 200);
+                }
+
+                function togglePeriodoStats() {
+                    const selectMes = $('select-mes-stats');
+                    const selectAnio = $('select-anio-stats');
+                    const label = $('label-periodo-toggle');
+                    const sep = $('stat-separador-semana');
+                    const spItem = $('stat-item-semana-pasada');
+                    const formStats = $('form-stats');
+
+                    modoEstadisticas = modoEstadisticas === 'mensual' ? 'anual' : 'mensual';
+
+                    formStats.classList.add('fade-out');
+                    setTimeout(() => {
+                        if (modoEstadisticas === 'anual') {
+                            selectMes.style.display = 'none';
+                            selectAnio.style.display = '';
+                            if (label) label.textContent = 'Mensual';
+                            if (sep) sep.style.display = 'none';
+                            if (spItem) spItem.style.display = 'none';
+                            poblarSelectorAnios();
+                        } else {
+                            selectAnio.style.display = 'none';
+                            selectMes.style.display = '';
+                            if (label) label.textContent = 'Anual';
+                            poblarSelectorMeses();
+                        }
+                        formStats.classList.remove('fade-out');
+                    }, 200);
                 }
 
                 function poblarSelectorMeses() {
@@ -7750,8 +7995,8 @@ Generado por Sistema Horarios
                         iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                         toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                         mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
-                        iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones,
-                        toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF
+                        iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
+                        togglePeriodoStats, cambiarAnioStats
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -8572,8 +8817,8 @@ Generado por Sistema Horarios
                     iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
-                    iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones,
-                    toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF
+                    iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
+                    togglePeriodoStats, cambiarAnioStats
                 };
 
             })(SecurityAndUtils, DataManagement);
@@ -8615,6 +8860,7 @@ Generado por Sistema Horarios
     2) Se corrige bug potencial en el bloque CARGAR CONFIGURACIÓN
     3) Se corrige bug en salida estima cuando ignorar tiempo fuera esta habilitado, la funcion no tenia 
     en cuenta el flag
+    4) Se agrega togglee periodo en la tarjeta estadisticas, para cambiar de mensual a anual
     
 
      - BUGS MENORES CONOCIDOS:
