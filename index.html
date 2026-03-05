@@ -1469,7 +1469,7 @@
                                     <svg class="icon" style="width:14px;height:14px;">
                                         <use href="#icon-calendar-simple" />
                                     </svg>
-                                    <span id="label-periodo-toggle">Anual</span>
+                                    <span id="label-periodo-toggle">Mensual</span>
                                 </button>
                             </div>
                         </div>
@@ -6388,14 +6388,14 @@
                         if (modoEstadisticas === 'anual') {
                             selectMes.style.display = 'none';
                             selectAnio.style.display = '';
-                            if (label) label.textContent = 'Mensual';
+                            if (label) label.textContent = 'Anual';
                             if (sep) sep.style.display = 'none';
                             if (spItem) spItem.style.display = 'none';
                             poblarSelectorAnios();
                         } else {
                             selectAnio.style.display = 'none';
                             selectMes.style.display = '';
-                            if (label) label.textContent = 'Anual';
+                            if (label) label.textContent = 'Mensual';
                             poblarSelectorMeses();
                         }
                         formStats.classList.remove('fade-out');
