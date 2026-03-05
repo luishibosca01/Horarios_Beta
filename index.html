@@ -3247,7 +3247,8 @@
                             horasDiarias: horasFinal,
                             temaOscuro: t,
                             vistaActual: (v === 'semana' || v === 'diaria') ? v : 'diaria',
-                            ignorarTiempoFuera: localStorage.getItem('ignorarTiempoFuera') === 'true'
+                            ignorarTiempoFuera: localStorage.getItem('ignorarTiempoFuera') === 'true',
+                            modoEstadisticas: localStorage.getItem('modoEstadisticas') || 'mensual'
                         };
                     } catch (e) {
                         console.error('Error config:', e);
@@ -5951,8 +5952,11 @@
                         }
                     }
 
-                    poblarSelectorMeses();
-                    actualizarEstadisticas();
+                    if (modoEstadisticas === 'anual') {
+                        poblarSelectorAnios();
+                    } else {
+                        poblarSelectorMeses();
+                    }
                     actualizarEstadoBotonTimerMain();
                 }
 
@@ -6368,6 +6372,7 @@
                     const formStats = $('form-stats');
 
                     modoEstadisticas = modoEstadisticas === 'mensual' ? 'anual' : 'mensual';
+                    try { localStorage.setItem('modoEstadisticas', modoEstadisticas); } catch (e) { }
 
                     formStats.classList.add('fade-out');
                     setTimeout(() => {
@@ -8107,6 +8112,7 @@ Generado por Sistema Horarios
                     D.setVistaActual(config.vistaActual);
                     D.setIgnorarTiempoFuera(config.ignorarTiempoFuera || false);
                     UILogic.actualizarEstadoBotonIgnorarTF();
+                    if (config.modoEstadisticas === 'anual') UILogic.togglePeriodoStats();
 
                     const perfilActual = PerfilManager.obtenerDatosPerfil();
                     let diasRaw = perfilActual.diasHabiles;
