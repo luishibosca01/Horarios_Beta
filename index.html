@@ -8627,12 +8627,16 @@ Generado por Sistema Horarios
                 function toggleStats() {
                     toggleSeccionGen('form-stats', 'icon-indicator-stats', 'statsExpandido', () => {
                         // Lógica específica de stats al abrir
-                        poblarSelectorMeses();
-                        const selectMes = $('select-mes-stats');
-                        if (selectMes && selectMes.value) {
-                            actualizarEstadisticas(selectMes.value);
+                        if (modoEstadisticas === 'anual') {
+                            poblarSelectorAnios();
                         } else {
-                            actualizarEstadisticas();
+                            poblarSelectorMeses();
+                            const selectMes = $('select-mes-stats');
+                            if (selectMes && selectMes.value) {
+                                actualizarEstadisticas(selectMes.value);
+                            } else {
+                                actualizarEstadisticas();
+                            }
                         }
                     });
                 }
