@@ -741,7 +741,20 @@
             transition: all 0.3s;
         }
 
+        .collapse-toggle {
+            cursor: pointer;
+            transition: transform 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .collapse-toggle.rotated {
+            transform: rotate(180deg);
+        }
+
         /* Animación al crear y eliminar registro */
+
         .nuevo-registro-animacion {
             animation: fade-blur 0.5s ease-out forwards;
             transform-origin: center;
@@ -750,6 +763,7 @@
         }
 
         /* Animación del boton tiempo fuera*/
+
         .timer-btn.running {
             color: var(--c-red);
             border-color: var(--c-red);
@@ -1589,7 +1603,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.38</span>
+                <span class="version-text">LUSHIBOSCA-7.40</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -4960,10 +4974,88 @@
                     progressEl.classList.add(status);
                 }
 
+                function crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy) {
+                    const grupos = agruparRegistrosConsecutivos(registrosDelMes);
+
+                    const contenedorMesActual = document.createElement('div');
+                    contenedorMesActual.className = 'registro-mes-container';
+
+                    const headerMes = document.createElement('h3');
+                    headerMes.className = 'registro-mes-header';
+                    headerMes.dataset.mesId = claveMes;
+
+                    const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    chevron.setAttribute('class', 'icon chevron-mes');
+                    chevron.setAttribute('viewBox', '0 0 24 24');
+                    chevron.style.width = '1.2em';
+                    chevron.style.height = '1.2em';
+                    chevron.style.verticalAlign = 'middle';
+                    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+                    use.setAttribute('href', '#icon-chevron-down');
+                    chevron.appendChild(use);
+
+                    const textoMes = document.createTextNode(' ' + formatoTituloMes(claveMes));
+                    headerMes.appendChild(chevron);
+                    headerMes.appendChild(textoMes);
+
+                    const detalleMesActual = document.createElement('div');
+                    detalleMesActual.className = 'registro-mes-detalle';
+
+                    let debeEstarExpandido = false;
+                    try {
+                        const estadoGuardado = localStorage.getItem(`mes-${claveMes}-expandido`);
+                        if (estadoGuardado !== null) {
+                            debeEstarExpandido = estadoGuardado === 'true';
+                        } else {
+                            debeEstarExpandido = (claveMes === mesHoy);
+                        }
+                    } catch (e) {
+                        debeEstarExpandido = (claveMes === mesHoy);
+                    }
+
+                    if (debeEstarExpandido) {
+                        detalleMesActual.classList.add('expanded');
+                        chevron.style.transform = 'rotate(180deg)';
+                    }
+
+                    let semanaAnterior = null;
+                    grupos.forEach(grupo => {
+                        if (grupo.tipo === 'grupo') {
+                            const primerRegistro = grupo.registros[grupo.registros.length - 1];
+                            const semanaActual = obtenerLunesSemana(primerRegistro.fecha);
+                            if (semanaAnterior && semanaActual !== semanaAnterior) {
+                                const separador = document.createElement('div');
+                                separador.className = 'separador-semana';
+                                detalleMesActual.appendChild(separador);
+                            }
+                            const container = crearGrupoExpandible(grupo, horasDiarias, idNuevo);
+                            detalleMesActual.appendChild(container);
+                            semanaAnterior = semanaActual;
+                        } else {
+                            const r = grupo.registros[0];
+                            const semanaActual = obtenerLunesSemana(r.fecha);
+                            if (semanaAnterior && semanaActual !== semanaAnterior) {
+                                const separador = document.createElement('div');
+                                separador.className = 'separador-semana';
+                                detalleMesActual.appendChild(separador);
+                            }
+                            const item = crearItemRegistroIndividual(r, horasDiarias, idNuevo);
+                            detalleMesActual.appendChild(item);
+                            semanaAnterior = semanaActual;
+                        }
+                    });
+
+                    headerMes.dataset.accion = 'toggle-mes';
+                    headerMes.dataset.mesContainer = claveMes;
+                    contenedorMesActual.appendChild(headerMes);
+                    contenedorMesActual.appendChild(detalleMesActual);
+                    return contenedorMesActual;
+                }
+
                 function actualizarListaRegistros(registros, idNuevo = null) {
                     const lista = $('lista-registros');
 
-                    // 2. Guardar estado de meses abiertos
+                    // Guardar estado de meses abiertos
                     const mesesExpandidos = new Set();
                     lista.querySelectorAll('.registro-mes-container').forEach(container => {
                         const detalle = container.querySelector('.registro-mes-detalle');
@@ -4989,105 +5081,76 @@
 
                     const hoy = obtenerFechaHoy();
                     const mesHoy = hoy.substring(0, 7);
+                    const anioHoy = hoy.substring(0, 4);
 
-                    gruposPorMes.forEach((registrosDelMes, claveMes) => {
-                        const grupos = agruparRegistrosConsecutivos(registrosDelMes);
+                    // Separar meses del año actual de los anteriores
+                    const mesesAnioActual = new Map();
+                    const mesesPorAnio = new Map();
 
-                        // Contenedor Mes
-                        const contenedorMesActual = document.createElement('div');
-                        contenedorMesActual.className = 'registro-mes-container';
+                    gruposPorMes.forEach((regs, claveMes) => {
+                        const anio = claveMes.substring(0, 4);
+                        if (anio === anioHoy) {
+                            mesesAnioActual.set(claveMes, regs);
+                        } else {
+                            if (!mesesPorAnio.has(anio)) mesesPorAnio.set(anio, new Map());
+                            mesesPorAnio.get(anio).set(claveMes, regs);
+                        }
+                    });
 
-                        // Header Mes
-                        const headerMes = document.createElement('h3');
-                        headerMes.className = 'registro-mes-header';
-                        headerMes.dataset.mesId = claveMes;
+                    // --- AÑO ACTUAL: mostrar meses normalmente ---
+                    mesesAnioActual.forEach((registrosDelMes, claveMes) => {
+                        fragmento.appendChild(crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy));
+                    });
 
-                        const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                        chevron.setAttribute('class', 'icon chevron-mes');
-                        chevron.setAttribute('viewBox', '0 0 24 24');
-                        chevron.style.width = '1.2em';
-                        chevron.style.height = '1.2em';
-                        chevron.style.verticalAlign = 'middle';
-                        const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-                        use.setAttribute('href', '#icon-chevron-down');
-                        chevron.appendChild(use);
+                    // --- AÑOS ANTERIORES: agrupar por año ---
+                    const aniosOrdenados = Array.from(mesesPorAnio.keys()).sort().reverse();
+                    aniosOrdenados.forEach(anio => {
+                        const mesesDelAnio = mesesPorAnio.get(anio);
 
-                        const textoMes = document.createTextNode(' ' + formatoTituloMes(claveMes));
-                        headerMes.appendChild(chevron);
-                        headerMes.appendChild(textoMes);
+                        // Contenedor año (mismo estilo que mes)
+                        const contenedorAnio = document.createElement('div');
+                        contenedorAnio.className = 'registro-mes-container';
 
-                        // Detalle Mes
-                        const detalleMesActual = document.createElement('div');
-                        detalleMesActual.className = 'registro-mes-detalle';
+                        const headerAnio = document.createElement('h3');
+                        headerAnio.className = 'registro-mes-header';
+                        headerAnio.dataset.anioId = anio;
+                        headerAnio.dataset.accion = 'toggle-anio';
 
-                        //  LÓGICA DE APERTURA CON LOCALSTORAGE
-                        let debeEstarExpandido = false;
+                        const chevronAnio = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                        chevronAnio.setAttribute('class', 'icon chevron-mes');
+                        chevronAnio.setAttribute('viewBox', '0 0 24 24');
+                        chevronAnio.style.width = '1.2em';
+                        chevronAnio.style.height = '1.2em';
+                        chevronAnio.style.verticalAlign = 'middle';
+                        const useAnio = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+                        useAnio.setAttribute('href', '#icon-chevron-down');
+                        chevronAnio.appendChild(useAnio);
+                        headerAnio.appendChild(chevronAnio);
+                        headerAnio.appendChild(document.createTextNode(' ' + anio));
 
+                        const detalleAnio = document.createElement('div');
+                        detalleAnio.className = 'registro-mes-detalle';
+
+                        // Persistencia estado año
+                        let anioExpandido = false;
                         try {
-                            const estadoGuardado = localStorage.getItem(`mes-${claveMes}-expandido`);
+                            const estadoAnio = localStorage.getItem(`anio-${anio}-expandido`);
+                            anioExpandido = estadoAnio === 'true';
+                        } catch (e) {}
 
-                            if (estadoGuardado !== null) {
-                                // Si hay estado guardado, usarlo
-                                debeEstarExpandido = estadoGuardado === 'true';
-                            } else {
-                                // Si no hay estado guardado (primera vez), abrir solo el mes actual
-                                debeEstarExpandido = (claveMes === mesHoy);
-                            }
-                        } catch (e) {
-                            // Fallback: abrir solo mes actual
-                            debeEstarExpandido = (claveMes === mesHoy);
+                        if (anioExpandido) {
+                            detalleAnio.classList.add('expanded');
+                            chevronAnio.style.transform = 'rotate(180deg)';
                         }
 
-                        if (debeEstarExpandido) {
-                            detalleMesActual.classList.add('expanded');
-                            chevron.style.transform = 'rotate(180deg)';
-                        }
-
-                        // --- BUCLE PRINCIPAL DE ITEMS ---
-                        let semanaAnterior = null;
-
-                        grupos.forEach(grupo => {
-                            // ... resto del código sin cambios ...
-                            if (grupo.tipo === 'grupo') {
-                                const primerRegistro = grupo.registros[grupo.registros.length - 1]; // El más antiguo del grupo
-                                const semanaActual = obtenerLunesSemana(primerRegistro.fecha);
-
-                                // Si cambió la semana, insertar separador
-                                if (semanaAnterior && semanaActual !== semanaAnterior) {
-                                    const separador = document.createElement('div');
-                                    separador.className = 'separador-semana';
-                                    detalleMesActual.appendChild(separador);
-                                }
-
-                                const container = crearGrupoExpandible(grupo, horasDiarias, idNuevo);
-                                detalleMesActual.appendChild(container);
-
-                                semanaAnterior = semanaActual;
-                            } else {
-                                const r = grupo.registros[0];
-                                const semanaActual = obtenerLunesSemana(r.fecha);
-
-                                // Si cambió la semana, insertar separador
-                                if (semanaAnterior && semanaActual !== semanaAnterior) {
-                                    const separador = document.createElement('div');
-                                    separador.className = 'separador-semana';
-                                    detalleMesActual.appendChild(separador);
-                                }
-
-                                const item = crearItemRegistroIndividual(r, horasDiarias, idNuevo);
-                                detalleMesActual.appendChild(item);
-
-                                semanaAnterior = semanaActual;
-                            }
+                        // Meses dentro del año
+                        mesesDelAnio.forEach((registrosDelMes, claveMes) => {
+                            detalleAnio.appendChild(crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy));
                         });
 
-                        // Preparar datos para event delegation
-                        headerMes.dataset.accion = 'toggle-mes';
-                        headerMes.dataset.mesContainer = claveMes; // ID único del mes
-
-                        contenedorMesActual.appendChild(headerMes);
-                        contenedorMesActual.appendChild(detalleMesActual);
-                        fragmento.appendChild(contenedorMesActual);
+                        contenedorAnio.appendChild(headerAnio);
+                        contenedorAnio.appendChild(detalleAnio);
+                        fragmento.appendChild(contenedorAnio);
                     });
 
                     lista.appendChild(fragmento);
@@ -6372,7 +6435,7 @@
                     const formStats = $('form-stats');
 
                     modoEstadisticas = modoEstadisticas === 'mensual' ? 'anual' : 'mensual';
-                    try { localStorage.setItem('modoEstadisticas', modoEstadisticas); } catch (e) { }
+                    try { localStorage.setItem('modoEstadisticas', modoEstadisticas); } catch (e) {}
 
                     formStats.classList.add('fade-out');
                     setTimeout(() => {
@@ -8255,6 +8318,34 @@ Generado por Sistema Horarios
                     }
 
                     // ===================================
+                    // EVENT DELEGATION - TOGGLE AÑOS
+                    // ===================================
+                    lista.addEventListener('click', (e) => {
+                        const headerAnio = e.target.closest('.registro-mes-header[data-accion="toggle-anio"]');
+                        if (!headerAnio) return;
+
+                        e.stopPropagation();
+
+                        const contenedorAnio = headerAnio.closest('.registro-mes-container');
+                        if (!contenedorAnio) return;
+
+                        const detalleAnio = contenedorAnio.querySelector(':scope > .registro-mes-detalle');
+                        const chevronAnio = headerAnio.querySelector('.chevron-mes');
+                        const anioId = headerAnio.dataset.anioId;
+                        const estaExpandido = detalleAnio.classList.contains('expanded');
+
+                        if (estaExpandido) {
+                            detalleAnio.classList.remove('expanded');
+                            if (chevronAnio) chevronAnio.style.transform = 'rotate(0deg)';
+                            try { localStorage.setItem(`anio-${anioId}-expandido`, 'false'); } catch (e) {}
+                        } else {
+                            detalleAnio.classList.add('expanded');
+                            if (chevronAnio) chevronAnio.style.transform = 'rotate(180deg)';
+                            try { localStorage.setItem(`anio-${anioId}-expandido`, 'true'); } catch (e) {}
+                        }
+                    });
+
+                    // ===================================
                     // EVENT DELEGATION - TOGGLE MESES
                     // ===================================
                     lista.addEventListener('click', (e) => {
@@ -8284,12 +8375,33 @@ Generado por Sistema Horarios
                         } else {
                             // ABRIR
                             const otrosMesesAbiertos = lista.querySelectorAll('.registro-mes-detalle.expanded');
-                            const hayOtrosAbiertos = Array.from(otrosMesesAbiertos).some(otro => otro !== detalle);
+                            const esContenedorAnio = (el) => {
+                                const h = el.closest('.registro-mes-container')?.querySelector('.registro-mes-header');
+                                return h && h.dataset.accion === 'toggle-anio';
+                            };
+                            // Año padre del mes actual (no debe cerrarse)
+                            const detalleAnioPadre = contenedor.parentElement?.closest('.registro-mes-detalle') || null;
+
+                            // Cerrar otros años abiertos que no sean el padre
+                            otrosMesesAbiertos.forEach(otroDetalle => {
+                                if (esContenedorAnio(otroDetalle) && otroDetalle !== detalleAnioPadre) {
+                                    otroDetalle.classList.remove('expanded');
+                                    const otroContenedor = otroDetalle.closest('.registro-mes-container');
+                                    const otroChevron = otroContenedor?.querySelector('.chevron-mes');
+                                    const otroHeader = otroContenedor?.querySelector('.registro-mes-header');
+                                    if (otroChevron) otroChevron.style.transform = 'rotate(0deg)';
+                                    if (otroHeader?.dataset.anioId) {
+                                        try { localStorage.setItem(`anio-${otroHeader.dataset.anioId}-expandido`, 'false'); } catch (e) {}
+                                    }
+                                }
+                            });
+
+                            const hayOtrosAbiertos = Array.from(otrosMesesAbiertos).some(otro => otro !== detalle && !esContenedorAnio(otro));
 
                             if (hayOtrosAbiertos) {
                                 // Calcular y reservar altura antes de cerrar
                                 otrosMesesAbiertos.forEach(otroDetalle => {
-                                    if (otroDetalle !== detalle) {
+                                    if (otroDetalle !== detalle && !esContenedorAnio(otroDetalle)) {
                                         const alturaActual = otroDetalle.scrollHeight;
 
                                         // Fijar altura actual como mínima temporalmente
@@ -8827,17 +8939,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.38
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.40
     // ====================================================================
     
      - CAMBIOS:
-    1) Se corrige el bug de semana pasada, ahora se muestra correctamente, independientemente de si
-    hay registros o no
-    2) Se corrige bug potencial en el bloque CARGAR CONFIGURACIÓN
-    3) Se corrige bug en salida estima cuando ignorar tiempo fuera esta habilitado, la funcion no tenia 
-    en cuenta el flag
-    4) Se agrega togglee periodo en la tarjeta estadisticas, para cambiar de mensual a anual
-    5) Se agrega reporta anual
+    1) 
     
 
      - BUGS MENORES CONOCIDOS:
