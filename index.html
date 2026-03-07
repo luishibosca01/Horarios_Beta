@@ -361,6 +361,30 @@
         }
 
         /* --- Stats & Progreso --- */
+        /* Fondo abstracto stats-card */
+        .stats-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-card-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        .stats-card-bg svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .stats-card-content {
+            position: relative;
+            z-index: 1;
+        }
+
         .stats-card {
             cursor: pointer;
             transition: transform 0.15s ease-out, opacity 0.15s ease-out, box-shadow 0.3s !important;
@@ -1303,6 +1327,7 @@
         <div class="left-column">
             <div class="card stats-card animated-card" id="stats-card" onclick="UILogic.alternarVista()"
                 style="animation-delay: 0s;">
+                <div class="stats-card-bg" id="stats-card-bg" aria-hidden="true"></div>
                 <div class="stats-card-content" id="stats-card-content">
                     <h2 id="stats-titulo">Hoy</h2>
                     <div class="stats-number" id="stats-semana">
@@ -1611,7 +1636,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.41</span>
+                <span class="version-text">LUSHIBOSCA-7.42</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -5552,6 +5577,60 @@
                     if (elRegJornada) elRegJornada.textContent = stats.regularidadJornada || '--';
                 }
 
+                function actualizarFondoCard(estado) {
+                    const bg = $('stats-card-bg');
+                    if (!bg) return;
+
+                    const configs = {
+                        esperando: {
+                            color1: 'rgba(120,120,140,0.07)',
+                            color2: 'rgba(100,100,120,0.04)',
+                            shapes: `
+                                <circle cx="85%" cy="20%" r="60" fill="rgba(130,130,150,0.06)"/>
+                                <circle cx="90%" cy="70%" r="90" fill="rgba(110,110,130,0.04)"/>
+                                <circle cx="60%" cy="85%" r="40" fill="rgba(120,120,140,0.05)"/>
+                                <ellipse cx="10%" cy="30%" rx="50" ry="30" fill="rgba(100,100,120,0.04)" transform="rotate(-20,10,30)"/>
+                                <rect x="75%" y="10%" width="60" height="60" rx="12" fill="rgba(120,120,140,0.03)" transform="rotate(20,80,15)"/>
+                            `
+                        },
+                        en_curso: {
+                            color1: 'rgba(76,114,172,0.09)',
+                            color2: 'rgba(76,114,172,0.04)',
+                            shapes: `
+                                <circle cx="88%" cy="18%" r="70" fill="rgba(76,114,172,0.08)"/>
+                                <circle cx="80%" cy="75%" r="100" fill="rgba(76,114,172,0.05)"/>
+                                <circle cx="95%" cy="50%" r="45" fill="rgba(76,114,172,0.06)"/>
+                                <ellipse cx="65%" cy="90%" rx="60" ry="35" fill="rgba(76,114,172,0.04)" transform="rotate(-15,65,90)"/>
+                                <circle cx="70%" cy="15%" r="25" fill="rgba(76,114,172,0.05)">
+                                    <animate attributeName="r" values="25;30;25" dur="3s" repeatCount="indefinite"/>
+                                    <animate attributeName="opacity" values="0.05;0.09;0.05" dur="3s" repeatCount="indefinite"/>
+                                </circle>
+                            `
+                        },
+                        finalizado_ok: {
+                            shapes: `
+                                <circle cx="88%" cy="18%" r="75" fill="rgba(76,172,140,0.07)"/>
+                                <circle cx="78%" cy="78%" r="95" fill="rgba(76,172,140,0.05)"/>
+                                <circle cx="95%" cy="48%" r="40" fill="rgba(76,172,140,0.06)"/>
+                                <ellipse cx="62%" cy="92%" rx="65" ry="30" fill="rgba(76,172,140,0.04)" transform="rotate(-10,62,92)"/>
+                                <rect x="68%" y="5%" width="55" height="55" rx="10" fill="rgba(76,172,140,0.04)" transform="rotate(15,72,10)"/>
+                            `
+                        },
+                        finalizado_fail: {
+                            shapes: `
+                                <circle cx="88%" cy="18%" r="75" fill="rgba(200,80,80,0.07)"/>
+                                <circle cx="78%" cy="78%" r="95" fill="rgba(200,80,80,0.05)"/>
+                                <circle cx="95%" cy="48%" r="40" fill="rgba(200,80,80,0.06)"/>
+                                <ellipse cx="62%" cy="92%" rx="65" ry="30" fill="rgba(200,80,80,0.04)" transform="rotate(-10,62,92)"/>
+                                <rect x="68%" y="5%" width="55" height="55" rx="10" fill="rgba(200,80,80,0.04)" transform="rotate(15,72,10)"/>
+                            `
+                        }
+                    };
+
+                    const cfg = configs[estado] || configs.esperando;
+                    bg.innerHTML = `<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" xmlns="http://www.w3.org/2000/svg">${cfg.shapes}</svg>`;
+                }
+
                 function actualizarUI(idNuevo = null, soloReloj = false) {
                     const registros = D.registros();
                     const horasSemanales = D.horasSemanales();
@@ -5815,6 +5894,7 @@
                     } else {
                         tituloEl.innerHTML = `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`;
                         const regHoy = registros.find(r => r.fecha === hoy);
+                        if (!regHoy || !regHoy.entrada) actualizarFondoCard('esperando');
                         let tiempoTranscurrido = 0;
                         let objetivoDiario = horasDiarias;
 
@@ -5850,9 +5930,14 @@
                                     const horaActual = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
                                     const t = D.calcularHoras(regHoy.entrada, horaActual, regHoy.tiempoFuera || null, null, true);
                                     tiempoTranscurrido = t ? t.total : 0;
+                                    actualizarFondoCard('en_curso');
                                 }
 
                                 const prog = objetivoDiario > 0 ? Math.min((tiempoTranscurrido / objetivoDiario) * 100, 100) : 100;
+                                if (regHoy.salida) {
+                                    const cumplido = objetivoDiario === 0 || tiempoTranscurrido >= objetivoDiario;
+                                    actualizarFondoCard(cumplido ? 'finalizado_ok' : 'finalizado_fail');
+                                }
 
                                 if (statsEl) statsEl.textContent = horasATexto(tiempoTranscurrido);
                                 if (progressEl) {
@@ -5973,10 +6058,10 @@
                                     }
                                 }
                             } else {
-                                if (statsEl) statsEl.textContent = "😴 Sin Actividad";
+                                if (statsEl) statsEl.textContent = "🎒";
                                 if (mensajeEl) {
                                     if (horasDiarias === 0) mensajeEl.style.display = 'none';
-                                    else { mensajeEl.textContent = '...'; mensajeEl.style.display = 'block'; }
+                                    else { mensajeEl.textContent = 'Esperando registro...'; mensajeEl.style.display = 'block'; }
                                 }
                             }
                         }
@@ -9025,7 +9110,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.41
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.42
     // ====================================================================
     
      - CAMBIOS:
@@ -9038,7 +9123,7 @@ Generado por Sistema Horarios
     5) Se agrega reporte anual
     7) Se agrega agrupacion por años en lista de registros
     8) Se agrega items de regularidad en estadisticas
-    9) Se agregan atajos a respaldo/restaurar en la lista de registros
+    9) Se agrega fondo dinamico svg en la tarjeta de estadisticas
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
