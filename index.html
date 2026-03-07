@@ -1566,11 +1566,24 @@
                 <div id="botones-historico" style="padding-top: 0.5rem; margin-bottom: 0.5rem;">
                     <div
                         style="display: flex; justify-content: space-between; gap: 0.5rem; padding: 0 0.5rem; margin-top: 0.5rem">
-                        <button class="filter-btn" id="btn-filtro" onclick="UILogic.mostrarFiltros()" title="Filtrar">
-                            <svg class="icon">
-                                <use href="#icon-filter" />
-                            </svg>
-                        </button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="filter-btn" id="btn-filtro" onclick="UILogic.mostrarFiltros()"
+                                title="Filtrar">
+                                <svg class="icon">
+                                    <use href="#icon-filter" />
+                                </svg>
+                            </button>
+                            <button class="filter-btn" onclick="UILogic.mostrarImportar(true)" title="Restaurar">
+                                <svg class="icon">
+                                    <use href="#icon-upload" />
+                                </svg>
+                            </button>
+                            <button class="filter-btn" onclick="UILogic.mostrarExportar(true)" title="Respaldar">
+                                <svg class="icon">
+                                    <use href="#icon-download" />
+                                </svg>
+                            </button>
+                        </div>
                         <div style="display: flex; gap: 0.5rem;">
                             <button class="filter-btn" id="btn-undo" onclick="HistoryManager.undo()" title="Deshacer">
                                 <svg class="icon">
@@ -1810,7 +1823,7 @@
                     </svg>
                     Sobrescribir
                 </button>
-                <button class="btn-cancel" onclick="UILogic.cerrarImportar()">
+                <button class="btn-cancel" id="btn-volver-importar" onclick="UILogic.cerrarImportar()">
                     <svg class="icon">
                         <use href="#icon-undo" />
                     </svg>
@@ -1856,7 +1869,7 @@
                     </svg>
                     Descargar
                 </button>
-                <button class="btn-cancel" onclick="UILogic.cerrarExportar()">
+                <button class="btn-cancel" id="btn-volver-exportar" onclick="UILogic.cerrarExportar()">
                     <svg class="icon">
                         <use href="#icon-undo" />
                     </svg>
@@ -4598,6 +4611,7 @@
                 let tiempoExpansionBotones = null;
                 let timerAutoCierreBotones = null;
                 let modoEstadisticas = 'mensual'; // 'mensual' | 'anual'
+                let _modalAbiertoDesdeLista = false;
 
                 // FUNCIÓN DEBOUNCE REUTILIZABLE
                 function debounce(func, wait) {
@@ -5218,8 +5232,8 @@
                 function calcularRegularidad(desviacionMinutos) {
                     if (desviacionMinutos === null) return '--';
                     const mins = Math.round(desviacionMinutos);
-                    const label = desviacionMinutos <= 20 ? 'Alta' : desviacionMinutos <= 40 ? 'Media' : 'Baja';
-                    return `${label} (±${mins}m)`;
+                    const label = mins <= 20 ? 'Alta' : mins <= 40 ? 'Media' : 'Baja';
+                    return `±${mins}m | ${label}`;
                 }
 
                 function desviacionEstandar(valores) {
@@ -6236,8 +6250,9 @@
                     });
                 }
 
-                function mostrarImportar() {
-                    ModalManager.alternar('modal-config', 'modal-importar', null, () => {
+                function mostrarImportar(desdeLista = false) {
+                    _modalAbiertoDesdeLista = desdeLista;
+                    ModalManager.alternar(desdeLista ? null : 'modal-config', 'modal-importar', null, () => {
                         $('file-import').value = '';
 
                         const nombreEl = document.getElementById('nombre-archivo-seleccionado');
@@ -6257,15 +6272,21 @@
                             btnReemplazar.disabled = true;
                             btnReemplazar.style.opacity = '0.5';
                         }
+
+                        const btnVolverI = $('btn-volver-importar');
+                        if (btnVolverI) {
+                            btnVolverI.lastChild.textContent = desdeLista ? ' Cerrar' : ' Volver';
+                            btnVolverI.querySelector('use').setAttribute('href', desdeLista ? '#icon-cancel' : '#icon-undo');
+                        }
                         // Abrir selector de archivo automáticamente al abrir el modal
                         setTimeout(() => $('file-import').click(), 50);
                     });
                 }
 
                 function cerrarImportar() {
-                    ModalManager.alternar('modal-importar', 'modal-config');
+                    ModalManager.alternar('modal-importar', _modalAbiertoDesdeLista ? null : 'modal-config');
+                    _modalAbiertoDesdeLista = false;
                 }
-
                 function calcularEstadisticasAnio(anio) {
                     const anioNum = parseInt(anio);
                     const registrosAnio = D.registros().filter(r => {
@@ -7871,8 +7892,9 @@ Generado por Sistema Horarios
                     }
                 }
 
-                function mostrarExportar() {
-                    ModalManager.alternar('modal-config', 'modal-exportar', null, () => {
+                function mostrarExportar(desdeLista = false) {
+                    _modalAbiertoDesdeLista = desdeLista;
+                    ModalManager.alternar(desdeLista ? null : 'modal-config', 'modal-exportar', null, () => {
                         // Reset del selector
                         const tipoSelect = document.getElementById('tipo-exportacion');
                         if (tipoSelect) tipoSelect.value = 'todo';
@@ -7884,11 +7906,18 @@ Generado por Sistema Horarios
                         // Limpiar fechas
                         document.getElementById('export-fecha-desde').value = '';
                         document.getElementById('export-fecha-hasta').value = '';
+
+                        const btnVolverE = $('btn-volver-exportar');
+                        if (btnVolverE) {
+                            btnVolverE.lastChild.textContent = desdeLista ? ' Cerrar' : ' Volver';
+                            btnVolverE.querySelector('use').setAttribute('href', desdeLista ? '#icon-cancelar' : '#icon-undo');
+                        }
                     });
                 }
 
                 function cerrarExportar() {
-                    ModalManager.alternar('modal-exportar', 'modal-config');
+                    ModalManager.alternar('modal-exportar', _modalAbiertoDesdeLista ? null : 'modal-config');
+                    _modalAbiertoDesdeLista = false;
                 }
 
                 function toggleCamposRangoExport() {
@@ -9009,6 +9038,7 @@ Generado por Sistema Horarios
     5) Se agrega reporte anual
     7) Se agrega agrupacion por años en lista de registros
     8) Se agrega items de regularidad en estadisticas
+    9) Se agregan atajos a respaldo/restaurar en la lista de registros
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
