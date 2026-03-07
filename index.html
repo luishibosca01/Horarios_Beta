@@ -741,20 +741,7 @@
             transition: all 0.3s;
         }
 
-        .collapse-toggle {
-            cursor: pointer;
-            transition: transform 0.3s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .collapse-toggle.rotated {
-            transform: rotate(180deg);
-        }
-
         /* Animación al crear y eliminar registro */
-
         .nuevo-registro-animacion {
             animation: fade-blur 0.5s ease-out forwards;
             transform-origin: center;
@@ -1534,6 +1521,14 @@
                                 <div class="stat-label">Promedio Diario</div>
                                 <div class="stat-value" id="stat-promedio-diario">0h 0m</div>
                             </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Entrada Regular</div>
+                                <div class="stat-value" id="stat-regularidad-entrada">--</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Jornada Regular</div>
+                                <div class="stat-value" id="stat-regularidad-jornada">--</div>
+                            </div>
                             <div id="stat-separador-semana"
                                 style="grid-column: 1 / -1; height: 1px; background: var(--border); margin: 0.5rem 0;">
                             </div>
@@ -1603,7 +1598,7 @@
                     </svg>
                     Ajustes
                 </span>
-                <span class="version-text">LUSHIBOSCA-7.40</span>
+                <span class="version-text">LUSHIBOSCA-7.41</span>
             </h3>
             <div class="form-group">
                 <label>Horas Diarias</label>
@@ -5136,7 +5131,7 @@
                         try {
                             const estadoAnio = localStorage.getItem(`anio-${anio}-expandido`);
                             anioExpandido = estadoAnio === 'true';
-                        } catch (e) {}
+                        } catch (e) { }
 
                         if (anioExpandido) {
                             detalleAnio.classList.add('expanded');
@@ -5218,6 +5213,20 @@
 
                     container.appendChild(header);
                     return container;
+                }
+
+                function calcularRegularidad(desviacionMinutos) {
+                    if (desviacionMinutos === null) return '--';
+                    const mins = Math.round(desviacionMinutos);
+                    const label = desviacionMinutos <= 20 ? 'Alta' : desviacionMinutos <= 40 ? 'Media' : 'Baja';
+                    return `${label} (±${mins}m)`;
+                }
+
+                function desviacionEstandar(valores) {
+                    if (valores.length < 2) return null;
+                    const media = valores.reduce((a, b) => a + b, 0) / valores.length;
+                    const varianza = valores.reduce((sum, v) => sum + Math.pow(v - media, 2), 0) / valores.length;
+                    return Math.sqrt(varianza);
                 }
 
                 function calcularEstadisticasMes(mesAnio = null) {
@@ -5370,7 +5379,9 @@
                             compensaciones: compensaciones,
                             paros: paros,
                             remotos: remotos,
-                            capacitaciones: capacitaciones
+                            capacitaciones: capacitaciones,
+                            regularidadEntrada: '--',
+                            regularidadJornada: '--'
                         };
                     }
 
@@ -5405,6 +5416,17 @@
                     let mTotal = Math.round((totalHoras - hTotal) * 60);
                     if (mTotal === 60) { hTotal++; mTotal = 0; }
 
+                    // Regularidad entrada
+                    const minutosEntrada = registrosValidos.map(r => {
+                        const [h, m] = r.entrada.split(':').map(Number);
+                        return h * 60 + m;
+                    });
+                    const desEntrada = desviacionEstandar(minutosEntrada);
+
+                    // Regularidad jornada (en horas decimales → convertir a minutos)
+                    const minutosJornada = registrosValidos.map(r => Math.round(r.total * 60));
+                    const desJornada = desviacionEstandar(minutosJornada);
+
                     return {
                         entradaPromedio: `${String(hEntrada).padStart(2, '0')}:${String(mEntrada).padStart(2, '0')}`,
                         salidaPromedio: `${String(hSalida).padStart(2, '0')}:${String(mSalida).padStart(2, '0')}`,
@@ -5421,7 +5443,9 @@
                         compensaciones: compensaciones,
                         paros: paros,
                         remotos: remotos,
-                        capacitaciones: capacitaciones
+                        capacitaciones: capacitaciones,
+                        regularidadEntrada: calcularRegularidad(desEntrada),
+                        regularidadJornada: calcularRegularidad(desJornada)
                     };
                 }
 
@@ -5507,6 +5531,11 @@
                     toggleStatItem(elParos, stats.paros);
                     toggleStatItem(elRemotos, stats.remotos);
                     toggleStatItem(elCapacitaciones, stats.capacitaciones);
+
+                    const elRegEntrada = $('stat-regularidad-entrada');
+                    const elRegJornada = $('stat-regularidad-jornada');
+                    if (elRegEntrada) elRegEntrada.textContent = stats.regularidadEntrada || '--';
+                    if (elRegJornada) elRegJornada.textContent = stats.regularidadJornada || '--';
                 }
 
                 function actualizarUI(idNuevo = null, soloReloj = false) {
@@ -6281,7 +6310,8 @@
                             tiempoFueraTotal: '--:--', tiempoTotal: '0h 0m',
                             semanaPasada: null,
                             feriados, ausencias, vacaciones, enfermedades,
-                            asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones
+                            asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
+                            regularidadEntrada: '--', regularidadJornada: '--'
                         };
                     }
 
@@ -6313,6 +6343,26 @@
                     let mTotal = Math.round((totalHoras - hTotal) * 60);
                     if (mTotal === 60) { hTotal++; mTotal = 0; }
 
+                    // Regularidad anual: promedio de desviaciones por mes
+                    const mesesDelAnio = [...new Set(registrosValidos.map(r => r.fecha.substring(0, 7)))];
+                    const desEntradaPorMes = [];
+                    const desJornadaPorMes = [];
+                    mesesDelAnio.forEach(mes => {
+                        const regsDelMes = registrosValidos.filter(r => r.fecha.startsWith(mes));
+                        if (regsDelMes.length >= 2) {
+                            const minutosEntrada = regsDelMes.map(r => { const [h, m] = r.entrada.split(':').map(Number); return h * 60 + m; });
+                            const minutosJornada = regsDelMes.map(r => Math.round(r.total * 60));
+                            const dE = desviacionEstandar(minutosEntrada);
+                            const dJ = desviacionEstandar(minutosJornada);
+                            if (dE !== null) desEntradaPorMes.push(dE);
+                            if (dJ !== null) desJornadaPorMes.push(dJ);
+                        }
+                    });
+                    const promedioDesEntrada = desEntradaPorMes.length > 0
+                        ? desEntradaPorMes.reduce((a, b) => a + b, 0) / desEntradaPorMes.length : null;
+                    const promedioDesJornada = desJornadaPorMes.length > 0
+                        ? desJornadaPorMes.reduce((a, b) => a + b, 0) / desJornadaPorMes.length : null;
+
                     return {
                         entradaPromedio: `${String(hEntrada).padStart(2, '0')}:${String(mEntrada).padStart(2, '0')}`,
                         salidaPromedio: `${String(hSalida).padStart(2, '0')}:${String(mSalida).padStart(2, '0')}`,
@@ -6322,7 +6372,9 @@
                         tiempoTotal: `${hTotal}h ${mTotal}m`,
                         semanaPasada: null,
                         feriados, ausencias, vacaciones, enfermedades,
-                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones
+                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
+                        regularidadEntrada: calcularRegularidad(promedioDesEntrada),
+                        regularidadJornada: calcularRegularidad(promedioDesJornada)
                     };
                 }
 
@@ -6412,6 +6464,11 @@
                             else { statItem.style.display = ''; elPromedio.textContent = stats.promedioDiario; }
                         }
                     }
+
+                    const elRegEntrada = $('stat-regularidad-entrada');
+                    const elRegJornada = $('stat-regularidad-jornada');
+                    if (elRegEntrada) elRegEntrada.textContent = stats.regularidadEntrada || '--';
+                    if (elRegJornada) elRegJornada.textContent = stats.regularidadJornada || '--';
                 }
 
                 function cambiarAnioStats() {
@@ -6435,7 +6492,7 @@
                     const formStats = $('form-stats');
 
                     modoEstadisticas = modoEstadisticas === 'mensual' ? 'anual' : 'mensual';
-                    try { localStorage.setItem('modoEstadisticas', modoEstadisticas); } catch (e) {}
+                    try { localStorage.setItem('modoEstadisticas', modoEstadisticas); } catch (e) { }
 
                     formStats.classList.add('fade-out');
                     setTimeout(() => {
@@ -8337,11 +8394,11 @@ Generado por Sistema Horarios
                         if (estaExpandido) {
                             detalleAnio.classList.remove('expanded');
                             if (chevronAnio) chevronAnio.style.transform = 'rotate(0deg)';
-                            try { localStorage.setItem(`anio-${anioId}-expandido`, 'false'); } catch (e) {}
+                            try { localStorage.setItem(`anio-${anioId}-expandido`, 'false'); } catch (e) { }
                         } else {
                             detalleAnio.classList.add('expanded');
                             if (chevronAnio) chevronAnio.style.transform = 'rotate(180deg)';
-                            try { localStorage.setItem(`anio-${anioId}-expandido`, 'true'); } catch (e) {}
+                            try { localStorage.setItem(`anio-${anioId}-expandido`, 'true'); } catch (e) { }
                         }
                     });
 
@@ -8391,7 +8448,7 @@ Generado por Sistema Horarios
                                     const otroHeader = otroContenedor?.querySelector('.registro-mes-header');
                                     if (otroChevron) otroChevron.style.transform = 'rotate(0deg)';
                                     if (otroHeader?.dataset.anioId) {
-                                        try { localStorage.setItem(`anio-${otroHeader.dataset.anioId}-expandido`, 'false'); } catch (e) {}
+                                        try { localStorage.setItem(`anio-${otroHeader.dataset.anioId}-expandido`, 'false'); } catch (e) { }
                                     }
                                 }
                             });
@@ -8939,12 +8996,19 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.40
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.41
     // ====================================================================
     
      - CAMBIOS:
-    1) 
-    
+    1) Se corrige el bug de semana pasada, ahora se muestra correctamente, independientemente de si
+    hay registros o no
+    2) Se corrige bug potencial en el bloque CARGAR CONFIGURACIÓN
+    3) Se corrige bug en salida estima cuando ignorar tiempo fuera esta habilitado, la funcion no tenia 
+    en cuenta el flag
+    4) Se agrega togglee periodo en la tarjeta estadisticas, para cambiar de mensual a anual
+    5) Se agrega reporte anual
+    7) Se agrega agrupacion por años en lista de registros
+    8) Se agrega items de regularidad en estadisticas
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
