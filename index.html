@@ -7436,7 +7436,9 @@ Generado por Sistema Horarios
                                 diasHabiles: perfil.diasHabiles,
                                 horasDiarias: perfil.horasDiarias,
                                 fecha: new Date().toISOString(),
-                                version: 3
+                                version: S.SECURITY_LIMITS.SCHEMA_VERSION,
+                                hash: await S.calcularHashSHA256(perfil.registros),
+                                timestamp: Date.now()
                             };
 
                             const blob = new Blob([JSON.stringify(datosExportar, null, 2)], { type: 'application/json' });
@@ -8028,8 +8030,9 @@ Generado por Sistema Horarios
                         horasDiarias: D.horasDiarias(),
                         fecha: fechaLocal,
                         version: S.SECURITY_LIMITS.SCHEMA_VERSION,
+                        hash: await S.calcularHashSHA256(registrosFiltrados),
+                        timestamp: Date.now(),
                         rangoExportado: esMes ? `Mes ${desde}` : `${desde} a ${hasta}`
-
                     };
 
                     if (data.rangoExportado) {
