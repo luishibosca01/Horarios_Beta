@@ -1674,7 +1674,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.49</span>
+                    <span class="version-text">LUSHIBOSCA-7.51</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2258,7 +2258,6 @@
                     }
                 }
 
-                const saveLimiter = new RateLimiter(SECURITY_LIMITS.MAX_OPERATIONS_PER_MINUTE, 60000);
 
                 function sanitizeString(str, maxLength = SECURITY_LIMITS.MAX_STRING_LENGTH) {
                     if (typeof str !== 'string') return '';
@@ -2374,7 +2373,6 @@
                 return {
                     SECURITY_LIMITS,
                     REGEX_PATTERNS,
-                    saveLimiter,
                     sanitizeString,
                     validarFechaSegura,
                     validarHoraSegura,
@@ -2500,9 +2498,11 @@
 
                 function obtenerDatosPerfil() { return perfiles[perfilActual]; }
 
+                function obtenerTodosPerfiles() { return perfiles; }
+
                 return {
                     inicializar, cambiarPerfil, guardarDatosPerfilActual, cargarDatosPerfilActual,
-                    obtenerPerfilActual, obtenerDatosPerfil, obtenerListaPerfiles
+                    obtenerPerfilActual, obtenerDatosPerfil, obtenerListaPerfiles, obtenerTodosPerfiles
                 };
 
             })(SecurityAndUtils);
@@ -3794,7 +3794,7 @@
                     }
                 }
 
-                function exportarJSON() {
+                async function exportarJSON() {
                     //  Generar fecha local en formato YYYY-MM-DD HH:MM:SS
                     const ahora = new Date();
                     const año = ahora.getFullYear();
@@ -3810,8 +3810,10 @@
                         registros,
                         diasHabiles,
                         horasDiarias,
-                        fecha: fechaLocal, // Fecha local sin conversión UTC
-                        version: S.SECURITY_LIMITS.SCHEMA_VERSION
+                        fecha: fechaLocal,
+                        version: S.SECURITY_LIMITS.SCHEMA_VERSION,
+                        hash: await S.calcularHashSHA256(registros),
+                        timestamp: Date.now()
                     };
 
                     try {
@@ -3827,7 +3829,6 @@
                         }
                         const nombreSafe = nombrePerfil.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ'\-_ ]/g, '').trim().replace(/\s+/g, '_');
 
-                        //  Usar también fecha local para el nombre del archivo
                         const fechaHoy = `${año}-${mes}-${dia}`;
 
                         a.download = `Horarios_${nombreSafe}_${fechaHoy}.json`;
@@ -3863,7 +3864,7 @@
                     }
 
                     const reader = new FileReader();
-                    reader.onload = (e) => {
+                    reader.onload = async (e) => {
                         try {
                             // Validar que el contenido no esté vacío
                             const contenido = e.target.result;
@@ -3917,6 +3918,12 @@
                                 return;
                             }
 
+                            // Advertir si el schema es de una versión futura
+                            if (data.version && data.version > S.SECURITY_LIMITS.SCHEMA_VERSION) {
+                                console.warn(`⚠️ Archivo exportado con schema v${data.version}, app en v${S.SECURITY_LIMITS.SCHEMA_VERSION}`);
+                                UILogic.mostrarToast(`Archivo de versión más nueva (v${data.version}). Algunos datos pueden no importarse correctamente.`, 'warning');
+                            }
+
                             // NUEVA VALIDACIÓN: rangoExportado
                             if (data.rangoExportado !== undefined) {
                                 // Sanitizar y validar formato
@@ -3943,6 +3950,19 @@
                                         }
                                     }
                                 }
+                            }
+
+                            // Verificar integridad del hash
+                            if (data.hash) {
+                                const hashCalculado = await S.calcularHashSHA256(data.registros);
+                                if (hashCalculado !== data.hash) {
+                                    UILogic.mostrarToast('⚠️ El archivo puede estar corrupto o modificado', 'warning');
+                                    const continuar = confirm('El hash de integridad no coincide.\n\nEl archivo puede haber sido modificado o corrompido.\n\n¿Importar de todas formas?');
+                                    if (!continuar) return;
+                                }
+                            } else {
+                                const continuar = confirm('⚠️ Este archivo no tiene verificación de integridad.\n\nPuede ser un backup antiguo, o haber sido modificado externamente.\n\n¿Importar de todas formas?');
+                                if (!continuar) return;
                             }
 
                             // Validar límite de registros antes de procesar
@@ -7214,7 +7234,7 @@ Generado por Sistema Horarios
                         return;
                     }
 
-                    const perfiles = JSON.parse(localStorage.getItem('perfiles') || '{}');
+                    const perfiles = window.PerfilManager ? PerfilManager.obtenerTodosPerfiles() : {};
 
                     //  VALIDACIÓN DE NOMBRE DUPLICADO (case-insensitive)
                     const nombreNormalizado = nombre.toLowerCase().trim();
@@ -7290,7 +7310,7 @@ Generado por Sistema Horarios
 
                 function abrirEditorPerfil(perfilId) {
                     perfilEnEdicion = perfilId;
-                    const perfiles = JSON.parse(localStorage.getItem('perfiles') || '{}');
+                    const perfiles = window.PerfilManager ? PerfilManager.obtenerTodosPerfiles() : {};
                     const perfil = perfiles[perfilId];
 
                     if (!perfil) {
@@ -7340,7 +7360,7 @@ Generado por Sistema Horarios
                         return;
                     }
 
-                    const perfiles = JSON.parse(localStorage.getItem('perfiles') || '{}');
+                    const perfiles = window.PerfilManager ? PerfilManager.obtenerTodosPerfiles() : {};
 
                     if (!perfiles[perfilEnEdicion]) {
                         mostrarToast('Perfil no encontrado', 'error');
@@ -7389,7 +7409,7 @@ Generado por Sistema Horarios
                         return;
                     }
 
-                    const perfiles = JSON.parse(localStorage.getItem('perfiles') || '{}');
+                    const perfiles = window.PerfilManager ? PerfilManager.obtenerTodosPerfiles() : {};
                     const perfil = perfiles[perfilEnEdicion];
 
                     if (!perfil) {
@@ -9001,7 +9021,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.49
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.51
     // ====================================================================
     
      - CAMBIOS:
