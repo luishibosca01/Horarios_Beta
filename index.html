@@ -1674,7 +1674,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.46</span>
+                    <span class="version-text">LUSHIBOSCA-7.49</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1770,17 +1770,12 @@
                         <svg class="icon">
                             <use href="#icon-trash" />
                         </svg>
-                        Borrar Todo
+                        Restablecer
                     </button>
                 </div>
             </div><!-- /modal-config-body -->
             <div class="modal-config-footer">
                 <div class="btn-group">
-                    <button class="btn-edit" onclick="DataManagement.guardarConfig()">
-                        <svg class="icon">
-                            <use href="#icon-save" />
-                        </svg> Guardar
-                    </button>
                     <button class="btn-delete" onclick="UILogic.cerrarConfig()">
                         <svg class="icon">
                             <use href="#icon-undo" />
@@ -2407,91 +2402,9 @@
                 function cargarPerfiles() {
                     try {
                         const storedPerfiles = localStorage.getItem('perfiles');
-                        const storedLegacyRegistros = localStorage.getItem('registros');
 
                         perfiles = storedPerfiles ? JSON.parse(storedPerfiles) : {};
 
-                        // 1. Verificar bandera de migración para no repetir el proceso
-                        const yaMigrado = localStorage.getItem('migracion-v6-completada');
-
-                        // Verificamos si el perfil default está vacío o corrupto
-                        const esPerfilVacio = !perfiles['default'] ||
-                            !perfiles['default'].registros ||
-                            perfiles['default'].registros.length === 0;
-
-                        // 2. Ejecutar migración SOLO si es necesario y seguro
-                        if (!yaMigrado && storedLegacyRegistros && esPerfilVacio) {
-                            console.log("🔄 Iniciando migración segura desde v6.25...");
-
-                            let registrosViejos = [];
-                            try {
-                                const parsed = JSON.parse(storedLegacyRegistros);
-                                // Soporte para estructura {registros: []} o array directo []
-                                if (parsed.registros && Array.isArray(parsed.registros)) {
-                                    registrosViejos = parsed.registros;
-                                } else if (Array.isArray(parsed)) {
-                                    registrosViejos = parsed;
-                                }
-                            } catch (e) {
-                                console.error("Error crítico leyendo datos antiguos:", e);
-                                // No retornamos, dejamos que se cree un perfil vacío por seguridad
-                            }
-
-                            if (registrosViejos.length > 0) {
-                                // 3. Crear Backup de Seguridad
-                                try {
-                                    localStorage.setItem('backup-pre-migracion', storedLegacyRegistros);
-                                    localStorage.setItem('backup-fecha', new Date().toISOString());
-                                } catch (e) {
-                                    console.warn("Espacio insuficiente para backup, continuando con precaución...");
-                                }
-
-                                // 4. Filtrado y Validación (Sanitización)
-                                // Usamos 'S' porque así se llama el módulo dentro de PerfilManager
-                                const registrosValidos = registrosViejos.filter(r => {
-                                    try {
-                                        return S.validarRegistroSeguro(r);
-                                    } catch (e) {
-                                        return false;
-                                    }
-                                });
-
-                                // Recuperar configuración antigua si existe
-                                const diasViejos = parseFloat(localStorage.getItem('diasHabiles')) || 5;
-                                const horasViejas = parseFloat(localStorage.getItem('horasDiarias')) || 7;
-
-                                perfiles['default'] = {
-                                    nombre: 'Principal (Recuperado)',
-                                    registros: registrosValidos,
-                                    diasHabiles: diasViejos,
-                                    horasDiarias: horasViejas
-                                };
-
-                                perfilActual = 'default';
-                                guardarPerfiles();
-
-                                // 5. Marcar migración como completada
-                                localStorage.setItem('migracion-v6-completada', 'true');
-                                localStorage.setItem('migracion-fecha', new Date().toISOString());
-
-                                // 6. Feedback detallado
-                                const descartados = registrosViejos.length - registrosValidos.length;
-                                let mensaje = `✅ Se migraron ${registrosValidos.length} registros exitosamente.`;
-
-                                if (descartados > 0) {
-                                    mensaje += `\n🗑️ Se descartaron ${descartados} registros corruptos.`;
-                                }
-
-                                if (window.UILogic) {
-                                    // Usamos un timeout pequeño para asegurar que UILogic esté listo
-                                    setTimeout(() => window.UILogic.mostrarToast(mensaje, 'success'), 500);
-                                }
-
-                                console.log(`Reporte Migración: Válidos ${registrosValidos.length} | Descartados ${descartados}`);
-                            }
-                        }
-
-                        // 7. Fallback
                         if (!perfiles['default']) {
                             perfiles['default'] = {
                                 nombre: 'Principal',
@@ -2501,7 +2414,7 @@
                             };
                         }
 
-                        // 8. Determinar perfil activo
+                        // Determinar perfil activo
                         perfilActual = localStorage.getItem('perfilActivo') || 'default';
                         if (!perfiles[perfilActual]) {
                             const availableIds = Object.keys(perfiles);
@@ -2514,7 +2427,7 @@
                             'default': {
                                 nombre: 'Principal',
                                 registros: [],
-                                diasHabiles: 5,
+                                diasHabiles: [1, 2, 3, 4, 5],
                                 horasDiarias: 7
                             }
                         };
@@ -3170,7 +3083,7 @@
                     });
 
                     HistoryManager.saveState(registros);
-                    const saved = await guardarYActualizar(true, idsNuevos);
+                    const saved = await guardarYActualizar(idsNuevos);
 
                     if (saved) {
                         UILogic.mostrarToast('Grupo actualizado', 'success');
@@ -3251,7 +3164,7 @@
                     });
 
                     HistoryManager.saveState(registros);
-                    const saved = await guardarYActualizar(true, nuevoId);
+                    const saved = await guardarYActualizar(nuevoId);
 
                     if (saved) {
                         UILogic.mostrarToast(`Registrado como ${tipoTexto}`, 'success');
@@ -3260,48 +3173,10 @@
                     }
                 }
 
-                async function guardarConIntegridad(regs) {
-                    if (!S.saveLimiter.canProceed()) {
-                        UILogic.mostrarToast('Demasiadas operaciones, espera un momento', 'warning');
-                        return false;
-                    }
-                    try {
-                        const hash = await S.calcularHashSHA256(regs);
-                        const data = {
-                            registros: regs,
-                            hash,
-                            timestamp: Date.now(),
-                            version: S.SECURITY_LIMITS.SCHEMA_VERSION
-                        };
-                        const str = JSON.stringify(data);
-                        const size = new Blob([str]).size;
-                        if (size > S.SECURITY_LIMITS.MAX_JSON_SIZE) {
-                            UILogic.mostrarToast('Almacenamiento lleno', 'error');
-                            return false;
-                        }
-                        localStorage.setItem('registros', str);
-                        return true;
-                    } catch (e) {
-                        console.error('Error guardando:', e);
-                        if (e.name === 'QuotaExceededError') {
-                            UILogic.mostrarToast('Espacio lleno', 'error');
-                        }
-                        return false;
-                    }
-                }
 
-                // Dentro de DataManagement...
-
-                async function guardarYActualizar(actualizarRegistros = true, idNuevo = null) {
+                async function guardarYActualizar(idNuevo = null) {
                     let saveSuccessful = true;
-                    // Verificamos si estamos en el perfil 'default' (el principal)
-                    const esPerfilDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
-                    // 1. Guardado Legacy (Compatibilidad hacia atrás)
-                    if (actualizarRegistros && esPerfilDefault) {
-                        saveSuccessful = await guardarConIntegridad(registros);
-                    }
 
-                    // 2. Guardado del Sistema de Perfiles
                     if (window.PerfilManager) {
                         PerfilManager.guardarDatosPerfilActual();
                     }
@@ -3317,20 +3192,7 @@
                         let d = JSON.parse(localStorage.getItem('diasHabiles'));
                         const hd = parseFloat(localStorage.getItem('horasDiarias'));
 
-                        // Lógica de migración: Número antiguo vs Array nuevo
-                        let diasFinal = [1, 2, 3, 4, 5]; // Default
-
-                        if (d === null) {
-                            // Default
-                        } else if (typeof d === 'number') {
-                            // MIGRACIÓN: Convertir número viejo a array
-                            diasFinal = [];
-                            for (let i = 1; i <= d; i++) diasFinal.push(i);
-                            if (d === 7) diasFinal.push(0);
-                        } else if (Array.isArray(d)) {
-                            // Ya es el formato nuevo
-                            diasFinal = d;
-                        }
+                        const diasFinal = Array.isArray(d) ? d : [1, 2, 3, 4, 5];
 
                         let t = localStorage.getItem('temaOscuro') === 'true';
                         if (localStorage.getItem('temaOscuro') === null) t = true;
@@ -3343,9 +3205,9 @@
                             horasDiarias: horasFinal,
                             temaOscuro: t,
                             vistaActual: (v === 'semana' || v === 'diaria') ? v : 'diaria',
-                            ignorarTiempoFuera: localStorage.getItem('ignorarTiempoFuera') === 'true',
+                            ignorarTiempoFuera: localStorage.getItem('ignorarTiempoFuera_' + (window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default')) === 'true',
                             modoEstadisticas: localStorage.getItem('modoEstadisticas') || 'mensual',
-                            fondoCard: localStorage.getItem('fondoCard') || 'golden-gate'
+                            fondoCard: localStorage.getItem('fondoCard_' + (window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default')) || 'golden-gate'
                         };
                     } catch (e) {
                         console.error('Error config:', e);
@@ -3526,7 +3388,7 @@
                         HistoryManager.saveState(registros);
 
                         // PASAMOS EL ID DEL REGISTRO ACTUALIZADO PARA ANIMARLO
-                        const saved = await guardarYActualizar(true, registroExistente.id);
+                        const saved = await guardarYActualizar(registroExistente.id);
                         if (saved) {
                             // FEEDBACK VISUAL (solo salida manual)
                             const salidaManual = !usaHoraActual;
@@ -3593,7 +3455,7 @@
                     HistoryManager.saveState(registros);
 
                     // PASAMOS EL ID NUEVO AQUI
-                    const saved = await guardarYActualizar(true, nuevoId);
+                    const saved = await guardarYActualizar(nuevoId);
 
                     if (saved) {
                         // FEEDBACK VISUAL (entrada y/o salida manual)
@@ -3899,87 +3761,35 @@
                     }
                 }
 
-                function guardarConfig() {
-                    const vd = parseFloat($('config-horas-diarias').value);
-
-                    // Leer checkboxes y ordenar para comparar bien
-                    const checkboxes = document.querySelectorAll('input[name="dia-habil"]:checked');
-                    const nuevosDias = Array.from(checkboxes).map(cb => parseInt(cb.value)).sort((a, b) => a - b);
-
-                    if (nuevosDias.length === 0) {
-                        UILogic.mostrarToast('Selecciona al menos un día', 'error');
-                        return;
-                    }
-                    if (isNaN(vd) || vd < 0 || vd > 24) {
-                        UILogic.mostrarToast('Horas inválidas', 'error');
-                        return;
-                    }
-
-                    // --- VALIDACIÓN DE CAMBIOS (Array vs Array) ---
-                    const diasActuales = [...diasHabiles].sort((a, b) => a - b);
-
-                    // Convertimos a texto para comparar contenido real
-                    const sonDiasIguales = JSON.stringify(diasActuales) === JSON.stringify(nuevosDias);
-
-                    if (sonDiasIguales && vd === horasDiarias) {
-                        UILogic.mostrarToast('Sin cambios', 'info');
-                        UILogic.cerrarConfig();
-                        return;
-                    }
-                    // Guardar en memoria
-                    diasHabiles = nuevosDias;
-                    horasDiarias = vd;
-
-                    // Recalcular feriados (00:00) si cambiaron las horas
-                    registros.forEach(r => {
-                        if (r.entrada === '00:00' && r.salida === '00:00') {
-                            const t = calcularHoras('00:00', '00:00', r.tiempoFuera || null);
-                            r.horas = t?.horas || 0; r.minutos = t?.minutos || 0; r.total = t?.total || 0;
-                        }
-                    });
-
-                    try {
-                        const esPerfilDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
-                        if (esPerfilDefault) {
-                            localStorage.setItem('diasHabiles', JSON.stringify(diasHabiles));
-                            localStorage.setItem('horasDiarias', horasDiarias);
-                            localStorage.removeItem('horasSemanales');
-                        }
-                    } catch (e) {
-                        UILogic.mostrarToast('Error al guardar', 'error');
-                        return;
-                    }
-
-                    guardarYActualizar(true);
-                    UILogic.mostrarToast('Configuración guardada', 'success');
-                    UILogic.cerrarConfig();
-                }
 
                 async function borrarTodoHistorial() {
                     const totalRegistros = registros.length;
-                    if (totalRegistros === 0) {
-                        UILogic.mostrarToast('No hay registros para borrar', 'info');
-                        return;
-                    }
 
-                    const confirmar = confirm(`⚠️ Esto eliminará ${totalRegistros} registros, esta acción se guarda en el historial durante 2 dias`);
+                    const confirmar = confirm(`⚠️ Esto restablecerá el perfil activo: se eliminarán ${totalRegistros} registro${totalRegistros !== 1 ? 's' : ''} y la configuración volverá a los valores por defecto. No afecta otros perfiles.`);
 
                     if (!confirmar) return;
 
-                    //  LIMPIAR TIMER DEL PERFIL ACTUAL
                     const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-                    const storageKey = `breakStartTime_${perfilId}`;
-                    localStorage.removeItem(storageKey);
 
-                    registros = [];
+                    // Resetear variables locales del módulo directamente
+                    diasHabiles = [1, 2, 3, 4, 5];
+                    horasDiarias = 7;
+                    registros.splice(0, registros.length);
+                    ignorarTiempoFuera = false;
+
+                    // Limpiar claves localStorage por perfil
+                    localStorage.removeItem(`breakStartTime_${perfilId}`);
+                    localStorage.removeItem(`history_${perfilId}`);
+                    localStorage.removeItem(`fondoCard_${perfilId}`);
+                    localStorage.removeItem(`ignorarTiempoFuera_${perfilId}`);
+
                     HistoryManager.saveState(registros);
 
-                    if (await guardarYActualizar(true)) {
+                    if (await guardarYActualizar()) {
+                        UILogic.setFondoCard('golden-gate');
+                        UILogic.actualizarEstadoBotonIgnorarTF();
                         UILogic.actualizarUI();
-                        const mensaje = totalRegistros === 1
-                            ? '1 registro eliminado'
-                            : `${totalRegistros} registros eliminados`;
-                        UILogic.mostrarToast(mensaje, 'success');
+                        UILogic.mostrarToast('Perfil restablecido a valores por defecto', 'success');
                         UILogic.cerrarConfig();
                     }
                 }
@@ -4393,7 +4203,7 @@
                     filtroHasta = hasta || null;
                     filtroTipo = tipo || null;
 
-                    guardarYActualizar(false);
+                    guardarYActualizar();
                     UILogic.cerrarFiltros();
 
                     let mensaje = 'Filtro aplicado';
@@ -4418,7 +4228,7 @@
                     $('filtro-fecha-hasta').value = '';
                     $('filtro-tipo').value = '';
 
-                    guardarYActualizar(false);
+                    guardarYActualizar();
                     UILogic.cerrarFiltros();
                     UILogic.mostrarToast('Filtro eliminado', 'info');
                     document.getElementById('btn-filtro').classList.remove('filtro-activo');
@@ -4512,7 +4322,7 @@
                     HistoryManager.saveState(registros);
 
                     //  2: Enviamos el array de IDs a la UI ---
-                    const saved = await guardarYActualizar(true, idsNuevosParaAnimar);
+                    const saved = await guardarYActualizar(idsNuevosParaAnimar);
 
                     if (saved) {
                         const mensaje = nuevosRegistros.length === 1
@@ -4592,7 +4402,6 @@
                     eliminarRegistroActual,
                     editarRegistro,
                     guardarEdicion,
-                    guardarConfig,
                     borrarTodoHistorial,
                     exportarJSON,
                     importarDatos,
@@ -5627,11 +5436,20 @@
                     if (elRegJornada) elRegJornada.textContent = stats.regularidadJornada || '--';
                 }
 
-                let _fondoCard = localStorage.getItem('fondoCard') || 'golden-gate';
+                function _perfilKey(base) {
+                    const pid = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
+                    return base + '_' + pid;
+                }
+
+                let _fondoCard = 'golden-gate'; // se sobreescribe en init desde config
+
+                function setFondoCard(valor) {
+                    _fondoCard = valor;
+                }
 
                 function toggleFondoCard() {
                     _fondoCard = _fondoCard === 'golden-gate' ? 'obelisco' : 'golden-gate';
-                    localStorage.setItem('fondoCard', _fondoCard);
+                    localStorage.setItem(_perfilKey('fondoCard'), _fondoCard);
                     const btn = $('hint-fondo-label');
                     if (btn) btn.textContent = _fondoCard === 'golden-gate' ? 'Golden Gate' : 'Skyline BA';
                     // Redibujar con el último estado conocido
@@ -6306,7 +6124,8 @@
                 }
 
                 function actualizarFeedbackConfig() {
-                    const seleccionados = document.querySelectorAll('input[name="dia-habil"]:checked').length;
+                    const checkboxes = document.querySelectorAll('input[name="dia-habil"]:checked');
+                    const seleccionados = checkboxes.length;
                     const horas = parseFloat($('config-horas-diarias').value) || 0;
                     const total = seleccionados * horas;
 
@@ -6314,6 +6133,17 @@
                     if (el) {
                         if (horas === 0) el.textContent = `(Registro libre sin objetivos)`;
                         else el.textContent = `(Total semanal: ${total}hs)`;
+                    }
+
+                    // Aplicar días laborales inmediatamente si hay al menos uno seleccionado
+                    if (seleccionados > 0) {
+                        const nuevosDias = Array.from(checkboxes).map(cb => parseInt(cb.value)).sort((a, b) => a - b);
+                        D.setDiasHabiles(nuevosDias);
+                        try {
+                            const esDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
+                            if (esDefault) localStorage.setItem('diasHabiles', JSON.stringify(nuevosDias));
+                        } catch (e) { }
+                        D.guardarYActualizar();
                     }
                 }
 
@@ -6348,6 +6178,17 @@
                     if (nuevoValor < 0) nuevoValor = 0;
                     $('config-horas-diarias').value = nuevoValor;
                     actualizarFeedbackConfig();
+                    aplicarHorasDiariasInmediato(nuevoValor);
+                }
+
+                function aplicarHorasDiariasInmediato(valor) {
+                    if (isNaN(valor) || valor < 0 || valor > 24) return;
+                    D.setHorasDiarias(valor);
+                    try {
+                        const esDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
+                        if (esDefault) localStorage.setItem('horasDiarias', valor);
+                    } catch (e) { }
+                    D.guardarYActualizar();
                 }
 
                 function cerrarConfig() {
@@ -6359,7 +6200,7 @@
                 function toggleIgnorarTiempoFuera() {
                     const nuevoValor = !D.getIgnorarTiempoFuera();
                     D.setIgnorarTiempoFuera(nuevoValor);
-                    try { localStorage.setItem('ignorarTiempoFuera', nuevoValor); } catch (e) { }
+                    try { localStorage.setItem(_perfilKey('ignorarTiempoFuera'), nuevoValor); } catch (e) { }
                     actualizarEstadoBotonIgnorarTF();
                     // Recalcular totales en memoria (sin guardar en historial ni perfil)
                     D.recalcularTotalesEnMemoria();
@@ -7234,7 +7075,7 @@ Generado por Sistema Horarios
 
                         // Guardar en base de datos
                         localStorage.removeItem(storageKey);
-                        await D.guardarYActualizar(true, registroHoy.id); // Guardamos y refrescamos UI
+                        await D.guardarYActualizar(registroHoy.id); // Guardamos y refrescamos UI
 
                         const mensaje = minutosTranscurridos === 1
                             ? 'Se descontó 1 minuto al registro de hoy'
@@ -8220,7 +8061,6 @@ Generado por Sistema Horarios
                     // --- EXPORTAR MÓDULOS (Mantener igual) ---
                     window.DataManagement = {
                         agregarRegistro: D.agregarRegistro,
-                        guardarConfig: D.guardarConfig,
                         exportarJSON: D.exportarJSON,
                         mostrarImportar: mostrarImportar,
                         importarDatos: D.importarDatos,
@@ -8261,7 +8101,7 @@ Generado por Sistema Horarios
                         toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                         mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                         iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
-                        togglePeriodoStats, cambiarAnioStats, toggleFondoCard
+                        togglePeriodoStats, cambiarAnioStats, toggleFondoCard, setFondoCard
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -8406,20 +8246,11 @@ Generado por Sistema Horarios
                     D.setVistaActual(config.vistaActual);
                     D.setIgnorarTiempoFuera(config.ignorarTiempoFuera || false);
                     UILogic.actualizarEstadoBotonIgnorarTF();
+                    UILogic.setFondoCard(config.fondoCard || 'golden-gate');
                     if (config.modoEstadisticas === 'anual') UILogic.togglePeriodoStats();
 
                     const perfilActual = PerfilManager.obtenerDatosPerfil();
-                    let diasRaw = perfilActual.diasHabiles;
-                    let diasArraySeguro = [1, 2, 3, 4, 5];
-
-                    if (Array.isArray(diasRaw)) {
-                        diasArraySeguro = diasRaw;
-                    } else if (typeof diasRaw === 'number') {
-                        diasArraySeguro = [];
-                        for (let i = 1; i <= diasRaw; i++) diasArraySeguro.push(i);
-                        if (diasRaw === 7) diasArraySeguro.push(0);
-                    }
-
+                    const diasArraySeguro = Array.isArray(perfilActual.diasHabiles) ? perfilActual.diasHabiles : [1, 2, 3, 4, 5];
                     D.setDiasHabiles(diasArraySeguro);
                     D.setHorasDiarias(perfilActual.horasDiarias !== undefined ? perfilActual.horasDiarias : 7);
 
@@ -9137,7 +8968,7 @@ Generado por Sistema Horarios
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
-                    togglePeriodoStats, cambiarAnioStats, toggleFondoCard
+                    togglePeriodoStats, cambiarAnioStats, toggleFondoCard, setFondoCard
                 };
 
             })(SecurityAndUtils, DataManagement);
@@ -9170,7 +9001,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.46
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.49
     // ====================================================================
     
      - CAMBIOS:
