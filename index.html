@@ -387,10 +387,9 @@
 
         .stats-card {
             cursor: pointer;
-            transition: transform 0.15s ease-out, opacity 0.15s ease-out, box-shadow 0.3s !important;
             border: 1px solid transparent;
             border-left: 4px solid transparent;
-            transition: all 0.3s ease;
+            transition: transform 0.15s ease-out, opacity 0.15s ease-out, box-shadow 0.3s, border-color 0.3s;
             min-height: 14rem;
         }
 
@@ -559,9 +558,9 @@
             z-index: 100;
             align-items: center;
             justify-content: center;
-            padding: 1rem;
+            padding: 0.25rem;
             backdrop-filter: blur(10px);
-            transition: all 0.3s;
+            transition: opacity 0.3s, visibility 0.3s;
         }
 
         .modal.show {
@@ -627,7 +626,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             opacity: 0;
             transform: translateX(100px);
-            transition: all 0.3s;
+            transition: opacity 0.3s, transform 0.3s;
             z-index: 1000;
             display: flex;
             align-items: center;
@@ -797,7 +796,6 @@
         .form-collapsible.expanded {
             max-height: 700px;
             opacity: 1;
-            transition: all 0.3s;
         }
 
         /* Animación al crear y eliminar registro */
@@ -893,7 +891,7 @@
             align-items: center;
             gap: 0.5rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: border-color 0.2s;
             width: auto;
             max-width: 160px;
         }
@@ -929,7 +927,7 @@
             justify-content: space-between;
             align-items: center;
             gap: 0.5rem;
-            transition: all 0.2s;
+            transition: border-color 0.2s, background 0.2s;
         }
 
         .btn-perfil-select.activo {
@@ -969,7 +967,7 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: all 0.2s;
+            transition: border-color 0.2s;
         }
 
         .btn-perfil-edit .icon {
@@ -1039,7 +1037,7 @@
             font-size: 0.85rem;
             font-weight: 600;
             color: var(--text-muted);
-            transition: all 0.2s;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.2s;
         }
 
         .day-checkbox input:checked~span {
@@ -1730,14 +1728,14 @@
                 <div class="form-group">
                     <label>Fondo</label>
                     <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()"
-                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: all 0.2s;">
+                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: background 0.2s, color 0.2s, border-color 0.2s;">
                         <span id="hint-fondo-label">Golden Gate</span>
                     </button>
                 </div>
                 <div class="form-group">
                     <label>Tiempo Fuera</label>
                     <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()"
-                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: all 0.2s;">
+                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: background 0.2s, color 0.2s, border-color 0.2s;">
                         <span>Ignorar calculo de Tiempo Fuera</span>
                         <span id="hint-ignorar-tf" style="font-size:0.9rem;">No</span>
                     </button>
@@ -9176,7 +9174,7 @@ Generado por Sistema Horarios
     // ====================================================================
     
      - CAMBIOS:
-    1) Se 
+    1) 
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
