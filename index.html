@@ -152,7 +152,7 @@
 
         .custom-scroll::-webkit-scrollbar,
         .perfil-list-container::-webkit-scrollbar {
-            width: 8px;
+            width: 4px;
         }
 
         .custom-scroll::-webkit-scrollbar-track,
@@ -573,6 +573,41 @@
         .modal-content {
             max-width: 450px;
             width: 100%;
+        }
+
+        /* Modal config scrollable con header y footer sticky */
+        #modal-config .modal-content {
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        #modal-config .modal-config-header {
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 2;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0.5rem;
+        }
+
+        #modal-config .modal-config-body {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        #modal-config .modal-config-footer {
+            flex-shrink: 0;
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-card);
+            z-index: 2;
+            border-top: 1px solid var(--border);
+            margin-top: 0.5rem;
         }
 
         .modal-title-block {
@@ -1050,6 +1085,10 @@
             gap: 0.25rem;
             flex-shrink: 0;
             justify-content: center;
+        }
+
+        .stat-value {
+            color: var(--text-muted)
         }
 
         /* moviles */
@@ -1629,116 +1668,121 @@
     </div>
     <div class="modal" id="modal-config">
         <div class="modal-content">
-            <h3>
-                <span class="modal-title-block">
-                    <svg class="icon">
-                        <use href="#icon-settings" />
-                    </svg>
-                    Ajustes
-                </span>
-                <span class="version-text">LUSHIBOSCA-7.42</span>
-            </h3>
-            <div class="form-group">
-                <label>Horas Diarias</label>
-                <div class="input-number-group">
-                    <input type="number" id="config-horas-diarias" min="0" max="24" step="0.5" readonly />
-                    <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(0.5)"
-                        onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
-                        ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(0.5)"
-                        ontouchend="event.preventDefault(); UILogic.detenerCambio()">+</button>
-                    <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(-0.5)"
-                        onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
-                        ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(-0.5)"
-                        ontouchend="event.preventDefault(); UILogic.detenerCambio()">−</button>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Días Laborales</label>
-                <div class="week-selector">
-                    <label class="day-checkbox">
-                        <input type="checkbox" name="dia-habil" value="1">
-                        <span>Lu</span>
-                    </label>
-                    <label class="day-checkbox">
-                        <input type="checkbox" name="dia-habil" value="2">
-                        <span>Ma</span>
-                    </label>
-                    <label class="day-checkbox">
-                        <input type="checkbox" name="dia-habil" value="3">
-                        <span>Mi</span>
-                    </label>
-                    <label class="day-checkbox">
-                        <input type="checkbox" name="dia-habil" value="4">
-                        <span>Ju</span>
-                    </label>
-                    <label class="day-checkbox">
-                        <input type="checkbox" name="dia-habil" value="5">
-                        <span>Vi</span>
-                    </label>
-                    <label class="day-checkbox">
-                        <input type="checkbox" name="dia-habil" value="6">
-                        <span>Sa</span>
-                    </label>
-                    <label class="day-checkbox">
-                        <input type="checkbox" name="dia-habil" value="0"> <span>Do</span>
-                    </label>
-                </div>
-                <div id="config-total-feedback" class="config-hint-text">(Total semanal: --hs)</div>
-            </div>
-            <div class="form-group">
-                <label>Tiempo Fuera</label>
-                <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()"
-                    style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: all 0.2s;">
-                    <span>Ignorar calculo de Tiempo Fuera</span>
-                    <span id="hint-ignorar-tf" style="font-size:0.9rem;">No</span>
-                </button>
-            </div>
-            <div class="form-group">
-                <label>Agregar Nuevo Perfil</label>
-                <div class="input-with-btn">
-                    <input type="text" id="nombre-nuevo-perfil-selector" placeholder="Nombre del perfil..."
-                        maxlength="30" />
-                    <button class="time-btn" onclick="UILogic.crearPerfilDesdeSelector()" title="Crear perfil">
+            <div class="modal-config-header">
+                <h3 style="margin-bottom:0">
+                    <span class="modal-title-block">
                         <svg class="icon">
-                            <use href="#icon-plus" />
+                            <use href="#icon-settings" />
                         </svg>
+                        Ajustes
+                    </span>
+                    <span class="version-text">LUSHIBOSCA-7.44</span>
+                </h3>
+            </div>
+            <div class="modal-config-body custom-scroll">
+                <div class="form-group">
+                    <label>Horas Diarias</label>
+                    <div class="input-number-group">
+                        <input type="number" id="config-horas-diarias" min="0" max="24" step="0.5" readonly />
+                        <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(0.5)"
+                            onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
+                            ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(0.5)"
+                            ontouchend="event.preventDefault(); UILogic.detenerCambio()">+</button>
+                        <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(-0.5)"
+                            onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
+                            ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(-0.5)"
+                            ontouchend="event.preventDefault(); UILogic.detenerCambio()">−</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Días Laborales</label>
+                    <div class="week-selector">
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="dia-habil" value="1">
+                            <span>Lu</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="dia-habil" value="2">
+                            <span>Ma</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="dia-habil" value="3">
+                            <span>Mi</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="dia-habil" value="4">
+                            <span>Ju</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="dia-habil" value="5">
+                            <span>Vi</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="dia-habil" value="6">
+                            <span>Sa</span>
+                        </label>
+                        <label class="day-checkbox">
+                            <input type="checkbox" name="dia-habil" value="0"> <span>Do</span>
+                        </label>
+                    </div>
+                    <div id="config-total-feedback" class="config-hint-text">(Total semanal: --hs)</div>
+                </div>
+                <div class="form-group">
+                    <label>Tiempo Fuera</label>
+                    <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()"
+                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: all 0.2s;">
+                        <span>Ignorar calculo de Tiempo Fuera</span>
+                        <span id="hint-ignorar-tf" style="font-size:0.9rem;">No</span>
                     </button>
                 </div>
-            </div>
-            <div class="config-actions">
-                <label>Registros</label>
-                <button class="btn-backup" onclick="UILogic.mostrarImportar()">
-                    <svg class="icon">
-                        <use href="#icon-upload" />
-                    </svg>
-                    Restaurar
-                </button>
-                <button class="btn-export" onclick="UILogic.mostrarExportar()">
-                    <svg class="icon">
-                        <use href="#icon-download" />
-                    </svg>
-                    Respaldar
-                </button>
-                <button class="btn-delete" onclick="DataManagement.borrarTodoHistorial()">
-                    <svg class="icon">
-                        <use href="#icon-trash" />
-                    </svg>
-                    Borrar Todo
-                </button>
-            </div>
-            <div class="btn-group" style="margin-top: 1.5rem;">
-                <button class="btn-edit" onclick="DataManagement.guardarConfig()">
-                    <svg class="icon">
-                        <use href="#icon-save" />
-                    </svg> Guardar
-                </button>
-
-                <button class="btn-delete" onclick="UILogic.cerrarConfig()">
-                    <svg class="icon">
-                        <use href="#icon-undo" />
-                    </svg> Volver
-                </button>
-            </div>
+                <div class="form-group">
+                    <label>Agregar Nuevo Perfil</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="nombre-nuevo-perfil-selector" placeholder="Nombre del perfil..."
+                            maxlength="30" />
+                        <button class="time-btn" onclick="UILogic.crearPerfilDesdeSelector()" title="Crear perfil">
+                            <svg class="icon">
+                                <use href="#icon-plus" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="config-actions">
+                    <label>Registros</label>
+                    <button class="btn-backup" onclick="UILogic.mostrarImportar()">
+                        <svg class="icon">
+                            <use href="#icon-upload" />
+                        </svg>
+                        Restaurar
+                    </button>
+                    <button class="btn-export" onclick="UILogic.mostrarExportar()">
+                        <svg class="icon">
+                            <use href="#icon-download" />
+                        </svg>
+                        Respaldar
+                    </button>
+                    <button class="btn-delete" onclick="DataManagement.borrarTodoHistorial()">
+                        <svg class="icon">
+                            <use href="#icon-trash" />
+                        </svg>
+                        Borrar Todo
+                    </button>
+                </div>
+            </div><!-- /modal-config-body -->
+            <div class="modal-config-footer">
+                <div class="btn-group">
+                    <button class="btn-edit" onclick="DataManagement.guardarConfig()">
+                        <svg class="icon">
+                            <use href="#icon-save" />
+                        </svg> Guardar
+                    </button>
+                    <button class="btn-delete" onclick="UILogic.cerrarConfig()">
+                        <svg class="icon">
+                            <use href="#icon-undo" />
+                        </svg> Volver
+                    </button>
+                </div>
+            </div><!-- /modal-config-footer -->
         </div>
     </div>
 
@@ -9075,7 +9119,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.42
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.44
     // ====================================================================
     
      - CAMBIOS:
