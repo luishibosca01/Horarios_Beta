@@ -5510,7 +5510,8 @@
                         esperando: 'rgba(140,150,170,0.07)',
                         en_curso: 'rgba(76,114,172,0.12)',
                         finalizado_ok: 'rgba(76,172,140,0.12)',
-                        finalizado_fail: 'rgba(200,80,80,0.12)'
+                        finalizado_fail: 'rgba(200,80,80,0.12)',
+                        especial: 'rgba(140,80,200,0.12)'
                     };
 
                     const color = colores[estado] || colores.esperando;
@@ -5812,6 +5813,7 @@
                                     card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-transparent');
                                     card.classList.add('border-purple');
                                 }
+                                actualizarFondoCard('especial');
                             } else {
                                 // --- DÍA NORMAL CON REGISTRO ---
                                 if (regHoy.salida) {
@@ -9021,14 +9023,5 @@ Generado por Sistema Horarios
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
      y tocar el timer, al rehacer la accion, el timer sigue corriendo
-     2) al borrar un lote el boton detecta muy rapido los cambios produciendo un cambio
-     repentino del estado en la etiqueta pasando de por ejemplo borrar - sin registros - registrar,
-     el flujo correcto seria borrar - registrar luego de ejecutar la accion
-     3) pulsar deliberadamente undo y redo de forma reiterada mas de 20 veces aproximadamente,
-     la interfaz deja de mostrar los cambios hasta que se actualiza la pagina
      
-     - IDEAS DESCARTADAS/REVISION:
-     1) 
-     
-
     -->
