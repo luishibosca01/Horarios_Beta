@@ -1890,7 +1890,7 @@
                         </svg>
                         Volver
                     </button>
-                    
+
                 </div>
             </div>
         </div>
@@ -4730,15 +4730,16 @@
                 function yaSubioHoy() {
                     const fecha = getAutoSyncFecha();
                     if (!fecha) return false;
-                    const hoy = new Date();
-                    const hoyCadena = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
-                    return fecha === hoyCadena;
+                    const ahora = new Date();
+                    // Formato guardado: "YYYY-MM-DD HH"
+                    const claveActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')} ${String(ahora.getHours()).padStart(2, '0')}`;
+                    return fecha === claveActual;
                 }
 
                 function marcarSubidaHoy() {
-                    const hoy = new Date();
-                    const hoyCadena = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
-                    setAutoSyncFecha(hoyCadena);
+                    const ahora = new Date();
+                    const claveActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')} ${String(ahora.getHours()).padStart(2, '0')}`;
+                    setAutoSyncFecha(claveActual);
                 }
 
                 function saveCredentials(token, gistId) {
