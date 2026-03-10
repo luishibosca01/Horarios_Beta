@@ -1694,7 +1694,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.56</span>
+                    <span class="version-text">LUSHIBOSCA-7.57</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -8400,8 +8400,14 @@ Generado por Sistema Horarios
                         const gistIdInput = document.getElementById('gist-id');
                         const lastSyncEl = document.getElementById('gist-ultima-sync');
 
-                        if (tokenInput) tokenInput.value = GistSync.getToken();
-                        if (gistIdInput) gistIdInput.value = GistSync.getGistId();
+                        if (tokenInput) {
+                            tokenInput.value = GistSync.getToken();
+                            tokenInput.oninput = () => GistSync.saveCredentials(tokenInput.value.trim(), gistIdInput?.value.trim() || '');
+                        }
+                        if (gistIdInput) {
+                            gistIdInput.value = GistSync.getGistId();
+                            gistIdInput.oninput = () => GistSync.saveCredentials(tokenInput?.value.trim() || '', gistIdInput.value.trim());
+                        }
                         if (lastSyncEl) {
                             const last = GistSync.getLastSync();
                             lastSyncEl.textContent = last ? `Última sync: ${last}` : 'Sin sincronizaciones previas';
@@ -8446,7 +8452,7 @@ Generado por Sistema Horarios
                         const gistIdAnterior = GistSync.getGistId();
                         const huboCambios = token !== tokenAnterior || gistId !== gistIdAnterior;
 
-                        GistSync.saveCredentials(token, gistId);
+                        // credenciales ya guardadas por listener input
 
                         if (huboCambios) mostrarToast('Credenciales actualizadas', 'success');
 
@@ -9522,7 +9528,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.56
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.57
     // ====================================================================
     
      - CAMBIOS:
