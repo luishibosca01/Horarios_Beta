@@ -1653,12 +1653,14 @@
                                     <use href="#icon-filter" />
                                 </svg>
                             </button>
-                            <button class="filter-btn" id="btn-hist-restaurar" onclick="UILogic.mostrarImportar(true)" title="Restaurar">
+                            <button class="filter-btn" id="btn-hist-restaurar" onclick="UILogic.mostrarImportar(true)"
+                                title="Restaurar">
                                 <svg class="icon">
                                     <use href="#icon-upload" />
                                 </svg>
                             </button>
-                            <button class="filter-btn" id="btn-hist-respaldar" onclick="UILogic.mostrarExportar(true)" title="Respaldar">
+                            <button class="filter-btn" id="btn-hist-respaldar" onclick="UILogic.mostrarExportar(true)"
+                                title="Respaldar">
                                 <svg class="icon">
                                     <use href="#icon-download" />
                                 </svg>
@@ -1861,7 +1863,7 @@
                         </svg> Bajar
                     </button>
                 </div>
-                
+
                 <div id="gist-status"
                     style="font-size:0.85rem; color:var(--text-muted); padding: 0.5rem 0; min-height: 2rem;"></div>
             </div>
@@ -4660,7 +4662,7 @@
                 function saveCredentials(token, gistId) {
                     try {
                         // Token: global
-                        if (token) localStorage.setItem(KEY_TOKEN, token.trim());
+                        if (token) localStorage.setItem(KEY_TOKEN, S.sanitizeString(token.trim()));
                         // Gist ID: en el perfil activo — guardarPerfiles() directamente
                         // para no depender de window.DataManagement (que puede no existir aún)
                         if (window.PerfilManager) {
@@ -8439,7 +8441,15 @@ Generado por Sistema Horarios
                     function cerrarModalGist() {
                         const token = document.getElementById('gist-token')?.value.trim();
                         const gistId = document.getElementById('gist-id')?.value.trim();
+
+                        const tokenAnterior = GistSync.getToken();
+                        const gistIdAnterior = GistSync.getGistId();
+                        const huboCambios = token !== tokenAnterior || gistId !== gistIdAnterior;
+
                         GistSync.saveCredentials(token, gistId);
+
+                        if (huboCambios) mostrarToast('Credenciales actualizadas', 'success');
+
                         ModalManager.cerrar('modal-gist');
                         if (_gistModalPadre) ModalManager.abrir(_gistModalPadre);
                         _gistModalPadre = null;
@@ -8496,7 +8506,7 @@ Generado por Sistema Horarios
                             el.textContent = msg;
                             el.style.color = tipo === 'error' ? 'var(--error, #e74c3c)'
                                 : tipo === 'ok' ? 'var(--success, #2ecc71)'
-                                : 'var(--text-muted)';
+                                    : 'var(--text-muted)';
                         }
                     }
 
@@ -8560,9 +8570,12 @@ Generado por Sistema Horarios
                             gistSetStatus('');
 
                             // Aplicar datos
-                            D.registros().splice(0, D.registros().length, ...data.registros);
+                            D.registros().splice(0, D.registros().length, ...data.registros.filter(r => S.validarRegistroSeguro(r)));
                             if (Array.isArray(data.diasHabiles)) D.setDiasHabiles(data.diasHabiles);
-                            if (data.horasDiarias) D.setHorasDiarias(data.horasDiarias);
+                            if (data.horasDiarias != null) {
+                                const hd = parseFloat(data.horasDiarias);
+                                if (!isNaN(hd) && hd >= 0 && hd <= 24) D.setHorasDiarias(hd);
+                            }
 
                             // Ordenar e integrar con HistoryManager igual que importarDatos
                             D.registros().sort((a, b) => {
