@@ -1343,6 +1343,10 @@
             <polyline points="8 17 12 21 16 17" />
             <line x1="12" y1="12" x2="12" y2="21" />
         </symbol>
+        <symbol id="icon-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+        </symbol>
         <symbol id="icon-exit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -1688,7 +1692,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.55</span>
+                    <span class="version-text">LUSHIBOSCA-7.56</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1758,7 +1762,7 @@
                     <label>Sincronización</label>
                     <button class="btn-edit" onclick="UILogic.abrirModalGist()">
                         <svg class="icon">
-                            <use href="#icon-cloud-upload" />
+                            <use href="#icon-cloud" />
                         </svg>
                         GitHub Gist
                     </button>
@@ -1803,7 +1807,7 @@
                 <h3 style="margin-bottom:1rem">
                     <span class="modal-title-block">
                         <svg class="icon">
-                            <use href="#icon-cloud-upload" />
+                            <use href="#icon-cloud" />
                         </svg>
                         GitHub Gist
                     </span>
@@ -1847,6 +1851,14 @@
                         <svg class="icon">
                             <use href="#icon-cloud-download" />
                         </svg> Bajar
+                    </button>
+                </div>
+                <div class="config-actions" style="margin-top:0.5rem">
+                    <label>Este dispositivo</label>
+                    <button id="btn-toggle-gist-backup" onclick="UILogic.toggleGistBackup()"
+                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: background 0.2s, color 0.2s, border-color 0.2s;">
+                        <span>Dispositivo de respaldo</span>
+                        <span id="hint-gist-backup" style="font-size:0.9rem;">No</span>
                     </button>
                 </div>
                 <div id="gist-status"
@@ -2533,7 +2545,8 @@
                         horasDiarias: window.DataManagement.horasDiarias(),
                         // Preservar datos de Gist si existen
                         ...(actual.gistId && { gistId: actual.gistId }),
-                        ...(actual.gistLastSync && { gistLastSync: actual.gistLastSync })
+                        ...(actual.gistLastSync && { gistLastSync: actual.gistLastSync }),
+                        ...(actual.gistAutoSync && { gistAutoSync: actual.gistAutoSync })
                     };
                     guardarPerfiles();
                 }
@@ -3880,6 +3893,7 @@
                         if (perfil) {
                             delete perfil.gistId;
                             delete perfil.gistLastSync;
+                            delete perfil.gistAutoSync;
                         }
                     }
 
@@ -4600,11 +4614,6 @@
             })(SecurityAndUtils);
 
             // ====================================================================
-            // UI LOGIC MODULE
-            // ====================================================================
-
-
-            // ====================================================================
             //                     MÓDULO GIST SYNC
             // ====================================================================
             const GistSync = (function (S) {
@@ -4630,6 +4639,21 @@
                 function getLastSync() {
                     const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
                     return perfil?.gistLastSync || null;
+                }
+
+                function getAutoSync() {
+                    const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
+                    return perfil?.gistAutoSync === true;
+                }
+
+                function setAutoSync(valor) {
+                    if (window.PerfilManager) {
+                        const perfil = PerfilManager.obtenerDatosPerfil();
+                        if (perfil) {
+                            perfil.gistAutoSync = valor;
+                            PerfilManager.guardarPerfiles();
+                        }
+                    }
                 }
 
                 function saveCredentials(token, gistId) {
@@ -4753,7 +4777,7 @@
                     return data;
                 }
 
-                return { getToken, getGistId, getLastSync, saveCredentials, esGistIdValido, subir, bajar };
+                return { getToken, getGistId, getLastSync, getAutoSync, setAutoSync, saveCredentials, esGistIdValido, subir, bajar };
 
             })(SecurityAndUtils);
 
@@ -8362,8 +8386,13 @@ Generado por Sistema Horarios
                     window.PWAInstaller = { instalarApp: PWAInstaller.instalarApp };
                     window.PerfilManager = PerfilManager;
 
+                    let _gistModalPadre = null;
+
                     function abrirModalGist() {
-                        // Poblar campos con valores guardados
+                        // Recordar qué modal está abierto para volver al cerrar
+                        const modalAbierto = document.querySelector('.modal.show');
+                        _gistModalPadre = modalAbierto ? modalAbierto.id : null;
+
                         const tokenInput = document.getElementById('gist-token');
                         const gistIdInput = document.getElementById('gist-id');
                         const lastSyncEl = document.getElementById('gist-ultima-sync');
@@ -8375,6 +8404,8 @@ Generado por Sistema Horarios
                             lastSyncEl.textContent = last ? `Última sync: ${last}` : 'Sin sincronizaciones previas';
                         }
                         gistSetStatus('');
+                        actualizarBotonGistBackup();
+                        ModalManager.cerrarTodos();
                         ModalManager.abrir('modal-gist');
                     }
 
@@ -8405,12 +8436,31 @@ Generado por Sistema Horarios
                     }
 
                     function cerrarModalGist() {
-                        // Guardar token y gist ID al cerrar
                         const token = document.getElementById('gist-token')?.value.trim();
                         const gistId = document.getElementById('gist-id')?.value.trim();
                         GistSync.saveCredentials(token, gistId);
                         ModalManager.cerrar('modal-gist');
+                        if (_gistModalPadre) ModalManager.abrir(_gistModalPadre);
+                        _gistModalPadre = null;
                         actualizarBotonesHistorico();
+                    }
+
+                    function toggleGistBackup() {
+                        const nuevo = !GistSync.getAutoSync();
+                        GistSync.setAutoSync(nuevo);
+                        actualizarBotonGistBackup();
+                        mostrarToast(nuevo ? 'Respaldo automático activado' : 'Respaldo automático desactivado', 'info');
+                    }
+
+                    function actualizarBotonGistBackup() {
+                        const btn = document.getElementById('btn-toggle-gist-backup');
+                        const hint = document.getElementById('hint-gist-backup');
+                        const activo = GistSync.getAutoSync();
+                        if (hint) hint.textContent = activo ? 'Sí' : 'No';
+                        if (btn) {
+                            btn.style.borderColor = activo ? 'var(--accent)' : 'var(--border)';
+                            btn.style.color = activo ? 'var(--accent)' : 'var(--text-muted)';
+                        }
                     }
 
                     function toggleVerToken() {
@@ -8429,22 +8479,30 @@ Generado por Sistema Horarios
                     }
 
                     function gistSetStatus(msg, tipo = '') {
+                        const modal = document.getElementById('modal-gist');
+                        const modalAbierto = modal?.classList.contains('show');
                         const el = document.getElementById('gist-status');
-                        if (!el) return;
-                        el.textContent = msg;
-                        el.style.color = tipo === 'error' ? 'var(--error, #e74c3c)'
-                            : tipo === 'ok' ? 'var(--success, #2ecc71)'
+                        if (el && modalAbierto) {
+                            el.textContent = msg;
+                            el.style.color = tipo === 'error' ? 'var(--error, #e74c3c)'
+                                : tipo === 'ok' ? 'var(--success, #2ecc71)'
                                 : 'var(--text-muted)';
+                        }
                     }
 
                     async function gistSubir() {
-                        const token = document.getElementById('gist-token')?.value.trim();
-                        const gistId = document.getElementById('gist-id')?.value.trim();
-                        GistSync.saveCredentials(token, gistId);
+                        // Leer desde DOM solo si el modal está abierto, si no usar GistSync directamente
+                        const tokenInput = document.getElementById('gist-token');
+                        const gistIdInput = document.getElementById('gist-id');
+                        const modalAbierto = document.getElementById('modal-gist')?.classList.contains('show');
+                        if (modalAbierto) {
+                            GistSync.saveCredentials(tokenInput?.value.trim() || '', gistIdInput?.value.trim() || '');
+                        }
 
                         const btn = document.getElementById('btn-gist-subir');
                         if (btn) btn.disabled = true;
                         gistSetStatus('Subiendo...');
+                        mostrarToast('Sincronizando...', 'info');
 
                         try {
                             const nuevoId = await GistSync.subir(
@@ -8459,7 +8517,7 @@ Generado por Sistema Horarios
                             const lastSyncEl = document.getElementById('gist-ultima-sync');
                             if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.getLastSync()}`;
                             gistSetStatus(`✓ Subido correctamente (${D.registros().length} registros)`, 'ok');
-                            mostrarToast('Sincronización exitosa', 'success');
+                            mostrarToast('Datos respaldados en Gist', 'success');
                         } catch (e) {
                             console.error('Gist subir error:', e);
                             gistSetStatus(`Error: ${e.message}`, 'error');
@@ -8470,13 +8528,17 @@ Generado por Sistema Horarios
                     }
 
                     async function gistBajar() {
-                        const token = document.getElementById('gist-token')?.value.trim();
-                        const gistId = document.getElementById('gist-id')?.value.trim();
-                        GistSync.saveCredentials(token, gistId);
+                        const tokenInput = document.getElementById('gist-token');
+                        const gistIdInput = document.getElementById('gist-id');
+                        const modalAbierto = document.getElementById('modal-gist')?.classList.contains('show');
+                        if (modalAbierto) {
+                            GistSync.saveCredentials(tokenInput?.value.trim() || '', gistIdInput?.value.trim() || '');
+                        }
 
                         const btn = document.getElementById('btn-gist-bajar');
                         if (btn) btn.disabled = true;
                         gistSetStatus('Bajando...');
+                        mostrarToast('Sincronizando...', 'info');
 
                         try {
                             const data = await GistSync.bajar();
@@ -8505,7 +8567,7 @@ Generado por Sistema Horarios
                             const lastSyncEl = document.getElementById('gist-ultima-sync');
                             if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.getLastSync()}`;
                             gistSetStatus(`✓ ${data.registros.length} registros importados`, 'ok');
-                            mostrarToast('Datos actualizados desde Gist', 'success');
+                            mostrarToast('Datos Restaurados desde Gist', 'success');
                         } catch (e) {
                             console.error('Gist bajar error:', e);
                             gistSetStatus(`Error: ${e.message}`, 'error');
@@ -8529,7 +8591,7 @@ Generado por Sistema Horarios
                         mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                         iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                         togglePeriodoStats, cambiarAnioStats, toggleFondoCard, setFondoCard,
-                        abrirModalGist, cerrarModalGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar, actualizarBotonesHistorico
+                        abrirModalGist, cerrarModalGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar, actualizarBotonesHistorico, toggleGistBackup
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -8771,6 +8833,12 @@ Generado por Sistema Horarios
 
                     actualizarUI();
                     actualizarBotonesHistorico();
+
+                    // Auto-sync: si este dispositivo es de respaldo, bajar Gist al cargar
+                    if (GistSync.getAutoSync() && GistSync.getToken() && GistSync.esGistIdValido(GistSync.getGistId())) {
+                        gistBajar();
+                    }
+
                     setInterval(() => actualizarUI(null, true), 60000);
                     console.log('Sistema iniciado correctamente');
 
@@ -9431,7 +9499,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.55
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.56
     // ====================================================================
     
      - CAMBIOS:
