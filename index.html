@@ -1694,7 +1694,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.57</span>
+                    <span class="version-text">LUSHIBOSCA-7.58</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1843,12 +1843,21 @@
                     <div class="config-hint-text" id="gist-ultima-sync">Sin sincronizaciones previas</div>
                 </div>
                 <div class="form-group" style="margin-top:0.5rem">
-                    <label>Este dispositivo</label>
+                    <label>Automatización</label>
                     <button id="btn-toggle-gist-backup" onclick="UILogic.toggleGistBackup()"
                         style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: background 0.2s, color 0.2s, border-color 0.2s;">
-                        <span>Restaurar al inicio</span>
-                        <span id="hint-gist-backup" style="font-size:0.9rem;">No</span>
+                        <span id="label-gist-backup">Sin automatizar</span>
+                        <span id="hint-gist-backup" style="font-size:0.9rem;">—</span>
                     </button>
+                    <div id="gist-rango-horario"
+                        style="display:none; margin-top:0.5rem; gap:0.5rem; align-items:center;">
+                        <span style="font-size:0.85rem; color:var(--text-muted)">Subir entre</span>
+                        <input type="time" id="gist-rango-desde"
+                            style="width:7rem; padding:0.3rem 0.5rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-input,var(--bg2)); color:var(--text-main); font-size:0.9rem;" />
+                        <span style="font-size:0.85rem; color:var(--text-muted)">y</span>
+                        <input type="time" id="gist-rango-hasta"
+                            style="width:7rem; padding:0.3rem 0.5rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-input,var(--bg2)); color:var(--text-main); font-size:0.9rem;" />
+                    </div>
                 </div>
                 <div class="config-actions">
                     <label>Acciones</label>
@@ -1869,12 +1878,19 @@
             </div>
             <div class="modal-config-footer">
                 <div class="btn-group">
+                    <button class="btn-export" onclick="UILogic.guardarConfigGist()">
+                        <svg class="icon">
+                            <use href="#icon-save" />
+                        </svg>
+                        Guardar
+                    </button>
                     <button class="btn-delete" onclick="UILogic.cerrarModalGist()">
                         <svg class="icon">
                             <use href="#icon-undo" />
                         </svg>
                         Volver
                     </button>
+                    
                 </div>
             </div>
         </div>
@@ -2549,7 +2565,10 @@
                         // Preservar datos de Gist si existen
                         ...(actual.gistId && { gistId: actual.gistId }),
                         ...(actual.gistLastSync && { gistLastSync: actual.gistLastSync }),
-                        ...(actual.gistAutoSync && { gistAutoSync: actual.gistAutoSync })
+                        ...(actual.gistAutoSync != null && { gistAutoSync: actual.gistAutoSync }),
+                        ...(actual.gistRangoDesde && { gistRangoDesde: actual.gistRangoDesde }),
+                        ...(actual.gistRangoHasta && { gistRangoHasta: actual.gistRangoHasta }),
+                        ...(actual.gistAutoSyncFecha && { gistAutoSyncFecha: actual.gistAutoSyncFecha })
                     };
                     guardarPerfiles();
                 }
@@ -3897,6 +3916,9 @@
                             delete perfil.gistId;
                             delete perfil.gistLastSync;
                             delete perfil.gistAutoSync;
+                            delete perfil.gistRangoDesde;
+                            delete perfil.gistRangoHasta;
+                            delete perfil.gistAutoSyncFecha;
                         }
                     }
 
@@ -4644,9 +4666,14 @@
                     return perfil?.gistLastSync || null;
                 }
 
+                // 0 = sin automatizar, 1 = restaurar al inicio, 2 = respaldo automático
                 function getAutoSync() {
                     const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
-                    return perfil?.gistAutoSync === true;
+                    const val = perfil?.gistAutoSync;
+                    if (val === 1 || val === 2) return val;
+                    // Migración: si era true (estado anterior), mapear a 1
+                    if (val === true) return 1;
+                    return 0;
                 }
 
                 function setAutoSync(valor) {
@@ -4657,6 +4684,61 @@
                             PerfilManager.guardarPerfiles();
                         }
                     }
+                }
+
+                function getRangoHorario() {
+                    const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
+                    return {
+                        desde: perfil?.gistRangoDesde || '16:00',
+                        hasta: perfil?.gistRangoHasta || '22:00'
+                    };
+                }
+
+                function setRangoHorario(desde, hasta) {
+                    if (window.PerfilManager) {
+                        const perfil = PerfilManager.obtenerDatosPerfil();
+                        if (perfil) {
+                            perfil.gistRangoDesde = desde;
+                            perfil.gistRangoHasta = hasta;
+                            PerfilManager.guardarPerfiles();
+                        }
+                    }
+                }
+
+                function getAutoSyncFecha() {
+                    const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
+                    return perfil?.gistAutoSyncFecha || null;
+                }
+
+                function setAutoSyncFecha(fecha) {
+                    if (window.PerfilManager) {
+                        const perfil = PerfilManager.obtenerDatosPerfil();
+                        if (perfil) {
+                            perfil.gistAutoSyncFecha = fecha;
+                            PerfilManager.guardarPerfiles();
+                        }
+                    }
+                }
+
+                function dentroDelRangoHorario() {
+                    const { desde, hasta } = getRangoHorario();
+                    const ahora = new Date();
+                    const horaActual = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+                    return horaActual >= desde && horaActual <= hasta;
+                }
+
+                function yaSubioHoy() {
+                    const fecha = getAutoSyncFecha();
+                    if (!fecha) return false;
+                    const hoy = new Date();
+                    const hoyCadena = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+                    return fecha === hoyCadena;
+                }
+
+                function marcarSubidaHoy() {
+                    const hoy = new Date();
+                    const hoyCadena = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+                    setAutoSyncFecha(hoyCadena);
                 }
 
                 function saveCredentials(token, gistId) {
@@ -4780,7 +4862,7 @@
                     return data;
                 }
 
-                return { getToken, getGistId, getLastSync, getAutoSync, setAutoSync, saveCredentials, esGistIdValido, subir, bajar };
+                return { getToken, getGistId, getLastSync, getAutoSync, setAutoSync, getRangoHorario, setRangoHorario, yaSubioHoy, marcarSubidaHoy, dentroDelRangoHorario, saveCredentials, esGistIdValido, subir, bajar };
 
             })(SecurityAndUtils);
 
@@ -8390,6 +8472,7 @@ Generado por Sistema Horarios
                     window.PerfilManager = PerfilManager;
 
                     let _gistModalPadre = null;
+                    let _gistAutoSyncTemp = null;
 
                     function abrirModalGist() {
                         // Recordar qué modal está abierto para volver al cerrar
@@ -8400,18 +8483,21 @@ Generado por Sistema Horarios
                         const gistIdInput = document.getElementById('gist-id');
                         const lastSyncEl = document.getElementById('gist-ultima-sync');
 
-                        if (tokenInput) {
-                            tokenInput.value = GistSync.getToken();
-                            tokenInput.oninput = () => GistSync.saveCredentials(tokenInput.value.trim(), gistIdInput?.value.trim() || '');
-                        }
-                        if (gistIdInput) {
-                            gistIdInput.value = GistSync.getGistId();
-                            gistIdInput.oninput = () => GistSync.saveCredentials(tokenInput?.value.trim() || '', gistIdInput.value.trim());
-                        }
+                        if (tokenInput) tokenInput.value = GistSync.getToken();
+                        if (gistIdInput) gistIdInput.value = GistSync.getGistId();
                         if (lastSyncEl) {
                             const last = GistSync.getLastSync();
                             lastSyncEl.textContent = last ? `Última sync: ${last}` : 'Sin sincronizaciones previas';
                         }
+
+                        // Cargar rango horario
+                        const rango = GistSync.getRangoHorario();
+                        const desdeEl = document.getElementById('gist-rango-desde');
+                        const hastaEl = document.getElementById('gist-rango-hasta');
+                        if (desdeEl) desdeEl.value = rango.desde;
+                        if (hastaEl) hastaEl.value = rango.hasta;
+
+                        _gistAutoSyncTemp = GistSync.getAutoSync();
                         gistSetStatus('');
                         actualizarBotonGistBackup();
                         ModalManager.cerrarTodos();
@@ -8444,18 +8530,31 @@ Generado por Sistema Horarios
                         }
                     }
 
+                    function guardarConfigGist() {
+                        const token = document.getElementById('gist-token')?.value.trim() || '';
+                        const gistId = document.getElementById('gist-id')?.value.trim() || '';
+                        const desde = document.getElementById('gist-rango-desde')?.value || '16:00';
+                        const hasta = document.getElementById('gist-rango-hasta')?.value || '22:00';
+
+                        const rango = GistSync.getRangoHorario();
+                        const huboCambios = token !== GistSync.getToken()
+                            || gistId !== GistSync.getGistId()
+                            || desde !== rango.desde
+                            || hasta !== rango.hasta
+                            || (_gistAutoSyncTemp !== null && _gistAutoSyncTemp !== GistSync.getAutoSync());
+
+                        if (_gistAutoSyncTemp !== null) GistSync.setAutoSync(_gistAutoSyncTemp);
+                        GistSync.saveCredentials(token, gistId);
+                        GistSync.setRangoHorario(desde, hasta);
+                        mostrarToast(huboCambios ? 'Configuración guardada' : 'Sin cambios', huboCambios ? 'success' : 'info');
+                        _gistAutoSyncTemp = null;
+                        _gistModalPadre = null;
+                        ModalManager.cerrar('modal-gist');
+                        actualizarBotonesHistorico();
+                    }
+
                     function cerrarModalGist() {
-                        const token = document.getElementById('gist-token')?.value.trim();
-                        const gistId = document.getElementById('gist-id')?.value.trim();
-
-                        const tokenAnterior = GistSync.getToken();
-                        const gistIdAnterior = GistSync.getGistId();
-                        const huboCambios = token !== tokenAnterior || gistId !== gistIdAnterior;
-
-                        // credenciales ya guardadas por listener input
-
-                        if (huboCambios) mostrarToast('Credenciales actualizadas', 'success');
-
+                        _gistAutoSyncTemp = null;
                         ModalManager.cerrar('modal-gist');
                         if (_gistModalPadre) ModalManager.abrir(_gistModalPadre);
                         _gistModalPadre = null;
@@ -8463,29 +8562,35 @@ Generado por Sistema Horarios
                     }
 
                     function toggleGistBackup() {
-                        const nuevo = !GistSync.getAutoSync();
-                        GistSync.setAutoSync(nuevo);
+                        const actual = parseInt(_gistAutoSyncTemp ?? GistSync.getAutoSync());
+                        _gistAutoSyncTemp = (actual + 1) % 3;
                         actualizarBotonGistBackup();
-                        mostrarToast(nuevo ? 'Respaldo automático activado' : 'Respaldo automático desactivado', 'info');
                     }
 
                     function actualizarBotonGistBackup() {
                         const btn = document.getElementById('btn-toggle-gist-backup');
                         const hint = document.getElementById('hint-gist-backup');
-                        const activo = GistSync.getAutoSync();
+                        const label = document.getElementById('label-gist-backup');
+                        const rangoEl = document.getElementById('gist-rango-horario');
+                        const estado = _gistAutoSyncTemp ?? GistSync.getAutoSync();
                         if (!btn) return;
-                        if (activo) {
-                            btn.style.background = 'rgba(96, 172, 148, 0.1)';
-                            btn.style.color = 'var(--c-green)';
-                            btn.style.borderColor = 'var(--c-green)';
-                            btn.style.fontWeight = 'bold';
-                            if (hint) { hint.textContent = 'Sí'; hint.style.color = 'var(--c-green)'; }
-                        } else {
-                            btn.style.background = '';
-                            btn.style.color = 'var(--text-muted)';
-                            btn.style.borderColor = 'var(--border)';
-                            btn.style.fontWeight = '600';
-                            if (hint) { hint.textContent = 'No'; hint.style.color = 'var(--text-muted)'; }
+
+                        const configs = [
+                            { texto: 'Sin automatizar', hint: '', bg: '', color: 'var(--text-muted)', border: 'var(--border)', fw: '600' },
+                            { texto: 'Restaura', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' },
+                            { texto: 'Respalda', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' }
+                        ];
+                        const c = configs[estado];
+                        btn.style.background = c.bg;
+                        btn.style.color = c.color;
+                        btn.style.borderColor = c.border;
+                        btn.style.fontWeight = c.fw;
+                        if (label) label.textContent = c.texto;
+                        if (hint) { hint.textContent = c.hint; hint.style.color = c.color; }
+
+                        // Mostrar/ocultar inputs de rango en estado 1 y 2
+                        if (rangoEl) {
+                            rangoEl.style.display = (estado === 1 || estado === 2) ? 'flex' : 'none';
                         }
                     }
 
@@ -8620,7 +8725,7 @@ Generado por Sistema Horarios
                         mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                         iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                         togglePeriodoStats, cambiarAnioStats, toggleFondoCard, setFondoCard,
-                        abrirModalGist, cerrarModalGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar, actualizarBotonesHistorico, toggleGistBackup
+                        abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar, actualizarBotonesHistorico, toggleGistBackup
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -8863,9 +8968,29 @@ Generado por Sistema Horarios
                     actualizarUI();
                     actualizarBotonesHistorico();
 
-                    // Auto-sync: si este dispositivo es de respaldo, bajar Gist al cargar
-                    if (GistSync.getAutoSync() && GistSync.getToken() && GistSync.esGistIdValido(GistSync.getGistId())) {
-                        setTimeout(() => gistBajar(), 2000);
+                    // Auto-sync al iniciar
+                    const _autoSyncEstado = GistSync.getAutoSync();
+                    const _tieneCredenciales = GistSync.getToken() && GistSync.esGistIdValido(GistSync.getGistId());
+                    if (_tieneCredenciales) {
+                        if (_autoSyncEstado === 1) {
+                            // Estado 1: restaurar al inicio si está en rango
+                            if (GistSync.dentroDelRangoHorario()) {
+                                setTimeout(() => gistBajar(), 2000);
+                            }
+                        } else if (_autoSyncEstado === 2) {
+                            // Estado 2: respaldo automático si está en rango y no subió hoy
+                            if (GistSync.dentroDelRangoHorario() && !GistSync.yaSubioHoy()) {
+                                setTimeout(async () => {
+                                    try {
+                                        await GistSync.subir(D.registros(), D.diasHabiles(), D.horasDiarias());
+                                        GistSync.marcarSubidaHoy();
+                                        mostrarToast('Respaldo automático realizado', 'success');
+                                    } catch (e) {
+                                        console.warn('Error en respaldo automático:', e);
+                                    }
+                                }, 2000);
+                            }
+                        }
                     }
 
                     setInterval(() => actualizarUI(null, true), 60000);
@@ -9528,7 +9653,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.57
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.58
     // ====================================================================
     
      - CAMBIOS:
