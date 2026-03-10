@@ -8434,12 +8434,6 @@ Generado por Sistema Horarios
                         }
 
                         gistSetStatus('');
-                        const confirmMsg = `Se bajaron ${data.registros.length} registros del Gist.\n\n¿Reemplazar los datos actuales (${D.registros().length} registros)?`;
-                        if (!confirm(confirmMsg)) {
-                            gistSetStatus('Cancelado', '');
-                            if (btn) btn.disabled = false;
-                            return;
-                        }
 
                         // Aplicar datos
                         D.registros().splice(0, D.registros().length, ...data.registros);
