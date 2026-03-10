@@ -1679,7 +1679,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.52</span>
+                    <span class="version-text">LUSHIBOSCA-7.54</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1745,6 +1745,15 @@
                         <span id="hint-ignorar-tf" style="font-size:0.9rem;">No</span>
                     </button>
                 </div>
+                <div class="form-group">
+                    <label>Sincronización</label>
+                    <button class="btn-edit" onclick="UILogic.abrirModalGist()">
+                        <svg class="icon">
+                            <use href="#icon-cloud-sync" />
+                        </svg>
+                        GitHub Gist
+                    </button>
+                </div>
                 <div class="config-actions">
                     <label>Registros</label>
                     <button class="btn-backup" onclick="UILogic.mostrarImportar()">
@@ -1765,16 +1774,7 @@
                         </svg>
                         Restablecer
                     </button>
-                </div>
-                <div class="config-actions">
-                    <label>Sincronización</label>
-                    <button class="btn-edit" onclick="UILogic.abrirModalGist()">
-                        <svg class="icon">
-                            <use href="#icon-cloud-sync" />
-                        </svg>
-                        GitHub Gist
-                    </button>
-                </div>
+                </div>                
             </div><!-- /modal-config-body -->
             <div class="modal-config-footer">
                 <div class="btn-group">
@@ -1791,7 +1791,7 @@
     <div class="modal" id="modal-gist">
         <div class="modal-content">
             <div class="modal-config-header">
-                <h3 style="margin-bottom:0">
+                <h3 style="margin-bottom:1rem">
                     <span class="modal-title-block">
                         <svg class="icon"><use href="#icon-cloud-sync" /></svg>
                         GitHub Gist
@@ -1806,8 +1806,7 @@
                         <button class="time-btn" id="btn-toggle-token" onclick="UILogic.toggleVerToken()" title="Mostrar/ocultar token">
                             <svg class="icon"><use href="#icon-lock-open" /></svg>
                         </button>
-                    </div>
-                    <div class="config-hint-text">GitHub → Settings → Developer settings → Personal access tokens → Gists</div>
+                    </div>                    
                 </div>
                 <div class="form-group">
                     <label>Gist ID</label>
@@ -1818,7 +1817,6 @@
                         </button>
                     </div>
                     <div class="config-hint-text" id="gist-ultima-sync">Sin sincronizaciones previas</div>
-                    <div class="config-hint-text" id="gist-id-hint" style="color:var(--text-muted)">Dejá vacío la primera vez — se completa solo al Subir</div>
                 </div>
                 <div class="config-actions">
                     <label>Acciones</label>
@@ -1831,7 +1829,7 @@
                         Bajar
                     </button>
                 </div>
-                <div id="gist-status" style="font-size:0.85rem; color:var(--text-muted); padding: 0.5rem 0; min-height: 1.5rem;"></div>
+                <div id="gist-status" style="font-size:0.85rem; color:var(--text-muted); padding: 0.5rem 0; min-height: 2rem;"></div>
             </div>
             <div class="modal-config-footer">
                 <div class="btn-group">
@@ -2504,11 +2502,15 @@
 
                 function guardarDatosPerfilActual() {
                     if (!window.DataManagement) return;
+                    const actual = perfiles[perfilActual];
                     perfiles[perfilActual] = {
-                        nombre: perfiles[perfilActual].nombre,
+                        nombre: actual.nombre,
                         registros: [...window.DataManagement.registros()],
                         diasHabiles: window.DataManagement.diasHabiles(),
-                        horasDiarias: window.DataManagement.horasDiarias()
+                        horasDiarias: window.DataManagement.horasDiarias(),
+                        // Preservar datos de Gist si existen
+                        ...(actual.gistId && { gistId: actual.gistId }),
+                        ...(actual.gistLastSync && { gistLastSync: actual.gistLastSync })
                     };
                     guardarPerfiles();
                 }
@@ -3848,6 +3850,15 @@
                     localStorage.removeItem(`fondoCard_${perfilId}`);
                     localStorage.removeItem(`ignorarTiempoFuera_${perfilId}`);
 
+                    // Limpiar gistId y lastSync del perfil activo
+                    if (window.PerfilManager) {
+                        const perfil = PerfilManager.obtenerDatosPerfil();
+                        if (perfil) {
+                            delete perfil.gistId;
+                            delete perfil.gistLastSync;
+                        }
+                    }
+
                     HistoryManager.saveState(registros);
 
                     if (await guardarYActualizar()) {
@@ -4575,13 +4586,7 @@
             const GistSync = (function (S) {
 
                 const GIST_FILENAME = 'horarios_backup.json';
-                const KEY_TOKEN = 'gistToken';
-                const KEY_GIST_ID = 'gistId';
-                const KEY_LAST_SYNC = 'gistLastSync';
-
-                function getToken() { return localStorage.getItem(KEY_TOKEN) || ''; }
-                function getGistId() { return localStorage.getItem(KEY_GIST_ID) || ''; }
-                function getLastSync() { return localStorage.getItem(KEY_LAST_SYNC) || null; }
+                const KEY_TOKEN = 'gistToken'; // Global del dispositivo
 
                 const GIST_ID_REGEX = /^[a-f0-9]{20,40}$/i;
 
@@ -4589,22 +4594,49 @@
                     return id && GIST_ID_REGEX.test(id.trim());
                 }
 
+                // Token: global del dispositivo
+                function getToken() { return localStorage.getItem(KEY_TOKEN) || ''; }
+
+                // Gist ID y lastSync: por perfil activo
+                function getGistId() {
+                    const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
+                    return perfil?.gistId || '';
+                }
+
+                function getLastSync() {
+                    const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
+                    return perfil?.gistLastSync || null;
+                }
+
                 function saveCredentials(token, gistId) {
                     try {
+                        // Token: global
                         if (token) localStorage.setItem(KEY_TOKEN, token.trim());
-                        // Solo guardar el gistId si tiene formato válido
-                        if (gistId && esGistIdValido(gistId)) {
-                            localStorage.setItem(KEY_GIST_ID, gistId.trim());
-                        } else if (gistId === '') {
-                            localStorage.removeItem(KEY_GIST_ID);
+                        // Gist ID: en el perfil activo
+                        if (window.PerfilManager) {
+                            const perfil = PerfilManager.obtenerDatosPerfil();
+                            if (perfil) {
+                                if (gistId && esGistIdValido(gistId)) {
+                                    perfil.gistId = gistId.trim();
+                                } else if (gistId === '') {
+                                    delete perfil.gistId;
+                                }
+                                PerfilManager.guardarDatosPerfilActual();
+                            }
                         }
                     } catch (e) { console.error('Error guardando credenciales:', e); }
                 }
 
                 function saveLastSync(gistId) {
                     const ahora = new Date().toLocaleString('es-AR');
-                    localStorage.setItem(KEY_LAST_SYNC, ahora);
-                    if (gistId) localStorage.setItem(KEY_GIST_ID, gistId);
+                    if (window.PerfilManager) {
+                        const perfil = PerfilManager.obtenerDatosPerfil();
+                        if (perfil) {
+                            perfil.gistLastSync = ahora;
+                            if (gistId && esGistIdValido(gistId)) perfil.gistId = gistId;
+                            PerfilManager.guardarDatosPerfilActual();
+                        }
+                    }
                 }
 
                 async function subir(registros, diasHabiles, horasDiarias) {
@@ -9352,7 +9384,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.52
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.53
     // ====================================================================
     
      - CAMBIOS:
