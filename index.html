@@ -316,6 +316,17 @@
             transform-origin: bottom;
         }
 
+        #btn-toggle-ignorar-tf,
+        #btn-toggle-fondo,
+        #btn-toggle-gist-backup {
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-weight: 600;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+        }
+
         .icon-btn,
         .time-btn,
         .btn-increment,
@@ -1747,15 +1758,13 @@
                 </div>
                 <div class="form-group">
                     <label>Fondo</label>
-                    <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()"
-                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: background 0.2s, color 0.2s, border-color 0.2s;">
+                    <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()">
                         <span id="hint-fondo-label">Golden Gate</span>
                     </button>
                 </div>
                 <div class="form-group">
                     <label>Tiempo Fuera</label>
-                    <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()"
-                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: background 0.2s, color 0.2s, border-color 0.2s;">
+                    <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()">
                         <span>Ignorar calculo de Tiempo Fuera</span>
                         <span id="hint-ignorar-tf" style="font-size:0.9rem;">No</span>
                     </button>
@@ -1840,41 +1849,44 @@
                             </svg>
                         </button>
                     </div>
-                    <div class="config-hint-text" id="gist-ultima-sync">Sin sincronizaciones previas</div>
+                </div>
+
+                <div class="config-actions">
+                    <label>Acciones</label>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="btn-export" id="btn-gist-subir" onclick="UILogic.gistSubir()" style="flex:1">
+                            <svg class="icon">
+                                <use href="#icon-cloud-upload" />
+                            </svg> Subir
+                        </button>
+                        <button class="btn-backup" id="btn-gist-bajar" onclick="UILogic.gistBajar()" style="flex:1">
+                            <svg class="icon">
+                                <use href="#icon-cloud-download" />
+                            </svg> Bajar
+                        </button>
+                    </div>
                 </div>
                 <div class="form-group" style="margin-top:0.5rem">
                     <label>Automatización</label>
-                    <button id="btn-toggle-gist-backup" onclick="UILogic.toggleGistBackup()"
-                        style="justify-content:space-between; padding:0.75rem 1rem; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: background 0.2s, color 0.2s, border-color 0.2s;">
+                    <button id="btn-toggle-gist-backup" onclick="UILogic.toggleGistBackup()">
                         <span id="label-gist-backup">Sin automatizar</span>
-                        <span id="hint-gist-backup" style="font-size:0.9rem;">—</span>
+                        <span id="hint-gist-backup">—</span>
                     </button>
                     <div id="gist-rango-horario"
                         style="display:none; margin-top:0.5rem; gap:0.5rem; align-items:center;">
-                        <span style="font-size:0.85rem; color:var(--text-muted)">Subir entre</span>
+                        <span style="font-size:0.85rem; color:var(--text-muted)">Inicio</span>
                         <input type="time" id="gist-rango-desde"
                             style="width:7rem; padding:0.3rem 0.5rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-input,var(--bg2)); color:var(--text-main); font-size:0.9rem;" />
-                        <span style="font-size:0.85rem; color:var(--text-muted)">y</span>
+                        <span style="font-size:0.85rem; color:var(--text-muted)">Fin</span>
                         <input type="time" id="gist-rango-hasta"
                             style="width:7rem; padding:0.3rem 0.5rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-input,var(--bg2)); color:var(--text-main); font-size:0.9rem;" />
                     </div>
                 </div>
-                <div class="config-actions">
-                    <label>Acciones</label>
-                    <button class="btn-export" id="btn-gist-subir" onclick="UILogic.gistSubir()">
-                        <svg class="icon">
-                            <use href="#icon-cloud-upload" />
-                        </svg> Subir
-                    </button>
-                    <button class="btn-backup" id="btn-gist-bajar" onclick="UILogic.gistBajar()">
-                        <svg class="icon">
-                            <use href="#icon-cloud-download" />
-                        </svg> Bajar
-                    </button>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="config-hint-text" id="gist-ultima-sync"></div>
+                    <div class="config-hint-text" id="gist-status">
+                    </div>
                 </div>
-
-                <div id="gist-status"
-                    style="font-size:0.85rem; color:var(--text-muted); padding: 0.5rem 0; min-height: 2rem;"></div>
             </div>
             <div class="modal-config-footer">
                 <div class="btn-group">
@@ -2473,6 +2485,12 @@
 
                     return true;
                 }
+                function fechaLocalISO() {
+                    const d = new Date();
+                    const pad = n => String(n).padStart(2, '0');
+                    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                }
+
                 return {
                     SECURITY_LIMITS,
                     REGEX_PATTERNS,
@@ -2482,7 +2500,8 @@
                     generarIDSeguro,
                     calcularHashSHA256,
                     constantTimeCompare,
-                    validarRegistroSeguro
+                    validarRegistroSeguro,
+                    fechaLocalISO
                 };
             })();
 
@@ -3934,22 +3953,11 @@
                 }
 
                 async function exportarJSON() {
-                    //  Generar fecha local en formato YYYY-MM-DD HH:MM:SS
-                    const ahora = new Date();
-                    const año = ahora.getFullYear();
-                    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-                    const dia = String(ahora.getDate()).padStart(2, '0');
-                    const hora = String(ahora.getHours()).padStart(2, '0');
-                    const minuto = String(ahora.getMinutes()).padStart(2, '0');
-                    const segundo = String(ahora.getSeconds()).padStart(2, '0');
-
-                    const fechaLocal = `${año}-${mes}-${dia} ${hora}:${minuto}:${segundo}`;
-
                     const data = {
                         registros,
                         diasHabiles,
                         horasDiarias,
-                        fecha: fechaLocal,
+                        fecha: S.fechaLocalISO(),
                         version: S.SECURITY_LIMITS.SCHEMA_VERSION,
                         hash: await S.calcularHashSHA256(registros),
                         timestamp: Date.now()
@@ -3968,8 +3976,7 @@
                         }
                         const nombreSafe = nombrePerfil.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ'\-_ ]/g, '').trim().replace(/\s+/g, '_');
 
-                        const fechaHoy = `${año}-${mes}-${dia}`;
-
+                        const fechaHoy = S.fechaLocalISO().slice(0, 10);
                         a.download = `Horarios_${nombreSafe}_${fechaHoy}.json`;
 
                         document.body.appendChild(a);
@@ -4783,7 +4790,7 @@
                         registros,
                         diasHabiles,
                         horasDiarias,
-                        fecha: new Date().toLocaleString('es-AR'),
+                        fecha: S.fechaLocalISO(),
                         version: S.SECURITY_LIMITS.SCHEMA_VERSION,
                         hash,
                         timestamp: Date.now()
@@ -8488,7 +8495,7 @@ Generado por Sistema Horarios
                         if (gistIdInput) gistIdInput.value = GistSync.getGistId();
                         if (lastSyncEl) {
                             const last = GistSync.getLastSync();
-                            lastSyncEl.textContent = last ? `Última sync: ${last}` : 'Sin sincronizaciones previas';
+                            lastSyncEl.textContent = last ? `Sincronizado: ${last}` : 'No sincronizado';
                         }
 
                         // Cargar rango horario
@@ -8578,8 +8585,8 @@ Generado por Sistema Horarios
 
                         const configs = [
                             { texto: 'Sin automatizar', hint: '', bg: '', color: 'var(--text-muted)', border: 'var(--border)', fw: '600' },
-                            { texto: 'Restaura', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' },
-                            { texto: 'Respalda', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' }
+                            { texto: 'Restaurar', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' },
+                            { texto: 'Respaldar', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' }
                         ];
                         const c = configs[estado];
                         btn.style.background = c.bg;
@@ -8616,8 +8623,8 @@ Generado por Sistema Horarios
                         const el = document.getElementById('gist-status');
                         if (el && modalAbierto) {
                             el.textContent = msg;
-                            el.style.color = tipo === 'error' ? 'var(--error, #e74c3c)'
-                                : tipo === 'ok' ? 'var(--success, #2ecc71)'
+                            el.style.color = tipo === 'error' ? 'var(--c-red)'
+                                : tipo === 'ok' ? 'var(--c-green)'
                                     : 'var(--text-muted)';
                         }
                     }
