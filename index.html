@@ -1705,7 +1705,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.58</span>
+                    <span class="version-text">LUSHIBOSCA-7.59</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1874,19 +1874,16 @@
                     </button>
                     <div id="gist-rango-horario"
                         style="display:none; margin-top:0.5rem; gap:0.5rem; align-items:center;">
-                        <span style="font-size:0.85rem; color:var(--text-muted)">Inicio</span>
+                        <span style="font-size:0.85rem; color:var(--text-muted)">Desde</span>
                         <input type="time" id="gist-rango-desde"
-                            style="width:7rem; padding:0.3rem 0.5rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-input,var(--bg2)); color:var(--text-main); font-size:0.9rem;" />
-                        <span style="font-size:0.85rem; color:var(--text-muted)">Fin</span>
+                            style=" background:var(--bg-input); color:var(--text-main); font-size:0.9rem;" />
+                        <span style="font-size:0.85rem; color:var(--text-muted)">Hasta</span>
                         <input type="time" id="gist-rango-hasta"
-                            style="width:7rem; padding:0.3rem 0.5rem; border-radius:6px; border:1px solid var(--border); background:var(--bg-input,var(--bg2)); color:var(--text-main); font-size:0.9rem;" />
+                            style=" background:var(--bg-input); color:var(--text-main); font-size:0.9rem;" />
                     </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div class="config-hint-text" id="gist-ultima-sync"></div>
-                    <div class="config-hint-text" id="gist-status">
-                    </div>
-                </div>
+                <div class="config-hint-text" id="gist-ultima-sync">Sin sincronizar</div>
+                <div class="config-hint-text" id="gist-status">Estado</div>
             </div>
             <div class="modal-config-footer">
                 <div class="btn-group">
@@ -2488,7 +2485,7 @@
                 function fechaLocalISO() {
                     const d = new Date();
                     const pad = n => String(n).padStart(2, '0');
-                    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
                 }
 
                 return {
@@ -3944,11 +3941,7 @@
                     HistoryManager.saveState(registros);
 
                     if (await guardarYActualizar()) {
-                        UILogic.setFondoCard('golden-gate');
-                        UILogic.actualizarEstadoBotonIgnorarTF();
-                        UILogic.actualizarUI();
-                        UILogic.mostrarToast('Perfil restablecido a valores por defecto', 'success');
-                        ModalManager.cerrarTodos();
+                        location.reload();
                     }
                 }
 
@@ -4157,26 +4150,12 @@
 
                                 registros = registrosImportados;
 
-                                // VALIDACIÓN MEJORADA DE diasHabiles (SOPORTA AMBOS FORMATOS)
-                                if (data.diasHabiles !== undefined) {
-                                    if (Array.isArray(data.diasHabiles)) {
-                                        // Formato nuevo (v6.63+)
-                                        const diasValidos = data.diasHabiles.filter(d =>
-                                            Number.isInteger(d) && d >= 0 && d <= 6
-                                        );
-                                        if (diasValidos.length > 0) {
-                                            diasHabiles = diasValidos;
-                                        }
-                                    } else {
-                                        // Formato antiguo (número)
-                                        const diasParsed = parseFloat(data.diasHabiles);
-                                        if (Number.isFinite(diasParsed) && diasParsed >= 1 && diasParsed <= 7) {
-                                            const diasArray = [];
-                                            for (let i = 1; i <= diasParsed; i++) diasArray.push(i);
-                                            if (diasParsed === 7) diasArray.push(0);
-                                            diasHabiles = diasArray;
-                                        }
-                                    }
+                                // Validar diasHabiles (formato array)
+                                if (Array.isArray(data.diasHabiles)) {
+                                    const diasValidos = data.diasHabiles.filter(d =>
+                                        Number.isInteger(d) && d >= 0 && d <= 6
+                                    );
+                                    if (diasValidos.length > 0) diasHabiles = diasValidos;
                                 }
 
                                 // VALIDACIÓN DE horasDiarias
@@ -8688,15 +8667,59 @@ Generado por Sistema Horarios
 
                             gistSetStatus('');
 
-                            // Aplicar datos
-                            D.registros().splice(0, D.registros().length, ...data.registros.filter(r => S.validarRegistroSeguro(r)));
-                            if (Array.isArray(data.diasHabiles)) D.setDiasHabiles(data.diasHabiles);
-                            if (data.horasDiarias != null) {
-                                const hd = parseFloat(data.horasDiarias);
-                                if (!isNaN(hd) && hd >= 0 && hd <= 24) D.setHorasDiarias(hd);
+                            // Validar claves permitidas
+                            const allowedRootKeys = ['registros', 'diasHabiles', 'horasDiarias', 'fecha', 'version', 'hash', 'timestamp'];
+                            const hasInvalidKeys = Object.keys(data).some(k => !allowedRootKeys.includes(k));
+                            if (hasInvalidKeys) throw new Error('Estructura del Gist sospechosa');
+
+                            // Advertir schema futuro
+                            if (data.version && data.version > S.SECURITY_LIMITS.SCHEMA_VERSION) {
+                                mostrarToast(`Gist de versión más nueva (v${data.version}). Algunos datos pueden no importarse correctamente.`, 'warning');
                             }
 
-                            // Ordenar e integrar con HistoryManager igual que importarDatos
+                            // Filtrar, normalizar y recalcular registros (igual que importarDatos)
+                            const validarHora = (h) => h && S.REGEX_PATTERNS.HORA.test(h) ? S.sanitizeString(h, 5) : null;
+                            const registrosNormalizados = data.registros
+                                .filter(r => S.validarRegistroSeguro(r))
+                                .map(r => ({
+                                    id: (r.id && S.REGEX_PATTERNS.ID.test(r.id)) ? r.id : S.generarIDSeguro(),
+                                    fecha: S.sanitizeString(r.fecha, 10),
+                                    entrada: validarHora(r.entrada),
+                                    salida: validarHora(r.salida),
+                                    tiempoFuera: validarHora(r.tiempoFuera),
+                                    horas: Math.max(0, Math.min(24, parseFloat(r.horas) || 0)),
+                                    minutos: Math.max(0, Math.min(59, parseFloat(r.minutos) || 0)),
+                                    total: Math.max(0, Math.min(24, parseFloat(r.total) || 0)),
+                                    credito: validarHora(r.credito),
+                                }));
+
+                            if (registrosNormalizados.length === 0) throw new Error('No se encontraron registros válidos');
+                            if (registrosNormalizados.length > S.SECURITY_LIMITS.MAX_REGISTROS) throw new Error(`Máximo ${S.SECURITY_LIMITS.MAX_REGISTROS} registros permitidos`);
+
+                            // Recalcular horas para consistencia
+                            registrosNormalizados.forEach(r => {
+                                const t = D.calcularHoras(r.entrada, r.salida, r.tiempoFuera || null, r.credito || null);
+                                r.horas = t?.horas || 0;
+                                r.minutos = t?.minutos || 0;
+                                r.total = t?.total || 0;
+                            });
+
+                            // Aplicar datos
+                            D.registros().splice(0, D.registros().length, ...registrosNormalizados);
+
+                            // Validar y aplicar diasHabiles
+                            if (Array.isArray(data.diasHabiles)) {
+                                const diasValidos = data.diasHabiles.filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
+                                if (diasValidos.length > 0) D.setDiasHabiles(diasValidos);
+                            }
+
+                            // Validar y aplicar horasDiarias
+                            if (data.horasDiarias != null) {
+                                const hd = parseFloat(data.horasDiarias);
+                                if (Number.isFinite(hd) && hd >= 0 && hd <= 24) D.setHorasDiarias(hd);
+                            }
+
+                            // Ordenar e integrar con HistoryManager
                             D.registros().sort((a, b) => {
                                 if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
                                 return (b.entrada || '').localeCompare(a.entrada || '');
@@ -8708,7 +8731,7 @@ Generado por Sistema Horarios
 
                             const lastSyncEl = document.getElementById('gist-ultima-sync');
                             if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.getLastSync()}`;
-                            gistSetStatus(`✓ ${data.registros.length} registros importados`, 'ok');
+                            gistSetStatus(`✓ ${registrosNormalizados.length} registros importados`, 'ok');
                             mostrarToast('Datos Restaurados desde Gist', 'success');
                         } catch (e) {
                             console.error('Gist bajar error:', e);
@@ -9661,7 +9684,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.58
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.59
     // ====================================================================
     
      - CAMBIOS:
