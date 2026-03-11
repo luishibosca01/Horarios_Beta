@@ -1,4 +1,4 @@
-const CACHE_NAME = 'horarios-v7.58-v3-cache';
+const CACHE_NAME = 'horarios-v7.59-cache';
 const urlsToCache = [
   './',
   './index.html',
