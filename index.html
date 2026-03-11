@@ -8620,7 +8620,7 @@ Generado por Sistema Horarios
                         const btn = document.getElementById('btn-gist-subir');
                         if (btn) btn.disabled = true;
                         gistSetStatus('Subiendo...');
-                        mostrarToast('Sincronizando...', 'info');
+                        mostrarToast('Subiendo...', 'info');
 
                         try {
                             const nuevoId = await GistSync.subir(
@@ -8656,7 +8656,7 @@ Generado por Sistema Horarios
                         const btn = document.getElementById('btn-gist-bajar');
                         if (btn) btn.disabled = true;
                         gistSetStatus('Bajando...');
-                        mostrarToast('Sincronizando...', 'info');
+                        mostrarToast('Bajando...', 'info');
 
                         try {
                             const data = await GistSync.bajar();
