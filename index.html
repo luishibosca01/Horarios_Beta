@@ -1705,7 +1705,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.59</span>
+                    <span class="version-text">LUSHIBOSCA-7.60</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -4731,7 +4731,11 @@
                 function saveCredentials(token, gistId) {
                     try {
                         // Token: global
-                        if (token) localStorage.setItem(KEY_TOKEN, S.sanitizeString(token.trim()));
+                        if (token) {
+                            localStorage.setItem(KEY_TOKEN, S.sanitizeString(token.trim()));
+                        } else {
+                            localStorage.removeItem(KEY_TOKEN);
+                        }
                         // Gist ID: en el perfil activo — guardarPerfiles() directamente
                         // para no depender de window.DataManagement (que puede no existir aún)
                         if (window.PerfilManager) {
@@ -7378,7 +7382,8 @@ Generado por Sistema Horarios
                             const contexto = vistaActual === 'semana' ? 'Esta Semana' : 'Hoy';
 
                             if (titulo) {
-                                titulo.innerHTML = `${icono} ${contexto} - <svg class="icon"><use href="#icon-exit"/></svg> Tiempo fuera`;
+                                titulo.innerHTML = `${icono} ${contexto} - <svg class="icon"><use href="#icon-exit"/></svg> Tiempo fuera <span id="break-counter" style="font-size:0.8em; font-weight:500; color:var(--c-red); margin-left:0.3em;"></span>`;
+                                _iniciarContadorBreak(storageKey);
                             }
                         }
 
@@ -7390,6 +7395,38 @@ Generado por Sistema Horarios
                         icon.setAttribute('href', '#icon-exit');
 
                         if (card) card.classList.remove('timer-running');
+                        _detenerContadorBreak();
+                    }
+                }
+
+                // --- Contador visual de tiempo fuera en curso ---
+                let _breakCounterInterval = null;
+
+                function _iniciarContadorBreak(storageKey) {
+                    _detenerContadorBreak();
+                    function _actualizarContador() {
+                        const el = document.getElementById('break-counter');
+                        if (!el) { _detenerContadorBreak(); return; }
+                        const start = parseInt(localStorage.getItem(storageKey));
+                        if (isNaN(start)) { el.textContent = ''; _detenerContadorBreak(); return; }
+                        const totalSeg = Math.floor((Date.now() - start) / 1000);
+                        const mins = Math.floor(totalSeg / 60);
+                        const horas = Math.floor(mins / 60);
+                        const minsResto = mins % 60;
+                        if (horas > 0) {
+                            el.textContent = `${horas}h ${minsResto}m`;
+                        } else {
+                            el.textContent = `${mins}m`;
+                        }
+                    }
+                    _actualizarContador();
+                    _breakCounterInterval = setInterval(_actualizarContador, 1000);
+                }
+
+                function _detenerContadorBreak() {
+                    if (_breakCounterInterval) {
+                        clearInterval(_breakCounterInterval);
+                        _breakCounterInterval = null;
                     }
                 }
 
@@ -9684,11 +9721,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.59
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.60
     // ====================================================================
     
      - CAMBIOS:
-    1) 
+    1) Se agrega contador al tiempo fuera
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
