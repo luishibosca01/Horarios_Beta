@@ -1916,7 +1916,9 @@
             <div class="modal-config-header">
                 <h3 style="margin-bottom:0.5rem">
                     <span class="modal-title-block">
-                        <svg class="icon"><use href="#icon-cloud-download" /></svg>
+                        <svg class="icon">
+                            <use href="#icon-cloud-download" />
+                        </svg>
                         Resumen de datos
                     </span>
                 </h3>
@@ -1927,15 +1929,24 @@
             <div class="modal-config-footer">
                 <div class="btn-group">
                     <button class="btn-backup" id="btn-gist-merge-combinar" onclick="UILogic.gistMergeAplicar('merge')">
-                        <svg class="icon"><use href="#icon-combine" /></svg>
+                        <svg class="icon">
+                            <use href="#icon-combine" />
+                        </svg>
                         Combinar
                     </button>
-                    <button class="btn-export" id="btn-gist-merge-reemplazar" onclick="UILogic.gistMergeAplicar('replace')">
-                        <svg class="icon"><use href="#icon-replace-swap" /></svg>
+                    <button class="btn-export" id="btn-gist-merge-reemplazar"
+                        onclick="UILogic.gistMergeAplicar('replace')">
+                        <svg class="icon">
+                            <use href="#icon-replace-swap" />
+                        </svg>
                         Reemplazar
                     </button>
+                </div>
+                <div class="btn-group">
                     <button class="btn-delete" onclick="UILogic.gistMergeCancelar()">
-                        <svg class="icon"><use href="#icon-cancelar" /></svg>
+                        <svg class="icon">
+                            <use href="#icon-cancelar" />
+                        </svg>
                         Cancelar
                     </button>
                 </div>
