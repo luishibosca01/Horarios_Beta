@@ -1705,7 +1705,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.61</span>
+                    <span class="version-text">LUSHIBOSCA-7.62</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -4765,7 +4765,7 @@
 
                 function _claveHoraActual() {
                     const ahora = new Date();
-                    return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')} ${String(ahora.getHours()).padStart(2, '0')}`;
+                    return `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')} ${String(ahora.getHours()).padStart(2,'0')}`;
                 }
 
                 // tipo: 'subir' | 'bajar', limite: max intentos por hora
@@ -5790,7 +5790,7 @@
                         diasTrabajados: registrosValidos.length,
                         promedioDiario: `${hPromedio}h ${mPromedio}m`,
                         tiempoFueraTotal: `${hTiempoFuera}h ${mTiempoFuera}m`,
-                        tiempoTotal: `${hTotal}h ${mTotal}m`,
+                        tiempoTotal: `${hTotal}h ${mTotal}m${Math.floor(totalHoras / 24) > 0 ? ` (${Math.floor(totalHoras / 24)} día${Math.floor(totalHoras / 24) !== 1 ? 's' : ''})` : ''}`,
                         semanaPasada: textoSemanaPasada,
                         feriados: feriados,
                         ausencias: ausencias,
@@ -6835,7 +6835,7 @@
                         diasTrabajados: registrosValidos.length,
                         promedioDiario: `${hPromedio}h ${mPromedio}m`,
                         tiempoFueraTotal: `${hTiempoFuera}h ${mTiempoFuera}m`,
-                        tiempoTotal: `${hTotal}h ${mTotal}m`,
+                        tiempoTotal: `${hTotal}h ${mTotal}m${Math.floor(totalHoras / 24) > 0 ? ` (${Math.floor(totalHoras / 24)} día${Math.floor(totalHoras / 24) !== 1 ? 's' : ''})` : ''}`,
                         semanaPasada: null,
                         feriados, ausencias, vacaciones, enfermedades,
                         asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
@@ -9920,7 +9920,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.61
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.62
     // ====================================================================
     
      - CAMBIOS:
@@ -9928,6 +9928,8 @@ Generado por Sistema Horarios
     2) Se corrige bug al actualizar la ui si estaba selecioonado un año que no es el actual, se volvia al 
     predeterminado
     3) Se bloquean los botones de gist si no hay token ni id
+    4) Se agrega limite a la bajada de gist, max 2 X hora
+    5) se unifican funciones en el modulo de gist
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
