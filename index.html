@@ -2634,7 +2634,9 @@
                         ...(actual.gistRangoDesde && { gistRangoDesde: actual.gistRangoDesde }),
                         ...(actual.gistRangoHasta && { gistRangoHasta: actual.gistRangoHasta }),
                         ...(actual.gistAutoSyncFecha && { gistAutoSyncFecha: actual.gistAutoSyncFecha }),
-                        ...(actual.gistMergeBehavior && { gistMergeBehavior: actual.gistMergeBehavior })
+                        ...(actual.gistMergeBehavior && { gistMergeBehavior: actual.gistMergeBehavior }),
+                        ...(actual.gistAutoSyncBajaFecha && { gistAutoSyncBajaFecha: actual.gistAutoSyncBajaFecha }),
+                        ...(actual.gistAutoSyncBajaCount != null && { gistAutoSyncBajaCount: actual.gistAutoSyncBajaCount })
                     };
                     guardarPerfiles();
                 }
@@ -3986,6 +3988,8 @@
                             delete perfil.gistRangoHasta;
                             delete perfil.gistAutoSyncFecha;
                             delete perfil.gistMergeBehavior;
+                            delete perfil.gistAutoSyncBajaFecha;
+                            delete perfil.gistAutoSyncBajaCount;
                         }
                     }
 
@@ -4800,6 +4804,31 @@
                     setAutoSyncFecha(claveActual);
                 }
 
+                function getBajaCount() {
+                    const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
+                    const clave = _claveHoraActual();
+                    if (!perfil?.gistAutoSyncBajaFecha || perfil.gistAutoSyncBajaFecha !== clave) return 0;
+                    return perfil?.gistAutoSyncBajaCount || 0;
+                }
+
+                function marcarBaja() {
+                    if (window.PerfilManager) {
+                        const perfil = PerfilManager.obtenerDatosPerfil();
+                        if (perfil) {
+                            const clave = _claveHoraActual();
+                            const esNuevaHora = perfil.gistAutoSyncBajaFecha !== clave;
+                            perfil.gistAutoSyncBajaFecha = clave;
+                            perfil.gistAutoSyncBajaCount = esNuevaHora ? 1 : (perfil.gistAutoSyncBajaCount || 0) + 1;
+                            PerfilManager.guardarPerfiles();
+                        }
+                    }
+                }
+
+                function _claveHoraActual() {
+                    const ahora = new Date();
+                    return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')} ${String(ahora.getHours()).padStart(2, '0')}`;
+                }
+
                 function saveCredentials(token, gistId) {
                     try {
                         // Token: global
@@ -4925,7 +4954,10 @@
                     return data;
                 }
 
-                return { getToken, getGistId, getLastSync, getMergeBehavior, setMergeBehavior, getAutoSync, setAutoSync, getRangoHorario, setRangoHorario, yaSubioHoy, marcarSubidaHoy, dentroDelRangoHorario, saveCredentials, esGistIdValido, subir, bajar };
+                return { getToken, getGistId, getLastSync, getMergeBehavior, setMergeBehavior, 
+                    getAutoSync, setAutoSync, getRangoHorario, setRangoHorario, yaSubioHoy, 
+                    marcarSubidaHoy, getBajaCount, marcarBaja, dentroDelRangoHorario, saveCredentials, 
+                    esGistIdValido, subir, bajar };
 
             })(SecurityAndUtils);
 
@@ -9231,9 +9263,12 @@ Generado por Sistema Horarios
                     const _tieneCredenciales = GistSync.getToken() && GistSync.esGistIdValido(GistSync.getGistId());
                     if (_tieneCredenciales) {
                         if (_autoSyncEstado === 1) {
-                            // Estado 1: restaurar al inicio si está en rango
-                            if (GistSync.dentroDelRangoHorario()) {
-                                setTimeout(() => gistBajar(true), 2000);
+                            // Estado 1: restaurar al inicio si está en rango y no superó 2 intentos esta hora
+                            if (GistSync.dentroDelRangoHorario() && GistSync.getBajaCount() < 2) {
+                                setTimeout(async () => {
+                                    await gistBajar(true);
+                                    GistSync.marcarBaja();
+                                }, 2000);
                             }
                         } else if (_autoSyncEstado === 2) {
                             // Estado 2: respaldo automático si está en rango y no subió hoy
@@ -9914,6 +9949,7 @@ Generado por Sistema Horarios
     2) Se corrige bug al actualizar la ui si estaba selecioonado un año que no es el actual, se volvia al 
     predeterminado
     3) Se bloquean los botones de gist si no hay token ni id
+    4) Se agrega limite a la bajada de gist, max 2 X hora
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
