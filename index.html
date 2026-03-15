@@ -318,13 +318,14 @@
 
         #btn-toggle-ignorar-tf,
         #btn-toggle-fondo,
-        #btn-toggle-gist-backup {
-            justify-content: space-between;
+        #btn-toggle-gist-backup,
+        #btn-toggle-gist-merge {
+            justify-content: center;
             padding: 0.75rem 1rem;
             border: 1px solid var(--border);
-            color: var(--text-muted);
-            font-weight: 600;
+            color: var(--text-main);
             transition: background 0.2s, color 0.2s, border-color 0.2s;
+            flex: 1;
         }
 
         .icon-btn,
@@ -1705,7 +1706,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.62</span>
+                    <span class="version-text">LUSHIBOSCA-7.63</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1765,8 +1766,8 @@
                 <div class="form-group">
                     <label>Tiempo Fuera</label>
                     <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()">
-                        <span>Ignorar calculo de Tiempo Fuera</span>
-                        <span id="hint-ignorar-tf" style="font-size:0.9rem;">No</span>
+                        <span>Ignorar calculo TF</span>
+                        <span id="hint-ignorar-tf">No</span>
                     </button>
                 </div>
                 <div class="form-group">
@@ -1873,8 +1874,7 @@
                             <span id="label-gist-backup">Sin automatizar</span>
                             <span id="hint-gist-backup">—</span>
                         </button>
-                        <button id="btn-toggle-gist-merge" onclick="UILogic.toggleGistMerge()"
-                            style="flex:1; border:1px solid var(--border); color:var(--text-muted); font-weight:600; transition: background 0.2s, color 0.2s, border-color 0.2s;">
+                        <button id="btn-toggle-gist-merge" onclick="UILogic.toggleGistMerge()">
                             <span id="hint-gist-merge">Reemplazar</span>
                         </button>
                     </div>
@@ -1889,7 +1889,6 @@
                     </div>
                 </div>
                 <div class="config-hint-text" id="gist-ultima-sync">Sin sincronizar</div>
-                <div class="config-hint-text" id="gist-status">Estado</div>
             </div>
             <div class="modal-config-footer">
                 <div class="btn-group">
@@ -4765,7 +4764,7 @@
 
                 function _claveHoraActual() {
                     const ahora = new Date();
-                    return `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')} ${String(ahora.getHours()).padStart(2,'0')}`;
+                    return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')} ${String(ahora.getHours()).padStart(2, '0')}`;
                 }
 
                 // tipo: 'subir' | 'bajar', limite: max intentos por hora
@@ -6679,13 +6678,15 @@
                         btn.style.color = 'var(--c-green)';
                         btn.style.borderColor = 'var(--c-green)';
                         btn.style.fontWeight = 'bold';
+                        btn.style.justifyContent = 'space-between';
                         if (hint) { hint.textContent = 'Sí'; hint.style.color = 'var(--c-green)'; }
                     } else {
                         btn.style.background = '';
-                        btn.style.color = 'var(--text-muted)';
+                        btn.style.color = 'var(--text-main)';
                         btn.style.borderColor = 'var(--border)';
                         btn.style.fontWeight = '600';
-                        if (hint) { hint.textContent = 'No'; hint.style.color = 'var(--text-muted)'; }
+                        btn.style.justifyContent = 'space-between';
+                        if (hint) { hint.textContent = 'No'; hint.style.color = 'var(--text-main)'; }
                     }
                 }
 
@@ -8797,7 +8798,7 @@ Generado por Sistema Horarios
                         if (!btn) return;
 
                         const configs = [
-                            { texto: 'Sin automatizar', hint: '', bg: '', color: 'var(--text-muted)', border: 'var(--border)', fw: '600' },
+                            { texto: 'Sin automatizar', hint: '', bg: '', color: 'var(--text-main)', border: 'var(--border)', fw: '600' },
                             { texto: 'Restaurar', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' },
                             { texto: 'Respaldar', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' }
                         ];
@@ -8954,15 +8955,29 @@ Generado por Sistema Horarios
                                 await gistMergeAplicar(GistSync.getMergeBehavior(), true);
                             } else {
                                 // Manual: mostrar modal de análisis
+                                // Detectar cambios de configuración
+                                const configCambios = [];
+                                if (Array.isArray(data.diasHabiles)) {
+                                    const diasGist = [...data.diasHabiles].sort().join(',');
+                                    const diasLocal = [...D.diasHabiles()].sort().join(',');
+                                    if (diasGist !== diasLocal) configCambios.push('días laborales');
+                                }
+                                if (data.horasDiarias != null && parseFloat(data.horasDiarias) !== D.horasDiarias()) {
+                                    configCambios.push(`horas diarias (${D.horasDiarias()}h → ${parseFloat(data.horasDiarias)}h)`);
+                                }
+
                                 const resumenEl = document.getElementById('gist-merge-resumen');
                                 if (resumenEl) {
                                     resumenEl.innerHTML =
-                                        `<div style="margin-bottom:0.75rem">` +
+                                        `<div>` +
                                         `<div><svg class="icon"><use href="#icon-cloud"/></svg> En Gist <strong style="color:var(--c-green)">${soloEnGist.length}</strong> registro${soloEnGist.length !== 1 ? 's' : ''} nuevos</div>` +
                                         `<div><svg class="icon"><use href="#icon-combine"/></svg> En ambos <strong>${enAmbos.length}</strong> registro${enAmbos.length !== 1 ? 's' : ''} (por fecha)</div>` +
                                         `<div><svg class="icon"><use href="#icon-save"/></svg> Local <strong>${soloLocal.length}</strong> registro${soloLocal.length !== 1 ? 's' : ''} no subidos</div>` +
                                         `</div>` +
-                                        `<div style="font-size:0.8rem; color:var(--text-muted)">` +
+                                        (configCambios.length > 0
+                                            ? `<svg class="icon"><use href="#icon-settings"/></svg> Reemplazar cambiará: ${configCambios.join(', ')}</div>`
+                                            : `<svg class="icon"><use href="#icon-settings"/></svg> Sin cambios de configuración</div>`) +
+                                        `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.75rem">` +
                                         `<strong>Combinar</strong>: agrega ${soloEnGist.length} nuevo(s), mantiene los locales<br>` +
                                         `<strong>Reemplazar</strong>: usa los ${registrosNormalizados.length} registros del Gist` +
                                         `</div>`;
@@ -9920,16 +9935,12 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.62
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.63
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega contador al tiempo fuera
-    2) Se corrige bug al actualizar la ui si estaba selecioonado un año que no es el actual, se volvia al 
-    predeterminado
-    3) Se bloquean los botones de gist si no hay token ni id
-    4) Se agrega limite a la bajada de gist, max 2 X hora
-    5) se unifican funciones en el modulo de gist
+    1) Se agrega deteccion de cambio de configuracion en bajada de gist
+    2) cambios menores en presentacion
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
