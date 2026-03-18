@@ -1120,6 +1120,10 @@
             .btn-export:hover:not(:disabled),
             .btn-backup:hover:not(:disabled),
             .btn-edit:hover:not(:disabled),
+            #btn-toggle-fondo:hover:not(:disabled),
+            #btn-toggle-gist-backup:hover:not(:disabled),
+            #btn-toggle-gist-merge:hover:not(:disabled),
+            #btn-toggle-ignorar-tf:hover:not(:disabled),
             .registro-item:hover,
             .header-profile-btn:hover,
             .btn-perfil-select:hover,
@@ -1207,21 +1211,6 @@
             <line x1="3" y1="8" x2="21" y2="8"></line>
             <polyline points="7 20 3 16 7 12"></polyline>
             <line x1="21" y1="16" x2="3" y2="16"></line>
-        </symbol>
-        <symbol id="icon-replace-overwrite" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="8" width="16" height="8" rx="2"></rect>
-            <line x1="12" y1="2" x2="12" y2="8"></line>
-            <polyline points="9 5 12 8 15 5"></polyline>
-            <line x1="12" y1="16" x2="12" y2="22"></line>
-            <polyline points="9 19 12 22 15 19"></polyline>
-        </symbol>
-        <symbol id="icon-replace-cycle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 10c0-4.4 3.6-8 8-8s8 3.6 8 8"></path>
-            <polyline points="4 6 4 10 8 10"></polyline>
-            <path d="M20 14c0 4.4-3.6 8-8 8s-8-3.6-8-8"></path>
-            <polyline points="20 18 20 14 16 14"></polyline>
         </symbol>
         <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
@@ -1879,7 +1868,7 @@
                         </button>
                     </div>
                     <div id="gist-rango-horario"
-                        style="display:none; margin-top:0.5rem; gap:0.5rem; align-items:center;">
+                        style="max-height:0; overflow:hidden; transition:max-height 0.3s ease, opacity 0.3s ease; opacity:0; margin-top:0.5rem; gap:0.5rem; align-items:center; display:flex;">
                         <span style="font-size:0.85rem; color:var(--text-muted)">Desde</span>
                         <input type="time" id="gist-rango-desde"
                             style=" background:var(--bg-input); color:var(--text-main); font-size:0.9rem;" />
@@ -2057,7 +2046,7 @@
                     <svg class="icon">
                         <use href="#icon-replace-swap" />
                     </svg>
-                    Sobrescribir
+                    Reemplazar
                 </button>
                 <button class="btn-cancel" id="btn-volver-importar" onclick="UILogic.cerrarImportar()">
                     <svg class="icon">
@@ -2087,7 +2076,8 @@
             </div>
 
             <!-- Campos de rango (ocultos por defecto) -->
-            <div id="campos-rango-exportar" style="display: none;">
+            <div id="campos-rango-exportar"
+                style="max-height:0; overflow:hidden; transition:max-height 0.3s ease, opacity 0.3s ease; opacity:0; display:block;">
                 <div class="form-group">
                     <label>Desde</label>
                     <input type="date" id="export-fecha-desde" />
@@ -8397,7 +8387,7 @@ Generado por Sistema Horarios
 
                         // Ocultar campos de rango
                         const camposRango = document.getElementById('campos-rango-exportar');
-                        if (camposRango) camposRango.style.display = 'none';
+                        if (camposRango) { camposRango.style.maxHeight = '0'; camposRango.style.opacity = '0'; }
 
                         // Limpiar fechas
                         document.getElementById('export-fecha-desde').value = '';
@@ -8421,9 +8411,11 @@ Generado por Sistema Horarios
                     const camposRango = document.getElementById('campos-rango-exportar');
 
                     if (tipo === 'rango') {
-                        camposRango.style.display = 'block';
+                        camposRango.style.maxHeight = '200px';
+                        camposRango.style.opacity = '1';
                     } else {
-                        camposRango.style.display = 'none';
+                        camposRango.style.maxHeight = '0';
+                        camposRango.style.opacity = '0';
                     }
                 }
 
@@ -8820,7 +8812,9 @@ Generado por Sistema Horarios
 
                         // Mostrar/ocultar inputs de rango en estado 1 y 2
                         if (rangoEl) {
-                            rangoEl.style.display = (estado === 1 || estado === 2) ? 'flex' : 'none';
+                            const mostrar = estado === 1 || estado === 2;
+                            rangoEl.style.maxHeight = mostrar ? '60px' : '0';
+                            rangoEl.style.opacity = mostrar ? '1' : '0';
                         }
                     }
 
