@@ -1695,7 +1695,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.64</span>
+                    <span class="version-text">LUSHIBOSCA-7.65</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -8597,10 +8597,19 @@ Generado por Sistema Horarios
                     function actualizarEstadoBotonesGist() {
                         const token = document.getElementById('gist-token')?.value.trim() || '';
                         const gistId = document.getElementById('gist-id')?.value.trim() || '';
-                        const ambosCompletos = token !== '' && gistId !== '';
+                        const soloToken = token !== '';
+                        const ambosCompletos = token !== '' && gistId.length > 10;
 
-                        // Subir y Bajar: requieren ambos completos
-                        ['btn-gist-subir', 'btn-gist-bajar', 'btn-toggle-gist-backup'].forEach(id => {
+                        // Subir: solo requiere token (el ID se genera solo si está vacío)
+                        const btnSubir = document.getElementById('btn-gist-subir');
+                        if (btnSubir) {
+                            btnSubir.disabled = !soloToken;
+                            btnSubir.style.opacity = soloToken ? '1' : '0.4';
+                            btnSubir.style.cursor = soloToken ? '' : 'not-allowed';
+                        }
+
+                        // Bajar y Automatización: requieren ambos
+                        ['btn-gist-bajar', 'btn-toggle-gist-backup'].forEach(id => {
                             const btn = document.getElementById(id);
                             if (!btn) return;
                             btn.disabled = !ambosCompletos;
@@ -9937,7 +9946,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.64
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.65
     // ====================================================================
     
      - CAMBIOS:
@@ -9947,5 +9956,7 @@ Generado por Sistema Horarios
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
      y tocar el timer, al rehacer la accion, el timer sigue corriendo
+     2) en modo pwa desde una pc desktop, el boton reestablecer no funciona, hasta que se desbloquea
+     abriendo otro confirm de alguna funcion (por ejemplo: reemplazar, restaurar, etc)
      
     -->
