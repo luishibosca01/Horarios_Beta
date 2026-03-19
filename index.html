@@ -9276,8 +9276,8 @@ Generado por Sistema Horarios
                                 }, 2000);
                             }
                         } else if (_autoSyncEstado === 2) {
-                            // Estado 2: respaldo automático — máx 1 subida por hora
-                            if (GistSync.dentroDelRangoHorario() && !GistSync.superaLimite('subir', 1)) {
+                            // Estado 2: respaldo automático — máx 2 subidas por hora
+                            if (GistSync.dentroDelRangoHorario() && !GistSync.superaLimite('subir', 2)) {
                                 setTimeout(async () => {
                                     await gistSubir();
                                     GistSync.marcarSync('subir');
