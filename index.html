@@ -321,7 +321,7 @@
         #btn-toggle-gist-backup,
         #btn-toggle-gist-merge {
             justify-content: center;
-            padding: 0.75rem 1rem;
+            padding: 0.875rem 1rem;
             border: 1px solid var(--border);
             color: var(--text-main);
             transition: background 0.2s, color 0.2s, border-color 0.2s;
@@ -729,39 +729,8 @@
                 opacity: 1;
                 filter: blur(0);
             }
-        }
-
-        @keyframes fade-blur-out {
-            from {
-                opacity: 1;
-                filter: blur(0);
-                transform: scale(1);
-                background-color: var(--c-red)
-            }
-
-            to {
-                opacity: 0;
-                filter: blur(10px);
-                transform: scale(0.8);
-            }
-        }
-
-        /* Animación de pulso específica para la tarjeta (más suave) */
-        @keyframes pulse-card {
-            0% {
-                box-shadow: 0 0 0 0 rgba(192, 93, 118, 0.4);
-            }
-
-            70% {
-                box-shadow: 0 0 0 15px rgba(192, 93, 118, 0);
-                /* Expansión de la sombra */
-            }
-
-            100% {
-                box-shadow: 0 0 0 0 rgba(192, 93, 118, 0);
-            }
-        }
-
+        }        
+      
         @keyframes pulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(192, 93, 118, 0.4);
@@ -1702,7 +1671,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.65</span>
+                    <span class="version-text">LUSHIBOSCA-7.66</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1756,14 +1725,15 @@
                 <div class="form-group">
                     <label>Fondo</label>
                     <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()">
+                        <svg class="icon"><use href="#icon-moon"/></svg>
                         <span id="hint-fondo-label">Golden Gate</span>
                     </button>
                 </div>
                 <div class="form-group">
                     <label>Tiempo Fuera</label>
                     <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()">
+                        <svg class="icon"><use href="#icon-exit"/></svg>
                         <span>Ignorar calculo TF</span>
-                        <span id="hint-ignorar-tf">No</span>
                     </button>
                 </div>
                 <div class="form-group">
@@ -2479,23 +2449,6 @@
                     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
                 }
 
-                function constantTimeCompare(a, b) {
-                    // Convertir a strings si no lo son
-                    const strA = String(a);
-                    const strB = String(b);
-
-                    const maxLength = Math.max(strA.length, strB.length);
-                    let result = strA.length === strB.length ? 0 : 1;
-
-                    for (let i = 0; i < maxLength; i++) {
-                        const charA = i < strA.length ? strA.charCodeAt(i) : 0;
-                        const charB = i < strB.length ? strB.charCodeAt(i) : 0;
-                        result |= charA ^ charB;
-                    }
-
-                    return result === 0;
-                }
-
                 function validarRegistroSeguro(r) {
                     if (!r || typeof r !== 'object') return false;
                     if (Array.isArray(r) || r instanceof Date) return false;
@@ -2540,8 +2493,7 @@
                     validarFechaSegura,
                     validarHoraSegura,
                     generarIDSeguro,
-                    calcularHashSHA256,
-                    constantTimeCompare,
+                    calcularHashSHA256,                    
                     validarRegistroSeguro,
                     fechaLocalISO
                 };
@@ -6674,7 +6626,6 @@
 
                 function actualizarEstadoBotonIgnorarTF() {
                     const btn = document.getElementById('btn-toggle-ignorar-tf');
-                    const hint = document.getElementById('hint-ignorar-tf');
                     const activo = D.getIgnorarTiempoFuera();
                     if (!btn) return;
                     if (activo) {
@@ -6682,15 +6633,11 @@
                         btn.style.color = 'var(--c-green)';
                         btn.style.borderColor = 'var(--c-green)';
                         btn.style.fontWeight = 'bold';
-                        btn.style.justifyContent = 'space-between';
-                        if (hint) { hint.textContent = 'Sí'; hint.style.color = 'var(--c-green)'; }
                     } else {
                         btn.style.background = '';
                         btn.style.color = 'var(--text-main)';
                         btn.style.borderColor = 'var(--border)';
                         btn.style.fontWeight = '600';
-                        btn.style.justifyContent = 'space-between';
-                        if (hint) { hint.textContent = 'No'; hint.style.color = 'var(--text-main)'; }
                     }
                 }
 
@@ -9953,7 +9900,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.65
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.66
     // ====================================================================
     
      - CAMBIOS:
