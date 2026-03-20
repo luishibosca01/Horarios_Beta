@@ -679,12 +679,12 @@
         @keyframes slideDownFade {
             from {
                 opacity: 0;
-                transform: translateY(-32px) scale(0.97);
+                transform: translateY(-20px);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0) scale(1);
+                transform: translateY(0);
             }
         }
 
@@ -747,7 +747,7 @@
         }
 
         .animated-card {
-            animation: slideDownFade 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+            animation: slideDownFade 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
         }
 
         .toggle-hint,
@@ -1381,7 +1381,7 @@
                     <span class="toggle-hint" id="toggle-hint">Toca para ver la Semana</span>
                 </div>
             </div>
-            <div class="card animated-card" style="animation-delay: 0.12s;">
+            <div class="card animated-card" style="animation-delay: 0.1s;">
                 <h2 class="no-margin"
                     style="display: flex; justify-content: center; align-items: center; position: relative;">
                     <button class="filter-btn timer-btn" id="btn-timer-main" onclick="UILogic.toggleTimerBreakMain()"
@@ -1496,7 +1496,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card animated-card" style="animation-delay: 0.24s;">
+            <div class="card animated-card" style="animation-delay: 0.2s;">
                 <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleStats()">
                     <span style="display: flex; align-items: center; gap: 0.5rem;">
                         <svg class="icon">
@@ -1615,7 +1615,7 @@
                 </div>
             </div>
         </div>
-        <div class="card animated-card" style="animation-delay: 0.36s;">
+        <div class="card animated-card" style="animation-delay: 0.3s;">
             <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleHistorico()">
                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                     <svg class="icon">
