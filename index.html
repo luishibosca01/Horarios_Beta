@@ -459,6 +459,8 @@
             height: 100%;
             background: var(--bg-card);
             transition: width 0.5s;
+            position: relative;
+            overflow: hidden;
         }
 
         .progress-fill.blue {
@@ -479,6 +481,22 @@
 
         .progress-fill.gold {
             background: var(--c-gold) !important;
+        }
+
+        .progress-fill.shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -60%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+            animation: shimmer 5s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%   { left: -80%; }
+            20%  { left: 130%; }
+            100% { left: 130%; }
         }
 
         /* --- Lista de Registros --- */
@@ -5284,6 +5302,7 @@
                     if (!progressEl) return;
                     progressEl.className = 'progress-fill';
                     progressEl.classList.add(status);
+                    if (status === 'blue') progressEl.classList.add('shimmer');
                 }
 
                 function crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy) {
@@ -9916,8 +9935,8 @@ Generado por Sistema Horarios
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega "sin fondo" a las opciones de fondo
-    2) cambios menores en la vista semanal
+    1) Se agrega shimmer a la barra de progreso
+    2) limpieza de codigo en desuso
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
