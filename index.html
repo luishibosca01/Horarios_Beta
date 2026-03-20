@@ -459,6 +459,8 @@
             height: 100%;
             background: var(--bg-card);
             transition: width 0.5s;
+            position: relative;
+            overflow: hidden;
         }
 
         .progress-fill.blue {
@@ -479,6 +481,21 @@
 
         .progress-fill.gold {
             background: var(--c-gold) !important;
+        }
+
+        .progress-fill.shimmer::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -60%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+            animation: shimmer 2.5s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%   { left: -60%; }
+            100% { left: 120%; }
         }
 
         /* --- Lista de Registros --- */
@@ -582,8 +599,16 @@
         }
 
         .modal-content {
+            transform: translateY(24px) scale(0.96);
+            transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+            opacity: 0;
             max-width: 450px;
             width: 100%;
+        }
+
+        .modal.show .modal-content {
+            transform: translateY(0) scale(1);
+            opacity: 1;
         }
 
         /* Modal config scrollable con header y footer sticky */
@@ -671,12 +696,12 @@
         @keyframes slideDownFade {
             from {
                 opacity: 0;
-                transform: translateY(-20px);
+                transform: translateY(-32px) scale(0.97);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
             }
         }
 
@@ -770,7 +795,7 @@
         }
 
         .animated-card {
-            animation: slideDownFade 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) backwards;
+            animation: slideDownFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
         }
 
         .toggle-hint,
@@ -907,8 +932,6 @@
             width: auto;
             max-width: 160px;
         }
-
-
 
         .header-profile-btn span {
             white-space: nowrap;
@@ -1397,7 +1420,7 @@
                     <span class="toggle-hint" id="toggle-hint">Toca para ver la Semana</span>
                 </div>
             </div>
-            <div class="card animated-card" style="animation-delay: 0.1s;">
+            <div class="card animated-card" style="animation-delay: 0.12s;">
                 <h2 class="no-margin"
                     style="display: flex; justify-content: center; align-items: center; position: relative;">
                     <button class="filter-btn timer-btn" id="btn-timer-main" onclick="UILogic.toggleTimerBreakMain()"
@@ -1512,7 +1535,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card animated-card" style="animation-delay: 0.2s;">
+            <div class="card animated-card" style="animation-delay: 0.24s;">
                 <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleStats()">
                     <span style="display: flex; align-items: center; gap: 0.5rem;">
                         <svg class="icon">
@@ -1631,7 +1654,7 @@
                 </div>
             </div>
         </div>
-        <div class="card animated-card" style="animation-delay: 0.3s;">
+        <div class="card animated-card" style="animation-delay: 0.36s;">
             <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleHistorico()">
                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                     <svg class="icon">
@@ -5313,6 +5336,7 @@
                     if (!progressEl) return;
                     progressEl.className = 'progress-fill';
                     progressEl.classList.add(status);
+                    if (status === 'blue') progressEl.classList.add('shimmer');
                 }
 
                 function crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy) {
@@ -9276,8 +9300,8 @@ Generado por Sistema Horarios
                                 }, 2000);
                             }
                         } else if (_autoSyncEstado === 2) {
-                            // Estado 2: respaldo automático — máx 2 subidas por hora
-                            if (GistSync.dentroDelRangoHorario() && !GistSync.superaLimite('subir', 2)) {
+                            // Estado 2: respaldo automático — máx 1 subida por hora
+                            if (GistSync.dentroDelRangoHorario() && !GistSync.superaLimite('subir', 1)) {
                                 setTimeout(async () => {
                                     await gistSubir();
                                     GistSync.marcarSync('subir');
