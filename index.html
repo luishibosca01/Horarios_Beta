@@ -459,8 +459,6 @@
             height: 100%;
             background: var(--bg-card);
             transition: width 0.5s;
-            position: relative;
-            overflow: hidden;
         }
 
         .progress-fill.blue {
@@ -481,21 +479,6 @@
 
         .progress-fill.gold {
             background: var(--c-gold) !important;
-        }
-
-        .progress-fill.shimmer::after {
-            content: '';
-            position: absolute;
-            top: 0; left: -60%;
-            width: 50%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
-            animation: shimmer 2.5s ease-in-out infinite;
-        }
-
-        @keyframes shimmer {
-            0%   { left: -60%; }
-            100% { left: 120%; }
         }
 
         /* --- Lista de Registros --- */
@@ -609,7 +592,7 @@
         .modal.show .modal-content {
             transform: translateY(0) scale(1);
             opacity: 1;
-        }
+        } 
 
         /* Modal config scrollable con header y footer sticky */
         #modal-config .modal-content {
@@ -698,7 +681,6 @@
                 opacity: 0;
                 transform: translateY(-32px) scale(0.97);
             }
-
             to {
                 opacity: 1;
                 transform: translateY(0) scale(1);
@@ -795,7 +777,7 @@
         }
 
         .animated-card {
-            animation: slideDownFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+            animation: slideDownFade 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
         }
 
         .toggle-hint,
@@ -932,6 +914,8 @@
             width: auto;
             max-width: 160px;
         }
+
+
 
         .header-profile-btn span {
             white-space: nowrap;
@@ -5336,7 +5320,6 @@
                     if (!progressEl) return;
                     progressEl.className = 'progress-fill';
                     progressEl.classList.add(status);
-                    if (status === 'blue') progressEl.classList.add('shimmer');
                 }
 
                 function crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy) {
