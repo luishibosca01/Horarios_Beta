@@ -2858,7 +2858,7 @@
                             // Verificar que el historial no tenga más de 24 horas
                             const ahora = Date.now();
                             const tiempoTranscurrido = ahora - (historyData.timestamp || 0);
-                            const limiteEnMs = 2 * 24 * 60 * 60 * 1000;
+                            const limiteEnMs = 24 * 60 * 60 * 1000;
 
                             if (tiempoTranscurrido < limiteEnMs) {
                                 // Historial válido - restaurar
