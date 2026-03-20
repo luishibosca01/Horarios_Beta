@@ -592,7 +592,7 @@
         .modal.show .modal-content {
             transform: translateY(0) scale(1);
             opacity: 1;
-        } 
+        }
 
         /* Modal config scrollable con header y footer sticky */
         #modal-config .modal-content {
@@ -681,6 +681,7 @@
                 opacity: 0;
                 transform: translateY(-32px) scale(0.97);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0) scale(1);
@@ -729,8 +730,8 @@
                 opacity: 1;
                 filter: blur(0);
             }
-        }        
-      
+        }
+
         @keyframes pulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(192, 93, 118, 0.4);
@@ -1269,6 +1270,13 @@
             <path d="M7 11V7a5 5 0 0 1 10 0v4" class="icon-line" stroke="currentColor"></path>
             <line x1="12" y1="16" x2="12" y2="16.01" class="icon-line" stroke-width="3" stroke="currentColor"></line>
         </symbol>
+        <symbol id="icon-landscape" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="17" cy="6" r="2" />
+            <polyline points="1,20 7,10 11,15" />
+            <polyline points="9,20 14,9 19,20" />
+            <line x1="1" y1="20" x2="23" y2="20" />
+        </symbol>
         <symbol id="icon-stats" viewBox="0 0 24 24">
             <line x1="18" y1="20" x2="18" y2="10" class="icon-line" stroke="currentColor"></line>
             <line x1="12" y1="20" x2="12" y2="4" class="icon-line" stroke="currentColor"></line>
@@ -1725,14 +1733,18 @@
                 <div class="form-group">
                     <label>Fondo</label>
                     <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()">
-                        <svg class="icon"><use href="#icon-moon"/></svg>
+                        <svg class="icon">
+                            <use href="#icon-landscape" />
+                        </svg>
                         <span id="hint-fondo-label">Golden Gate</span>
                     </button>
                 </div>
                 <div class="form-group">
                     <label>Tiempo Fuera</label>
                     <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()">
-                        <svg class="icon"><use href="#icon-exit"/></svg>
+                        <svg class="icon">
+                            <use href="#icon-exit" />
+                        </svg>
                         <span>Ignorar calculo TF</span>
                     </button>
                 </div>
@@ -2493,7 +2505,7 @@
                     validarFechaSegura,
                     validarHoraSegura,
                     generarIDSeguro,
-                    calcularHashSHA256,                    
+                    calcularHashSHA256,
                     validarRegistroSeguro,
                     fechaLocalISO
                 };
