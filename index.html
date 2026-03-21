@@ -958,7 +958,7 @@
 
         .btn-perfil-badge {
             font-size: 0.8rem;
-            color: var(--c-green);
+            color: var(--text-muted);
         }
 
         .btn-perfil-edit {
@@ -1871,6 +1871,7 @@
                             <span id="hint-gist-backup">—</span>
                         </button>
                         <button id="btn-toggle-gist-merge" onclick="UILogic.toggleGistMerge()">
+                            <svg class="icon" id="icon-gist-merge"><use href="#icon-replace-swap"/></svg>
                             <span id="hint-gist-merge">Reemplazar</span>
                         </button>
                     </div>
@@ -2634,7 +2635,8 @@
                     return Object.entries(perfiles).map(([id, perfil]) => ({
                         id: id,
                         nombre: perfil.nombre,
-                        esActual: id === perfilActual
+                        esActual: id === perfilActual,
+                        totalRegistros: Array.isArray(perfil.registros) ? perfil.registros.length : 0
                     })).sort((a, b) => {
                         if (a.id === 'default') return -1;
                         if (b.id === 'default') return 1;
@@ -7642,12 +7644,12 @@ Generado por Sistema Horarios
 
                         infoSection.appendChild(nombreSpan);
 
-                        if (p.esActual) {
-                            const badge = document.createElement('div');
-                            badge.className = 'btn-perfil-badge';
-                            badge.textContent = '✓ Activo';
-                            infoSection.appendChild(badge);
-                        }
+                        const badge = document.createElement('div');
+                        badge.className = 'btn-perfil-badge';
+                        badge.style.color = p.esActual ? 'var(--c-green)' : '';
+                        const countText = `${p.totalRegistros} registro${p.totalRegistros !== 1 ? 's' : ''}`;
+                        badge.textContent = p.esActual ? `${countText} · Activo` : countText;
+                        infoSection.appendChild(badge);
 
                         const editBtn = document.createElement('button');
                         editBtn.className = 'btn-perfil-edit';
@@ -8781,8 +8783,10 @@ Generado por Sistema Horarios
 
                     function actualizarBotonGistMerge() {
                         const hint = document.getElementById('hint-gist-merge');
+                        const iconEl = document.getElementById('icon-gist-merge')?.querySelector('use');
                         const esMerge = GistSync.getMergeBehavior() === 'merge';
                         if (hint) hint.textContent = esMerge ? 'Combinar' : 'Reemplazar';
+                        if (iconEl) iconEl.setAttribute('href', esMerge ? '#icon-combine' : '#icon-replace-swap');
                     }
 
                     function toggleGistBackup() {
