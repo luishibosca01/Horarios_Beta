@@ -1697,7 +1697,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.67</span>
+                    <span class="version-text">LUSHIBOSCA-7.68</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -4934,6 +4934,8 @@
             const UILogic = (function (S, D, GistSync) {
 
                 let toastTimeout = null;
+                let _toastQueue = [];
+                let _toastRunning = false;
                 let intervaloPulsacion = null;
                 let timeoutInicial = null;
                 let edicionBloqueada = true;
@@ -4973,30 +4975,36 @@
                 }
 
                 function mostrarToast(mensaje, tipo = 'info') {
-                    const toast = $('toast');
                     const textoLimpio = S.sanitizeString(mensaje, 200);
+                    const ultimo = _toastQueue[_toastQueue.length - 1];
+                    const actual = _toastRunning ? $('toast')?.textContent : null;
+                    if ((ultimo && ultimo.mensaje === textoLimpio) || actual === textoLimpio) return;
+                    _toastQueue.push({ mensaje: textoLimpio, tipo });
+                    if (!_toastRunning) _procesarToastQueue();
+                }
 
-                    // Limpiar timeouts anteriores
-                    if (toastTimeout) {
-                        clearTimeout(toastTimeout);
-                        toastTimeout = null;
+                function _procesarToastQueue() {
+                    if (_toastQueue.length === 0) {
+                        _toastRunning = false;
+                        return;
                     }
+                    _toastRunning = true;
+                    const { mensaje, tipo } = _toastQueue.shift();
+                    const toast = $('toast');
 
-                    // Remover clase show si existe (para reset de animación)
                     toast.classList.remove('show');
-
-                    // Actualizar contenido y tipo
-                    toast.textContent = textoLimpio;
+                    toast.textContent = mensaje;
                     toast.className = `toast ${tipo}`;
 
-                    // Mostrar toast después de un pequeño delay (para permitir reset)
-                    setTimeout(() => toast.classList.add('show'), 10);
-
-                    // Programar ocultación
-                    toastTimeout = setTimeout(() => {
-                        toast.classList.remove('show');
-                        toastTimeout = null;
-                    }, 3000);
+                    setTimeout(() => {
+                        toast.classList.add('show');
+                        toastTimeout = setTimeout(() => {
+                            toast.classList.remove('show');
+                            toastTimeout = null;
+                            // Esperar a que termine la animación de salida antes del siguiente
+                            setTimeout(() => _procesarToastQueue(), 350);
+                        }, 2000);
+                    }, 10);
                 }
 
                 function resetearBoton(btn) {
@@ -9287,6 +9295,28 @@ Generado por Sistema Horarios
                     setInterval(() => actualizarUI(null, true), 60000);
                     console.log('Sistema iniciado correctamente');
 
+                    // Escape cierra el modal abierto simulando su botón cerrar/volver
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key !== 'Escape') return;
+                        const modal = document.querySelector('.modal.show');
+                        if (!modal) return;
+                        e.preventDefault();
+                        const acciones = {
+                            'modal-gist':          () => cerrarModalGist(),
+                            'modal-gist-merge':    () => gistMergeCancelar(),
+                            'modal-config':        () => UILogic.cerrarConfig(),
+                            'modal-selector-perfiles': () => UILogic.cerrarSelectorPerfiles(),
+                            'modal-editar':        () => UILogic.cerrarEdicion(),
+                            'modal-importar':      () => UILogic.cerrarImportar(),
+                            'modal-exportar':      () => UILogic.cerrarExportar(),
+                            'modal-filtros':       () => UILogic.cerrarFiltros(),
+                            'modal-editar-perfil': () => UILogic.cerrarEditorPerfil(),
+                            'modal-editar-grupo':  () => UILogic.cerrarEdicionGrupo(),
+                        };
+                        const accion = acciones[modal.id];
+                        if (accion) accion();
+                    });
+
                     // ===================================
                     // EVENT DELEGATION - LISTA REGISTROS
                     // ===================================
@@ -9944,12 +9974,15 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.67
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.68
     // ====================================================================
     
      - CAMBIOS:
     1) Se agrega shimmer a la barra de progreso
     2) limpieza de codigo en desuso
+    3) se agrega cola a la funcion mostrartoast, ahora los toast consecutivos no se pisan y esperan
+    a que termine el anterior
+    4) Se agrega listener para tecla escape para cerrar los modales
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
