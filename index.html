@@ -1701,7 +1701,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.70</span>
+                    <span class="version-text">LUSHIBOSCA-7.71</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2339,7 +2339,7 @@
                         <svg class="icon">
                             <use href="#icon-help" />
                         </svg>
-                        <span id="modal-confirmar-titulo">Confirmar</span>
+                        <span id="modal-confirmar-titulo">Atención</span>
                     </span>
                 </h3>
             </div>
@@ -2357,7 +2357,7 @@
                     </button>
                     <button class="btn-cancel" id="modal-confirmar-cancel">
                         <svg class="icon">
-                            <use href="#icon-undo" />
+                            <use href="#icon-cancelar" />
                         </svg>
                         Cancelar
                     </button>
@@ -4223,11 +4223,11 @@
                                 const hashCalculado = await S.calcularHashSHA256(data.registros);
                                 if (hashCalculado !== data.hash) {
                                     UILogic.mostrarToast('⚠️ El archivo puede estar corrupto o modificado', 'warning');
-                                    const continuar = await confirmarModal('El hash de integridad no coincide. El archivo puede haber sido modificado o corrompido. ¿Importar de todas formas?', 'Importar', '#icon-upload');
+                                    const continuar = await confirmarModal('El hash de integridad no coincide. El archivo puede haber sido modificado o corrompido. ¿Restaurar de todas formas?', 'Restaurar', '#icon-upload');
                                     if (!continuar) return;
                                 }
                             } else {
-                                const continuar = await confirmarModal('Este archivo no tiene verificación de integridad. Puede ser un backup antiguo o haber sido modificado externamente. ¿Importar de todas formas?', 'Importar', '#icon-upload');
+                                const continuar = await confirmarModal('Este archivo no tiene verificación de integridad. Puede ser un backup antiguo o haber sido modificado externamente. ¿Restaurar de todas formas?', 'Restaurar', '#icon-upload');
                                 if (!continuar) return;
                             }
 
@@ -5661,30 +5661,13 @@
                     return Math.sqrt(varianza);
                 }
 
-                function calcularEstadisticasMes(mesAnio = null) {
-                    // Si no se especifica mes, usar el actual
-                    let mesActual, añoActual;
+                function _calcularEstadisticasRango(registrosRango, opciones = {}) {
+                    const { incluirSemanaPasada = false, regularidadPorMes = false } = opciones;
 
-                    if (mesAnio) {
-                        const [año, mes] = mesAnio.split('-').map(Number);
-                        añoActual = año;
-                        mesActual = mes - 1;
-                    } else {
-                        const hoy = new Date();
-                        mesActual = hoy.getMonth();
-                        añoActual = hoy.getFullYear();
-                    }
-
-                    const registrosMes = D.registros().filter(r => {
-                        const [año, mes] = r.fecha.split('-').map(Number);
-                        return año === añoActual && mes === mesActual + 1;
-                    });
-
-                    // Contadores básicos usando tipos centralizados
                     const contarPorTipo = (tipoId) => {
                         const tipo = TiposRegistro.obtenerTipoPorId(tipoId);
                         if (!tipo) return 0;
-                        return registrosMes.filter(r => r.entrada === tipo.codigo && r.salida === tipo.codigo).length;
+                        return registrosRango.filter(r => r.entrada === tipo.codigo && r.salida === tipo.codigo).length;
                     };
 
                     const feriados = contarPorTipo('feriado');
@@ -5695,282 +5678,213 @@
                     const paros = contarPorTipo('paro');
                     const remotos = contarPorTipo('remoto');
                     const capacitaciones = contarPorTipo('capacitacion');
+                    const compensaciones = registrosRango.filter(r => r.credito && r.credito !== '00:00').length;
 
-                    // Contar Compensaciones/Asuetos parciales (días con crédito válido)
-                    const compensaciones = registrosMes.filter(r => r.credito && r.credito !== '00:00').length;
-
-                    // Calcular tiempo fuera total
                     let tiempoFueraTotalMinutos = 0;
-                    registrosMes.forEach(r => {
+                    registrosRango.forEach(r => {
                         if (r.tiempoFuera && r.tiempoFuera !== '00:00') {
                             const [h, m] = r.tiempoFuera.split(':').map(Number);
-                            if (!isNaN(h) && !isNaN(m)) {
-                                tiempoFueraTotalMinutos += (h * 60) + m;
-                            }
+                            if (!isNaN(h) && !isNaN(m)) tiempoFueraTotalMinutos += (h * 60) + m;
                         }
                     });
-
                     const hTiempoFuera = Math.floor(tiempoFueraTotalMinutos / 60);
                     const mTiempoFuera = tiempoFueraTotalMinutos % 60;
 
-                    // CALCULAR SEMANA PASADA (siempre, independiente de si hay registros del mes)
-                    const hoy = new Date();
-                    hoy.setHours(0, 0, 0, 0);
-
-                    const diaSemana = hoy.getDay();
-                    const offsetLunesActual = diaSemana === 0 ? -6 : 1 - diaSemana;
-
-                    const lunesActual = new Date(hoy);
-                    lunesActual.setDate(hoy.getDate() + offsetLunesActual);
-
-                    const lunesPasado = new Date(lunesActual);
-                    lunesPasado.setDate(lunesActual.getDate() - 7);
-
-                    const domingoPasado = new Date(lunesActual);
-                    domingoPasado.setDate(lunesActual.getDate() - 1);
-
-                    const inicioSemanaPasada = `${lunesPasado.getFullYear()}-${String(lunesPasado.getMonth() + 1).padStart(2, '0')}-${String(lunesPasado.getDate()).padStart(2, '0')}`;
-                    const finSemanaPasada = `${domingoPasado.getFullYear()}-${String(domingoPasado.getMonth() + 1).padStart(2, '0')}-${String(domingoPasado.getDate()).padStart(2, '0')}`;
-
-                    const todosRegistrosSemanaPasada = D.registros().filter(r =>
-                        r.fecha >= inicioSemanaPasada && r.fecha <= finSemanaPasada
-                    );
-
-                    const normalesSemanaPasada = todosRegistrosSemanaPasada.filter(r => {
-                        const esEspecial = TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
-                        return r.entrada && r.salida && !esEspecial;
-                    });
-
-                    const especialesSemanaPasada = todosRegistrosSemanaPasada.filter(r =>
-                        TiposRegistro.esRegistroEspecial(r.entrada, r.salida)
-                    );
-
-                    const especialesPorTipo = {};
-                    especialesSemanaPasada.forEach(r => {
-                        const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-                        if (tipo) {
-                            if (!especialesPorTipo[tipo.labelPlural]) {
-                                especialesPorTipo[tipo.labelPlural] = 0;
-                            }
-                            especialesPorTipo[tipo.labelPlural]++;
+                    let textoSemanaPasada = null;
+                    if (incluirSemanaPasada) {
+                        const hoy = new Date();
+                        hoy.setHours(0, 0, 0, 0);
+                        const diaSemana = hoy.getDay();
+                        const offsetLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
+                        const lunesActual = new Date(hoy);
+                        lunesActual.setDate(hoy.getDate() + offsetLunes);
+                        const lunesPasado = new Date(lunesActual);
+                        lunesPasado.setDate(lunesActual.getDate() - 7);
+                        const domingoPasado = new Date(lunesActual);
+                        domingoPasado.setDate(lunesActual.getDate() - 1);
+                        const fmtDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                        const ini = fmtDate(lunesPasado);
+                        const fin = fmtDate(domingoPasado);
+                        const todosRegs = D.registros().filter(r => r.fecha >= ini && r.fecha <= fin);
+                        const normales = todosRegs.filter(r => r.entrada && r.salida && !TiposRegistro.esRegistroEspecial(r.entrada, r.salida));
+                        const especiales = todosRegs.filter(r => TiposRegistro.esRegistroEspecial(r.entrada, r.salida));
+                        const especialesPorTipo = {};
+                        especiales.forEach(r => {
+                            const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                            if (tipo) especialesPorTipo[tipo.labelPlural] = (especialesPorTipo[tipo.labelPlural] || 0) + 1;
+                        });
+                        let totalSP = normales.reduce((s, r) => s + r.total, 0);
+                        especiales.forEach(r => {
+                            const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                            if (tipo && tipo.id === 'remoto') totalSP += D.horasDiarias();
+                        });
+                        let hSP = Math.floor(totalSP);
+                        let mSP = Math.round((totalSP - hSP) * 60);
+                        if (mSP === 60) { hSP++; mSP = 0; }
+                        textoSemanaPasada = todosRegs.length > 0 ? `${hSP}h ${mSP}m` : '--:--';
+                        if (todosRegs.length > 0 && Object.keys(especialesPorTipo).length > 0) {
+                            const detalles = Object.entries(especialesPorTipo).map(([tp, cant]) => {
+                                const tipoObj = TiposRegistro.obtenerTodosLosTipos().find(t => t.labelPlural.toLowerCase() === tp.toLowerCase());
+                                const label = (cant === 1 && tipoObj) ? tipoObj.label : tp;
+                                return `${cant} ${cant === 1 ? 'dia de' : 'dias de'} ${label.toLowerCase()}`;
+                            }).join(', ');
+                            textoSemanaPasada += ` [${detalles}]`;
                         }
-                    });
-
-                    const horasDiariasObjetivo = D.horasDiarias();
-                    let totalSemanaPasada = normalesSemanaPasada.reduce((sum, r) => sum + r.total, 0);
-
-                    especialesSemanaPasada.forEach(r => {
-                        const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-                        if (tipo && tipo.id === 'remoto') {
-                            totalSemanaPasada += horasDiariasObjetivo;
-                        }
-                    });
-
-                    let hSemanaPasada = Math.floor(totalSemanaPasada);
-                    let mSemanaPasada = Math.round((totalSemanaPasada - hSemanaPasada) * 60);
-                    if (mSemanaPasada === 60) { hSemanaPasada++; mSemanaPasada = 0; }
-
-                    let textoSemanaPasada = todosRegistrosSemanaPasada.length > 0
-                        ? `${hSemanaPasada}h ${mSemanaPasada}m`
-                        : '--:--';
-
-                    if (todosRegistrosSemanaPasada.length > 0 && Object.keys(especialesPorTipo).length > 0) {
-                        const detalles = Object.entries(especialesPorTipo)
-                            .map(([tipoPlural, cant]) => {
-                                const tipoObj = TiposRegistro.obtenerTodosLosTipos().find(t =>
-                                    t.labelPlural.toLowerCase() === tipoPlural.toLowerCase()
-                                );
-                                const label = (cant === 1 && tipoObj) ? tipoObj.label : tipoPlural;
-                                const diasTexto = cant === 1 ? 'dia de' : 'dias de';
-                                return `${cant} ${diasTexto} ${label.toLowerCase()}`;
-                            })
-                            .join(', ');
-                        textoSemanaPasada += ` [${detalles}]`;
                     }
 
-                    // Filtrar solo registros válidos para promedios (excluir registros especiales)
-                    const registrosValidos = registrosMes.filter(r =>
-                        r.entrada && r.salida &&
-                        !TiposRegistro.esRegistroEspecial(r.entrada, r.salida)
+                    const registrosValidos = registrosRango.filter(r =>
+                        r.entrada && r.salida && !TiposRegistro.esRegistroEspecial(r.entrada, r.salida)
                     );
 
-                    if (registrosValidos.length === 0) {
-                        return {
-                            entradaPromedio: '--:--',
-                            salidaPromedio: '--:--',
-                            diasTrabajados: 0,
-                            promedioDiario: '--:--',
-                            tiempoFueraTotal: `--:--`,
-                            tiempoTotal: '0h 0m',
-                            semanaPasada: textoSemanaPasada,
-                            feriados: feriados,
-                            ausencias: ausencias,
-                            vacaciones: vacaciones,
-                            enfermedades: enfermedades,
-                            asuetosDiaCompleto: asuetosDiaCompleto,
-                            compensaciones: compensaciones,
-                            paros: paros,
-                            remotos: remotos,
-                            capacitaciones: capacitaciones,
-                            regularidadEntrada: '--',
-                            regularidadJornada: '--'
-                        };
-                    }
+                    const vacios = {
+                        entradaPromedio: '--:--', salidaPromedio: '--:--',
+                        diasTrabajados: 0, promedioDiario: '--:--',
+                        tiempoFueraTotal: '--:--', tiempoTotal: '0h 0m',
+                        semanaPasada: textoSemanaPasada,
+                        feriados, ausencias, vacaciones, enfermedades,
+                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
+                        regularidadEntrada: '--', regularidadJornada: '--'
+                    };
+                    if (registrosValidos.length === 0) return vacios;
 
-                    // Cálculos de promedios (Entrada)
-                    let sumaMinutosEntrada = 0;
-                    registrosValidos.forEach(r => {
-                        const [h, m] = r.entrada.split(':').map(Number);
-                        sumaMinutosEntrada += h * 60 + m;
-                    });
-                    const promedioEntrada = Math.round(sumaMinutosEntrada / registrosValidos.length);
-                    const hEntrada = Math.floor(promedioEntrada / 60);
-                    const mEntrada = promedioEntrada % 60;
+                    const toMin = str => { const [h, m] = str.split(':').map(Number); return h * 60 + m; };
+                    const avgMin = arr => Math.round(arr.reduce((s, v) => s + v, 0) / arr.length);
+                    const promedioEntrada = avgMin(registrosValidos.map(r => toMin(r.entrada)));
+                    const promedioSalida = avgMin(registrosValidos.map(r => toMin(r.salida)));
 
-                    // Cálculos de promedios (Salida)
-                    let sumaMinutosSalida = 0;
-                    registrosValidos.forEach(r => {
-                        const [h, m] = r.salida.split(':').map(Number);
-                        sumaMinutosSalida += h * 60 + m;
-                    });
-                    const promedioSalida = Math.round(sumaMinutosSalida / registrosValidos.length);
-                    const hSalida = Math.floor(promedioSalida / 60);
-                    const mSalida = promedioSalida % 60;
-
-                    // Promedio horas diarias
-                    const totalHoras = registrosValidos.reduce((sum, r) => sum + r.total, 0);
-                    const promedioDiario = totalHoras / registrosValidos.length;
-                    let hPromedio = Math.floor(promedioDiario);
-                    let mPromedio = Math.round((promedioDiario - hPromedio) * 60);
+                    const totalHoras = registrosValidos.reduce((s, r) => s + r.total, 0);
+                    const promDiario = totalHoras / registrosValidos.length;
+                    let hPromedio = Math.floor(promDiario);
+                    let mPromedio = Math.round((promDiario - hPromedio) * 60);
                     if (mPromedio === 60) { hPromedio++; mPromedio = 0; }
-
                     let hTotal = Math.floor(totalHoras);
                     let mTotal = Math.round((totalHoras - hTotal) * 60);
                     if (mTotal === 60) { hTotal++; mTotal = 0; }
 
-                    // Regularidad entrada
-                    const minutosEntrada = registrosValidos.map(r => {
-                        const [h, m] = r.entrada.split(':').map(Number);
-                        return h * 60 + m;
-                    });
-                    const desEntrada = desviacionEstandar(minutosEntrada);
-
-                    // Regularidad jornada (en horas decimales → convertir a minutos)
-                    const minutosJornada = registrosValidos.map(r => Math.round(r.total * 60));
-                    const desJornada = desviacionEstandar(minutosJornada);
+                    let regEntrada, regJornada;
+                    if (regularidadPorMes) {
+                        const meses = [...new Set(registrosValidos.map(r => r.fecha.substring(0, 7)))];
+                        const desE = [], desJ = [];
+                        meses.forEach(mes => {
+                            const regs = registrosValidos.filter(r => r.fecha.startsWith(mes));
+                            if (regs.length >= 2) {
+                                const dE = desviacionEstandar(regs.map(r => toMin(r.entrada)));
+                                const dJ = desviacionEstandar(regs.map(r => Math.round(r.total * 60)));
+                                if (dE !== null) desE.push(dE);
+                                if (dJ !== null) desJ.push(dJ);
+                            }
+                        });
+                        regEntrada = calcularRegularidad(desE.length > 0 ? desE.reduce((a, b) => a + b, 0) / desE.length : null);
+                        regJornada = calcularRegularidad(desJ.length > 0 ? desJ.reduce((a, b) => a + b, 0) / desJ.length : null);
+                    } else {
+                        regEntrada = calcularRegularidad(desviacionEstandar(registrosValidos.map(r => toMin(r.entrada))));
+                        regJornada = calcularRegularidad(desviacionEstandar(registrosValidos.map(r => Math.round(r.total * 60))));
+                    }
 
                     return {
-                        entradaPromedio: `${String(hEntrada).padStart(2, '0')}:${String(mEntrada).padStart(2, '0')}`,
-                        salidaPromedio: `${String(hSalida).padStart(2, '0')}:${String(mSalida).padStart(2, '0')}`,
+                        entradaPromedio: `${String(Math.floor(promedioEntrada / 60)).padStart(2, '0')}:${String(promedioEntrada % 60).padStart(2, '0')}`,
+                        salidaPromedio: `${String(Math.floor(promedioSalida / 60)).padStart(2, '0')}:${String(promedioSalida % 60).padStart(2, '0')}`,
                         diasTrabajados: registrosValidos.length,
                         promedioDiario: `${hPromedio}h ${mPromedio}m`,
                         tiempoFueraTotal: `${hTiempoFuera}h ${mTiempoFuera}m`,
                         tiempoTotal: `${hTotal}h ${mTotal}m`,
                         semanaPasada: textoSemanaPasada,
-                        feriados: feriados,
-                        ausencias: ausencias,
-                        vacaciones: vacaciones,
-                        enfermedades: enfermedades,
-                        asuetosDiaCompleto: asuetosDiaCompleto,
-                        compensaciones: compensaciones,
-                        paros: paros,
-                        remotos: remotos,
-                        capacitaciones: capacitaciones,
-                        regularidadEntrada: calcularRegularidad(desEntrada),
-                        regularidadJornada: calcularRegularidad(desJornada)
+                        feriados, ausencias, vacaciones, enfermedades,
+                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
+                        regularidadEntrada: regEntrada,
+                        regularidadJornada: regJornada
                     };
+                }
+
+                function _renderizarStats(stats, opciones = {}) {
+                    const { mostrarSemanaPasada = false, mostrarRegularidad = true, mostrarBtnReporte = true } = opciones;
+
+                    const set = (id, val) => { const el = $(id); if (el) el.textContent = val; };
+                    set('stat-entrada-promedio', stats.entradaPromedio);
+                    set('stat-salida-promedio', stats.salidaPromedio);
+                    set('stat-tiempo-fuera-total', stats.tiempoFueraTotal);
+                    set('stat-tiempo-total', stats.tiempoTotal);
+
+                    const sep = $('stat-separador-semana');
+                    const spItem = $('stat-item-semana-pasada');
+                    const elSP = $('stat-semana-pasada');
+                    if (mostrarSemanaPasada && stats.semanaPasada && stats.semanaPasada !== '--:--') {
+                        if (sep) sep.style.display = '';
+                        if (spItem) spItem.style.display = '';
+                        if (elSP) elSP.textContent = stats.semanaPasada;
+                    } else {
+                        if (sep) sep.style.display = 'none';
+                        if (spItem) spItem.style.display = 'none';
+                    }
+
+                    const toggleStatItem = (id, value) => {
+                        const el = $(id); if (!el) return;
+                        const si = el.closest('.stat-item');
+                        if (si) { if (value === 0) { si.style.display = 'none'; } else { si.style.display = ''; el.textContent = value; } }
+                    };
+                    toggleStatItem('stat-dias-trabajados', stats.diasTrabajados);
+                    toggleStatItem('stat-feriados', stats.feriados);
+                    toggleStatItem('stat-ausencias', stats.ausencias);
+                    toggleStatItem('stat-vacaciones', stats.vacaciones);
+                    toggleStatItem('stat-enfermedades', stats.enfermedades);
+                    toggleStatItem('stat-asuetos-dia', stats.asuetosDiaCompleto);
+                    toggleStatItem('stat-compensaciones', stats.compensaciones);
+                    toggleStatItem('stat-paros', stats.paros);
+                    toggleStatItem('stat-remotos', stats.remotos);
+                    toggleStatItem('stat-capacitaciones', stats.capacitaciones);
+
+                    const elProm = $('stat-promedio-diario');
+                    if (elProm) {
+                        const si = elProm.closest('.stat-item');
+                        if (si) { if (stats.promedioDiario === '--:--') { si.style.display = 'none'; } else { si.style.display = ''; elProm.textContent = stats.promedioDiario; } }
+                    }
+
+                    const showHide = (id, show, val) => {
+                        const el = $(id); if (!el) return;
+                        const si = el.closest('.stat-item');
+                        if (si) { if (show) { si.style.display = ''; el.textContent = val || '--'; } else { si.style.display = 'none'; } }
+                    };
+                    showHide('stat-regularidad-entrada', mostrarRegularidad, stats.regularidadEntrada);
+                    showHide('stat-regularidad-jornada', mostrarRegularidad, stats.regularidadJornada);
+
+                    const btnReporte = document.getElementById('btn-reporte');
+                    if (btnReporte) {
+                        btnReporte.disabled = !mostrarBtnReporte;
+                        btnReporte.style.opacity = mostrarBtnReporte ? '' : '0.4';
+                        btnReporte.style.cursor = mostrarBtnReporte ? '' : 'not-allowed';
+                    }
+                }
+
+                function calcularEstadisticasMes(mesAnio = null) {
+                    let mesActual, añoActual;
+                    if (mesAnio) {
+                        const [año, mes] = mesAnio.split('-').map(Number);
+                        añoActual = año; mesActual = mes - 1;
+                    } else {
+                        const hoy = new Date();
+                        mesActual = hoy.getMonth(); añoActual = hoy.getFullYear();
+                    }
+                    const registros = D.registros().filter(r => {
+                        const [a, m] = r.fecha.split('-').map(Number);
+                        return a === añoActual && m === mesActual + 1;
+                    });
+                    return _calcularEstadisticasRango(registros, { incluirSemanaPasada: true, regularidadPorMes: false });
                 }
 
                 function actualizarEstadisticas(mesAnio = null) {
                     const selectMes = $('select-mes-stats');
-
-                    if (!mesAnio && selectMes) {
-                        mesAnio = selectMes.value;
-                    }
-
+                    if (!mesAnio && selectMes) mesAnio = selectMes.value;
                     if (mesAnio && selectMes) {
                         const [año, mes] = mesAnio.split('-').map(Number);
-                        const registrosDelMes = D.registros().filter(r => {
-                            const [aReg, mReg] = r.fecha.split('-').map(Number);
-                            return aReg === año && mReg === mes;
-                        });
-
-                        if (registrosDelMes.length === 0) {
+                        const tieneRegs = D.registros().some(r => { const [a, m] = r.fecha.split('-').map(Number); return a === año && m === mes; });
+                        if (!tieneRegs) {
                             const hoy = new Date();
                             mesAnio = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
                             if (selectMes) selectMes.value = mesAnio;
                         }
                     }
-
                     const stats = calcularEstadisticasMes(mesAnio);
-
-                    const elEntrada = $('stat-entrada-promedio');
-                    const elSalida = $('stat-salida-promedio');
-                    const elDias = $('stat-dias-trabajados');
-                    const elPromedio = $('stat-promedio-diario');
-                    const elSemanaPasada = $('stat-semana-pasada');
-                    const elTiempoFueraTotal = $('stat-tiempo-fuera-total');
-                    const elTiempoTotal = $('stat-tiempo-total');
-                    const elFeriados = $('stat-feriados');
-                    const elAusencias = $('stat-ausencias');
-                    const elVacaciones = $('stat-vacaciones');
-                    const elEnfermedades = $('stat-enfermedades');
-                    const elAsuetosDia = $('stat-asuetos-dia');
-                    const elCompensaciones = $('stat-compensaciones');
-                    const elParos = $('stat-paros');
-                    const elRemotos = $('stat-remotos');
-                    const elCapacitaciones = $('stat-capacitaciones');
-
-                    if (elEntrada) elEntrada.textContent = stats.entradaPromedio;
-                    if (elSalida) elSalida.textContent = stats.salidaPromedio;
-                    if (elDias) elDias.textContent = stats.diasTrabajados;
-                    if (elPromedio) elPromedio.textContent = stats.promedioDiario;
-                    if (elSemanaPasada) {
-                        const statItemSP = elSemanaPasada.closest('.stat-item');
-                        const sepSP = $('stat-separador-semana');
-                        if (stats.semanaPasada === '--:--') {
-                            if (statItemSP) statItemSP.style.display = 'none';
-                            if (sepSP) sepSP.style.display = 'none';
-                        } else {
-                            if (statItemSP) statItemSP.style.display = '';
-                            if (sepSP) sepSP.style.display = '';
-                            elSemanaPasada.textContent = stats.semanaPasada;
-                        }
-                    }
-                    if (elTiempoFueraTotal) elTiempoFueraTotal.textContent = stats.tiempoFueraTotal;
-                    if (elTiempoTotal) elTiempoTotal.textContent = stats.tiempoTotal;
-
-                    const toggleStatItem = (element, value) => {
-                        if (!element) return;
-                        const statItem = element.closest('.stat-item');
-                        if (statItem) {
-                            if (value === 0) {
-                                statItem.style.display = 'none';
-                            } else {
-                                statItem.style.display = '';
-                                element.textContent = value;
-                            }
-                        }
-                    };
-
-                    toggleStatItem(elDias, stats.diasTrabajados);
-                    toggleStatItem(elFeriados, stats.feriados);
-                    toggleStatItem(elAusencias, stats.ausencias);
-                    toggleStatItem(elVacaciones, stats.vacaciones);
-                    toggleStatItem(elEnfermedades, stats.enfermedades);
-                    toggleStatItem(elAsuetosDia, stats.asuetosDiaCompleto);
-                    toggleStatItem(elCompensaciones, stats.compensaciones);
-                    toggleStatItem(elParos, stats.paros);
-                    toggleStatItem(elRemotos, stats.remotos);
-                    toggleStatItem(elCapacitaciones, stats.capacitaciones);
-
-                    const elRegEntrada = $('stat-regularidad-entrada');
-                    const elRegJornada = $('stat-regularidad-jornada');
-                    const btnReporte = document.getElementById('btn-reporte');
-                    if (elRegEntrada) elRegEntrada.textContent = stats.regularidadEntrada || '--';
-                    if (elRegJornada) elRegJornada.textContent = stats.regularidadJornada || '--';
-                    if (btnReporte) { btnReporte.disabled = false; btnReporte.style.opacity = ''; btnReporte.style.cursor = ''; }
-
+                    _renderizarStats(stats, { mostrarSemanaPasada: true, mostrarRegularidad: true, mostrarBtnReporte: true });
                 }
 
                 function _perfilKey(base) {
@@ -6832,116 +6746,11 @@
                     ModalManager.alternar('modal-importar', _modalAbiertoDesdeLista ? null : 'modal-config');
                     _modalAbiertoDesdeLista = false;
                 }
+
                 function calcularEstadisticasAnio(anio) {
                     const anioNum = parseInt(anio);
-                    const registrosAnio = D.registros().filter(r => {
-                        const [a] = r.fecha.split('-').map(Number);
-                        return a === anioNum;
-                    });
-
-                    const contarPorTipo = (tipoId) => {
-                        const tipo = TiposRegistro.obtenerTipoPorId(tipoId);
-                        if (!tipo) return 0;
-                        return registrosAnio.filter(r => r.entrada === tipo.codigo && r.salida === tipo.codigo).length;
-                    };
-
-                    const feriados = contarPorTipo('feriado');
-                    const ausencias = contarPorTipo('ausencia');
-                    const vacaciones = contarPorTipo('vacaciones');
-                    const enfermedades = contarPorTipo('enfermedad');
-                    const asuetosDiaCompleto = contarPorTipo('asueto');
-                    const paros = contarPorTipo('paro');
-                    const remotos = contarPorTipo('remoto');
-                    const capacitaciones = contarPorTipo('capacitacion');
-                    const compensaciones = registrosAnio.filter(r => r.credito && r.credito !== '00:00').length;
-
-                    let tiempoFueraTotalMinutos = 0;
-                    registrosAnio.forEach(r => {
-                        if (r.tiempoFuera && r.tiempoFuera !== '00:00') {
-                            const [h, m] = r.tiempoFuera.split(':').map(Number);
-                            if (!isNaN(h) && !isNaN(m)) tiempoFueraTotalMinutos += (h * 60) + m;
-                        }
-                    });
-                    const hTiempoFuera = Math.floor(tiempoFueraTotalMinutos / 60);
-                    const mTiempoFuera = tiempoFueraTotalMinutos % 60;
-
-                    const registrosValidos = registrosAnio.filter(r =>
-                        r.entrada && r.salida && !TiposRegistro.esRegistroEspecial(r.entrada, r.salida)
-                    );
-
-                    if (registrosValidos.length === 0) {
-                        return {
-                            entradaPromedio: '--:--', salidaPromedio: '--:--',
-                            diasTrabajados: 0, promedioDiario: '--:--',
-                            tiempoFueraTotal: '--:--', tiempoTotal: '0h 0m',
-                            semanaPasada: null,
-                            feriados, ausencias, vacaciones, enfermedades,
-                            asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
-                            regularidadEntrada: '--', regularidadJornada: '--'
-                        };
-                    }
-
-                    let sumaMinutosEntrada = 0;
-                    registrosValidos.forEach(r => {
-                        const [h, m] = r.entrada.split(':').map(Number);
-                        sumaMinutosEntrada += h * 60 + m;
-                    });
-                    const promedioEntrada = Math.round(sumaMinutosEntrada / registrosValidos.length);
-                    const hEntrada = Math.floor(promedioEntrada / 60);
-                    const mEntrada = promedioEntrada % 60;
-
-                    let sumaMinutosSalida = 0;
-                    registrosValidos.forEach(r => {
-                        const [h, m] = r.salida.split(':').map(Number);
-                        sumaMinutosSalida += h * 60 + m;
-                    });
-                    const promedioSalida = Math.round(sumaMinutosSalida / registrosValidos.length);
-                    const hSalida = Math.floor(promedioSalida / 60);
-                    const mSalida = promedioSalida % 60;
-
-                    const totalHoras = registrosValidos.reduce((sum, r) => sum + r.total, 0);
-                    const promedioDiario = totalHoras / registrosValidos.length;
-                    let hPromedio = Math.floor(promedioDiario);
-                    let mPromedio = Math.round((promedioDiario - hPromedio) * 60);
-                    if (mPromedio === 60) { hPromedio++; mPromedio = 0; }
-
-                    let hTotal = Math.floor(totalHoras);
-                    let mTotal = Math.round((totalHoras - hTotal) * 60);
-                    if (mTotal === 60) { hTotal++; mTotal = 0; }
-
-                    // Regularidad anual: promedio de desviaciones por mes
-                    const mesesDelAnio = [...new Set(registrosValidos.map(r => r.fecha.substring(0, 7)))];
-                    const desEntradaPorMes = [];
-                    const desJornadaPorMes = [];
-                    mesesDelAnio.forEach(mes => {
-                        const regsDelMes = registrosValidos.filter(r => r.fecha.startsWith(mes));
-                        if (regsDelMes.length >= 2) {
-                            const minutosEntrada = regsDelMes.map(r => { const [h, m] = r.entrada.split(':').map(Number); return h * 60 + m; });
-                            const minutosJornada = regsDelMes.map(r => Math.round(r.total * 60));
-                            const dE = desviacionEstandar(minutosEntrada);
-                            const dJ = desviacionEstandar(minutosJornada);
-                            if (dE !== null) desEntradaPorMes.push(dE);
-                            if (dJ !== null) desJornadaPorMes.push(dJ);
-                        }
-                    });
-                    const promedioDesEntrada = desEntradaPorMes.length > 0
-                        ? desEntradaPorMes.reduce((a, b) => a + b, 0) / desEntradaPorMes.length : null;
-                    const promedioDesJornada = desJornadaPorMes.length > 0
-                        ? desJornadaPorMes.reduce((a, b) => a + b, 0) / desJornadaPorMes.length : null;
-
-                    return {
-                        entradaPromedio: `${String(hEntrada).padStart(2, '0')}:${String(mEntrada).padStart(2, '0')}`,
-                        salidaPromedio: `${String(hSalida).padStart(2, '0')}:${String(mSalida).padStart(2, '0')}`,
-                        diasTrabajados: registrosValidos.length,
-                        promedioDiario: `${hPromedio}h ${mPromedio}m`,
-                        tiempoFueraTotal: `${hTiempoFuera}h ${mTiempoFuera}m`,
-                        tiempoTotal: `${hTotal}h ${mTotal}m`,
-                        semanaPasada: null,
-                        feriados, ausencias, vacaciones, enfermedades,
-                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
-                        regularidadEntrada: calcularRegularidad(promedioDesEntrada),
-                        regularidadJornada: calcularRegularidad(promedioDesJornada)
-                    };
+                    const registros = D.registros().filter(r => parseInt(r.fecha.substring(0, 4)) === anioNum);
+                    return _calcularEstadisticasRango(registros, { incluirSemanaPasada: false, regularidadPorMes: true });
                 }
 
                 function poblarSelectorAnios() {
@@ -6989,66 +6798,7 @@
 
                 function actualizarEstadisticasAnio(anio) {
                     const stats = calcularEstadisticasAnio(anio);
-
-                    const elEntrada = $('stat-entrada-promedio');
-                    const elSalida = $('stat-salida-promedio');
-                    const elDias = $('stat-dias-trabajados');
-                    const elPromedio = $('stat-promedio-diario');
-                    const elTiempoFueraTotal = $('stat-tiempo-fuera-total');
-                    const elTiempoTotal = $('stat-tiempo-total');
-                    const elFeriados = $('stat-feriados');
-                    const elAusencias = $('stat-ausencias');
-                    const elVacaciones = $('stat-vacaciones');
-                    const elEnfermedades = $('stat-enfermedades');
-                    const elAsuetosDia = $('stat-asuetos-dia');
-                    const elCompensaciones = $('stat-compensaciones');
-                    const elParos = $('stat-paros');
-                    const elRemotos = $('stat-remotos');
-                    const elCapacitaciones = $('stat-capacitaciones');
-
-                    if (elEntrada) elEntrada.textContent = stats.entradaPromedio;
-                    if (elSalida) elSalida.textContent = stats.salidaPromedio;
-                    if (elTiempoFueraTotal) elTiempoFueraTotal.textContent = stats.tiempoFueraTotal;
-                    if (elTiempoTotal) elTiempoTotal.textContent = stats.tiempoTotal;
-
-                    const sep = $('stat-separador-semana');
-                    const spItem = $('stat-item-semana-pasada');
-                    if (sep) sep.style.display = 'none';
-                    if (spItem) spItem.style.display = 'none';
-
-                    const toggleStatItem = (element, value) => {
-                        if (!element) return;
-                        const statItem = element.closest('.stat-item');
-                        if (statItem) {
-                            if (value === 0) { statItem.style.display = 'none'; }
-                            else { statItem.style.display = ''; element.textContent = value; }
-                        }
-                    };
-
-                    toggleStatItem(elDias, stats.diasTrabajados);
-                    toggleStatItem(elFeriados, stats.feriados);
-                    toggleStatItem(elAusencias, stats.ausencias);
-                    toggleStatItem(elVacaciones, stats.vacaciones);
-                    toggleStatItem(elEnfermedades, stats.enfermedades);
-                    toggleStatItem(elAsuetosDia, stats.asuetosDiaCompleto);
-                    toggleStatItem(elCompensaciones, stats.compensaciones);
-                    toggleStatItem(elParos, stats.paros);
-                    toggleStatItem(elRemotos, stats.remotos);
-                    toggleStatItem(elCapacitaciones, stats.capacitaciones);
-                    if (elPromedio) {
-                        const statItem = elPromedio.closest('.stat-item');
-                        if (statItem) {
-                            if (stats.promedioDiario === '--:--') { statItem.style.display = 'none'; }
-                            else { statItem.style.display = ''; elPromedio.textContent = stats.promedioDiario; }
-                        }
-                    }
-
-                    const elRegEntrada = $('stat-regularidad-entrada');
-                    const elRegJornada = $('stat-regularidad-jornada');
-                    const btnReporte = document.getElementById('btn-reporte');
-                    if (elRegEntrada) elRegEntrada.textContent = stats.regularidadEntrada || '--';
-                    if (elRegJornada) elRegJornada.textContent = stats.regularidadJornada || '--';
-                    if (btnReporte) { btnReporte.disabled = false; btnReporte.style.opacity = ''; btnReporte.style.cursor = ''; }
+                    _renderizarStats(stats, { mostrarSemanaPasada: false, mostrarRegularidad: true, mostrarBtnReporte: true });
                 }
 
                 function _obtenerSemanas() {
@@ -7115,145 +6865,17 @@
                     const lunes = new Date(lunesISO + 'T00:00:00');
                     const domingo = new Date(lunes);
                     domingo.setDate(lunes.getDate() + 6);
-                    const desdeStr = lunesISO;
-                    const hastaStr = domingo.toISOString().substring(0, 10);
-
-                    const registrosSemana = D.registros().filter(r => r.fecha >= desdeStr && r.fecha <= hastaStr);
-
-                    const contarPorTipo = (tipoId) => {
-                        const tipo = TiposRegistro.obtenerTipoPorId(tipoId);
-                        if (!tipo) return 0;
-                        return registrosSemana.filter(r => r.entrada === tipo.codigo && r.salida === tipo.codigo).length;
-                    };
-
-                    const registrosValidos = registrosSemana.filter(r => {
-                        const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-                        return !tipo && r.entrada && r.salida && r.entrada !== r.salida;
-                    });
-
-                    const totalHoras = registrosValidos.reduce((s, r) => s + r.total, 0);
-                    const totalTF = registrosValidos.reduce((s, r) => {
-                        if (!r.tiempoFuera) return s;
-                        const [h, m] = r.tiempoFuera.split(':').map(Number);
-                        return s + h + m / 60;
-                    }, 0);
-
-                    const hTotal = Math.floor(totalHoras);
-                    const mTotal = Math.round((totalHoras - hTotal) * 60);
-                    const hTF = Math.floor(totalTF);
-                    const mTF = Math.round((totalTF - hTF) * 60);
-
-                    let hEntrada = 0, mEntrada = 0, hSalida = 0, mSalida = 0;
-                    let hPromedio = 0, mPromedio = 0;
-
-                    if (registrosValidos.length > 0) {
-                        const avgEntrada = registrosValidos.reduce((s, r) => {
-                            const [h, m] = r.entrada.split(':').map(Number);
-                            return s + h * 60 + m;
-                        }, 0) / registrosValidos.length;
-                        hEntrada = Math.floor(avgEntrada / 60);
-                        mEntrada = Math.round(avgEntrada % 60);
-
-                        const avgSalida = registrosValidos.reduce((s, r) => {
-                            const [h, m] = r.salida.split(':').map(Number);
-                            return s + h * 60 + m;
-                        }, 0) / registrosValidos.length;
-                        hSalida = Math.floor(avgSalida / 60);
-                        mSalida = Math.round(avgSalida % 60);
-
-                        const promDiario = totalHoras / registrosValidos.length;
-                        hPromedio = Math.floor(promDiario);
-                        mPromedio = Math.round((promDiario - hPromedio) * 60);
-                    }
-
-                    return {
-                        diasTrabajados: registrosValidos.length,
-                        entradaPromedio: `${String(hEntrada).padStart(2, '0')}:${String(mEntrada).padStart(2, '0')}`,
-                        salidaPromedio: `${String(hSalida).padStart(2, '0')}:${String(mSalida).padStart(2, '0')}`,
-                        promedioDiario: registrosValidos.length > 0 ? `${hPromedio}h ${mPromedio}m` : '--:--',
-                        tiempoFueraTotal: `${hTF}h ${mTF}m`,
-                        tiempoTotal: `${hTotal}h ${mTotal}m`,
-                        feriados: contarPorTipo('feriado'),
-                        ausencias: contarPorTipo('ausencia'),
-                        vacaciones: contarPorTipo('vacaciones'),
-                        enfermedades: contarPorTipo('enfermedad'),
-                        asuetosDiaCompleto: contarPorTipo('asueto'),
-                        compensaciones: contarPorTipo('compensacion'),
-                        paros: contarPorTipo('paro'),
-                        remotos: contarPorTipo('remoto'),
-                        capacitaciones: contarPorTipo('capacitacion'),
-                        regularidadEntrada: null,
-                        regularidadJornada: null
-                    };
+                    const hasta = domingo.toISOString().substring(0, 10);
+                    const registros = D.registros().filter(r => r.fecha >= lunesISO && r.fecha <= hasta);
+                    return _calcularEstadisticasRango(registros, { incluirSemanaPasada: false, regularidadPorMes: false });
                 }
 
                 function actualizarEstadisticasSemana(lunesISO) {
                     const select = $('select-semana-stats');
                     if (!lunesISO && select) lunesISO = select.value;
                     if (!lunesISO) return;
-
                     const stats = calcularEstadisticasSemana(lunesISO);
-
-                    const elEntrada = $('stat-entrada-promedio');
-                    const elSalida = $('stat-salida-promedio');
-                    const elDias = $('stat-dias-trabajados');
-                    const elPromedio = $('stat-promedio-diario');
-                    const elTiempoFueraTotal = $('stat-tiempo-fuera-total');
-                    const elTiempoTotal = $('stat-tiempo-total');
-                    const elFeriados = $('stat-feriados');
-                    const elAusencias = $('stat-ausencias');
-                    const elVacaciones = $('stat-vacaciones');
-                    const elEnfermedades = $('stat-enfermedades');
-                    const elAsuetosDia = $('stat-asuetos-dia');
-                    const elCompensaciones = $('stat-compensaciones');
-                    const elParos = $('stat-paros');
-                    const elRemotos = $('stat-remotos');
-                    const elCapacitaciones = $('stat-capacitaciones');
-                    const sep = $('stat-separador-semana');
-                    const spItem = $('stat-item-semana-pasada');
-
-                    if (sep) sep.style.display = 'none';
-                    if (spItem) spItem.style.display = 'none';
-
-                    if (elEntrada) elEntrada.textContent = stats.entradaPromedio;
-                    if (elSalida) elSalida.textContent = stats.salidaPromedio;
-                    if (elTiempoFueraTotal) elTiempoFueraTotal.textContent = stats.tiempoFueraTotal;
-                    if (elTiempoTotal) elTiempoTotal.textContent = stats.tiempoTotal;
-
-                    const toggleStatItem = (element, value) => {
-                        if (!element) return;
-                        const statItem = element.closest('.stat-item');
-                        if (statItem) {
-                            if (value === 0) { statItem.style.display = 'none'; }
-                            else { statItem.style.display = ''; element.textContent = value; }
-                        }
-                    };
-
-                    toggleStatItem(elDias, stats.diasTrabajados);
-                    toggleStatItem(elFeriados, stats.feriados);
-                    toggleStatItem(elAusencias, stats.ausencias);
-                    toggleStatItem(elVacaciones, stats.vacaciones);
-                    toggleStatItem(elEnfermedades, stats.enfermedades);
-                    toggleStatItem(elAsuetosDia, stats.asuetosDiaCompleto);
-                    toggleStatItem(elCompensaciones, stats.compensaciones);
-                    toggleStatItem(elParos, stats.paros);
-                    toggleStatItem(elRemotos, stats.remotos);
-                    toggleStatItem(elCapacitaciones, stats.capacitaciones);
-
-                    if (elPromedio) {
-                        const statItem = elPromedio.closest('.stat-item');
-                        if (statItem) {
-                            if (stats.promedioDiario === '--:--') { statItem.style.display = 'none'; }
-                            else { statItem.style.display = ''; elPromedio.textContent = stats.promedioDiario; }
-                        }
-                    }
-
-                    const elRegEntrada = $('stat-regularidad-entrada');
-                    const elRegJornada = $('stat-regularidad-jornada');
-                    const btnReporte = document.getElementById('btn-reporte');
-                    if (elRegEntrada) { const si = elRegEntrada.closest('.stat-item'); if (si) si.style.display = 'none'; }
-                    if (elRegJornada) { const si = elRegJornada.closest('.stat-item'); if (si) si.style.display = 'none'; }
-                    if (btnReporte) { btnReporte.disabled = true; btnReporte.style.opacity = '0.4'; btnReporte.style.cursor = 'not-allowed'; }
+                    _renderizarStats(stats, { mostrarSemanaPasada: false, mostrarRegularidad: false, mostrarBtnReporte: false });
                 }
 
                 function cambiarSemanaStats() {
@@ -10307,12 +9929,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.70
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.71
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega modal para los confirm nativos
-    2) Se agrega toggle semanal en la funcion de estadisticas
+    1) Refactorizacion de las funciones de estadisticas
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
