@@ -1701,7 +1701,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.71</span>
+                    <span class="version-text">LUSHIBOSCA-7.72</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -4994,7 +4994,7 @@
                     if (data.hash) {
                         const hashCalculado = await S.calcularHashSHA256(data.registros);
                         if (hashCalculado !== data.hash) {
-                            throw new Error('Hash de integridad no coincide — el Gist puede estar corrupto');
+                            data._hashNoCoincide = true;
                         }
                     }
 
@@ -8873,9 +8873,19 @@ Generado por Sistema Horarios
                             gistSetStatus('');
 
                             // Validar claves permitidas
-                            const allowedRootKeys = ['registros', 'diasHabiles', 'horasDiarias', 'fecha', 'version', 'hash', 'timestamp'];
+                            const allowedRootKeys = ['registros', 'diasHabiles', 'horasDiarias', 'fecha', 'version', 'hash', 'timestamp', '_hashNoCoincide'];
                             const hasInvalidKeys = Object.keys(data).some(k => !allowedRootKeys.includes(k));
                             if (hasInvalidKeys) throw new Error('Estructura del Gist sospechosa');
+
+                            // Hash no coincide — preguntar igual que en importación local
+                            if (data._hashNoCoincide) {
+                                const continuar = await confirmarModal('El hash de integridad no coincide. El Gist puede haber sido modificado o corrompido. ¿Restaurar de todas formas?', 'Restaurar', '#icon-upload');
+                                if (!continuar) {
+                                    gistSetStatus('Cancelado', '');
+                                    if (btn) btn.disabled = false;
+                                    return;
+                                }
+                            }
 
                             // Advertir schema futuro
                             if (data.version && data.version > S.SECURITY_LIMITS.SCHEMA_VERSION) {
@@ -9930,12 +9940,13 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.71
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.72
     // ====================================================================
     
      - CAMBIOS:
     1) Refactorizacion de las funciones de estadisticas
     2) correccion de bug al agregar o modificar registros si esta en estadistica semanal
+    3) agregado pregunta de hash en gist bajar
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
