@@ -6499,6 +6499,7 @@
                         const labelEl = $('label-periodo-toggle');
                         if (labelEl) labelEl.textContent = 'Semanal';
                         poblarSelectorSemanas();
+                        actualizarEstadisticasSemana($('select-semana-stats')?.value);
                     } else {
                         poblarSelectorMeses();
                     }
@@ -9934,6 +9935,7 @@ Generado por Sistema Horarios
     
      - CAMBIOS:
     1) Refactorizacion de las funciones de estadisticas
+    2) correccion de bug al agregar o modificar registros si esta en estadistica semanal
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
