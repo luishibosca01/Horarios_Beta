@@ -6813,7 +6813,7 @@
                     domingo.setDate(lunes.getDate() + 6);
                     const hasta = domingo.toISOString().substring(0, 10);
                     const registros = D.registros().filter(r => r.fecha >= lunesISO && r.fecha <= hasta);
-                    return _calcularEstadisticasRango(registros, {regularidadPorMes: false });
+                    return _calcularEstadisticasRango(registros, { regularidadPorMes: false });
                 }
 
                 function actualizarEstadisticasSemana(lunesISO) {
