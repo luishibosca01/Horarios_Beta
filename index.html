@@ -486,17 +486,26 @@
         .progress-fill.shimmer::after {
             content: '';
             position: absolute;
-            top: 0; left: -60%;
+            top: 0;
+            left: -60%;
             width: 50%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
             animation: shimmer 5s ease-in-out infinite;
         }
 
         @keyframes shimmer {
-            0%   { left: -80%; }
-            20%  { left: 130%; }
-            100% { left: 130%; }
+            0% {
+                left: -80%;
+            }
+
+            20% {
+                left: 130%;
+            }
+
+            100% {
+                left: 130%;
+            }
         }
 
         /* --- Lista de Registros --- */
@@ -1534,8 +1543,10 @@
                                     style="flex:1;"></select>
                                 <select id="select-anio-stats" onchange="UILogic.cambiarAnioStats()"
                                     style="flex:1; display:none;"></select>
+                                <select id="select-semana-stats" onchange="UILogic.cambiarSemanaStats()"
+                                    style="flex:1; display:none;"></select>
                                 <button id="btn-toggle-periodo" class="time-btn" onclick="UILogic.togglePeriodoStats()"
-                                    title="Alternar vista mensual / anual">
+                                    title="Alternar vista mensual / anual / semanal">
                                     <svg class="icon" style="width:14px;height:14px;">
                                         <use href="#icon-calendar-simple" />
                                     </svg>
@@ -1612,17 +1623,10 @@
                                 <div class="stat-label">Jornada Regular</div>
                                 <div class="stat-value" id="stat-regularidad-jornada">--</div>
                             </div>
-                            <div id="stat-separador-semana"
-                                style="grid-column: 1 / -1; height: 1px; background: var(--border); margin: 0.5rem 0;">
-                            </div>
-                            <div class="stat-item" id="stat-item-semana-pasada" style="grid-column: 1 / -1">
-                                <div class="stat-label">Semana Pasada</div>
-                                <div class="stat-value" id="stat-semana-pasada">0h 0m</div>
-                            </div>
                         </div>
 
                         <div class="btn-group" style="margin-top: 1rem;">
-                            <button class="btn-agregar" onclick="UILogic.generarReporte()">
+                            <button class="btn-agregar" id="btn-reporte" onclick="UILogic.generarReporte()">
                                 <svg class="icon">
                                     <use href="#icon-download" />
                                 </svg>
@@ -1697,7 +1701,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.68</span>
+                    <span class="version-text">LUSHIBOSCA-7.70</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1871,7 +1875,9 @@
                             <span id="hint-gist-backup">—</span>
                         </button>
                         <button id="btn-toggle-gist-merge" onclick="UILogic.toggleGistMerge()">
-                            <svg class="icon" id="icon-gist-merge"><use href="#icon-replace-swap"/></svg>
+                            <svg class="icon" id="icon-gist-merge">
+                                <use href="#icon-replace-swap" />
+                            </svg>
                             <span id="hint-gist-merge">Reemplazar</span>
                         </button>
                     </div>
@@ -2321,6 +2327,41 @@
                         <use href="#icon-cancelar" />
                     </svg> Cancelar
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal-confirmar">
+        <div class="modal-content">
+            <div class="modal-config-header">
+                <h3 style="margin-bottom:0">
+                    <span class="modal-title-block">
+                        <svg class="icon">
+                            <use href="#icon-help" />
+                        </svg>
+                        <span id="modal-confirmar-titulo">Confirmar</span>
+                    </span>
+                </h3>
+            </div>
+            <div class="modal-config-body">
+                <p id="modal-confirmar-texto"
+                    style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; margin:0.5rem 0"></p>
+            </div>
+            <div class="modal-config-footer">
+                <div class="btn-group">
+                    <button class="btn-delete" id="modal-confirmar-ok">
+                        <svg class="icon">
+                            <use href="#icon-trash" />
+                        </svg>
+                        <span id="modal-confirmar-label-ok">Confirmar</span>
+                    </button>
+                    <button class="btn-cancel" id="modal-confirmar-cancel">
+                        <svg class="icon">
+                            <use href="#icon-undo" />
+                        </svg>
+                        Cancelar
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -2926,6 +2967,45 @@
                     getCurrentState
                 };
             })();
+
+            function confirmarModal(texto, labelOk = 'Confirmar', icono = '#icon-trash') {
+                return new Promise((resolve) => {
+                    const elTexto = document.getElementById('modal-confirmar-texto');
+                    const elLabel = document.getElementById('modal-confirmar-label-ok');
+                    const elIcono = document.querySelector('#modal-confirmar-ok svg use');
+                    const btnOk = document.getElementById('modal-confirmar-ok');
+                    const btnCancel = document.getElementById('modal-confirmar-cancel');
+                    if (!elTexto || !btnOk || !btnCancel) { resolve(false); return; }
+
+                    elTexto.textContent = texto;
+                    if (elLabel) elLabel.textContent = labelOk;
+                    if (elIcono) elIcono.setAttribute('href', icono);
+
+                    const modalPadre = document.querySelector('.modal.show');
+                    const modalPadreId = modalPadre ? modalPadre.id : null;
+
+                    function ok() { cleanup(); resolve(true); }
+                    function cancel() { cleanup(); resolve(false); }
+
+                    function cleanup() {
+                        btnOk.removeEventListener('click', ok);
+                        btnCancel.removeEventListener('click', cancel);
+                        if (modalPadreId) {
+                            ModalManager.alternar('modal-confirmar', modalPadreId);
+                        } else {
+                            ModalManager.cerrar('modal-confirmar');
+                        }
+                    }
+
+                    btnOk.addEventListener('click', ok);
+                    btnCancel.addEventListener('click', cancel);
+                    if (modalPadreId) {
+                        ModalManager.alternar(modalPadreId, 'modal-confirmar');
+                    } else {
+                        ModalManager.abrir('modal-confirmar');
+                    }
+                });
+            }
 
             // ====================================================================
             // TIPOS DE REGISTRO MODULE
@@ -3949,7 +4029,7 @@
                 async function borrarTodoHistorial() {
                     const totalRegistros = registros.length;
 
-                    const confirmar = confirm(`⚠️ Esto restablecerá el perfil activo: se eliminarán ${totalRegistros} registro${totalRegistros !== 1 ? 's' : ''} y la configuración volverá a los valores por defecto. No afecta otros perfiles.`);
+                    const confirmar = await confirmarModal(`Esto restablecerá el perfil activo: se eliminarán ${totalRegistros} registro${totalRegistros !== 1 ? 's' : ''} y la configuración volverá a los valores por defecto. No afecta otros perfiles.`, 'Restablecer');
 
                     if (!confirmar) return;
 
@@ -4143,11 +4223,11 @@
                                 const hashCalculado = await S.calcularHashSHA256(data.registros);
                                 if (hashCalculado !== data.hash) {
                                     UILogic.mostrarToast('⚠️ El archivo puede estar corrupto o modificado', 'warning');
-                                    const continuar = confirm('El hash de integridad no coincide.\n\nEl archivo puede haber sido modificado o corrompido.\n\n¿Importar de todas formas?');
+                                    const continuar = await confirmarModal('El hash de integridad no coincide. El archivo puede haber sido modificado o corrompido. ¿Importar de todas formas?', 'Importar', '#icon-upload');
                                     if (!continuar) return;
                                 }
                             } else {
-                                const continuar = confirm('⚠️ Este archivo no tiene verificación de integridad.\n\nPuede ser un backup antiguo, o haber sido modificado externamente.\n\n¿Importar de todas formas?');
+                                const continuar = await confirmarModal('Este archivo no tiene verificación de integridad. Puede ser un backup antiguo o haber sido modificado externamente. ¿Importar de todas formas?', 'Importar', '#icon-upload');
                                 if (!continuar) return;
                             }
 
@@ -4191,9 +4271,6 @@
 
                             // --- MODO REEMPLAZAR ---
                             if (modo === 'replace') {
-                                const confirmMsg = `⚠️ ATENCIÓN\n\nSe borrarán tus datos actuales y se reemplazarán por ${registrosImportados.length} registros del archivo.\n\n¿Estás seguro?`;
-                                if (!confirm(confirmMsg)) return;
-
                                 registros = registrosImportados;
 
                                 // Validar diasHabiles (formato array)
@@ -4736,8 +4813,8 @@
                 function getRangoHorario() {
                     const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
                     return {
-                        desde: perfil?.gistRangoDesde || '16:00',
-                        hasta: perfil?.gistRangoHasta || '22:00'
+                        desde: perfil?.gistRangoDesde || '21:00',
+                        hasta: perfil?.gistRangoHasta || '00:00'
                     };
                 }
 
@@ -5889,8 +5966,11 @@
 
                     const elRegEntrada = $('stat-regularidad-entrada');
                     const elRegJornada = $('stat-regularidad-jornada');
+                    const btnReporte = document.getElementById('btn-reporte');
                     if (elRegEntrada) elRegEntrada.textContent = stats.regularidadEntrada || '--';
                     if (elRegJornada) elRegJornada.textContent = stats.regularidadJornada || '--';
+                    if (btnReporte) { btnReporte.disabled = false; btnReporte.style.opacity = ''; btnReporte.style.cursor = ''; }
+
                 }
 
                 function _perfilKey(base) {
@@ -6486,7 +6566,25 @@
                     }
 
                     if (modoEstadisticas === 'anual') {
+                        const selectAnioEl = $('select-anio-stats');
+                        const selectMesEl = $('select-mes-stats');
+                        const selectSemEl = $('select-semana-stats');
+                        if (selectAnioEl) selectAnioEl.style.display = '';
+                        if (selectMesEl) selectMesEl.style.display = 'none';
+                        if (selectSemEl) selectSemEl.style.display = 'none';
+                        const labelEl = $('label-periodo-toggle');
+                        if (labelEl) labelEl.textContent = 'Anual';
                         poblarSelectorAnios();
+                    } else if (modoEstadisticas === 'semanal') {
+                        const selectAnioEl = $('select-anio-stats');
+                        const selectMesEl = $('select-mes-stats');
+                        const selectSemEl = $('select-semana-stats');
+                        if (selectAnioEl) selectAnioEl.style.display = 'none';
+                        if (selectMesEl) selectMesEl.style.display = 'none';
+                        if (selectSemEl) selectSemEl.style.display = '';
+                        const labelEl = $('label-periodo-toggle');
+                        if (labelEl) labelEl.textContent = 'Semanal';
+                        poblarSelectorSemanas();
                     } else {
                         poblarSelectorMeses();
                     }
@@ -6947,8 +7045,226 @@
 
                     const elRegEntrada = $('stat-regularidad-entrada');
                     const elRegJornada = $('stat-regularidad-jornada');
+                    const btnReporte = document.getElementById('btn-reporte');
                     if (elRegEntrada) elRegEntrada.textContent = stats.regularidadEntrada || '--';
                     if (elRegJornada) elRegJornada.textContent = stats.regularidadJornada || '--';
+                    if (btnReporte) { btnReporte.disabled = false; btnReporte.style.opacity = ''; btnReporte.style.cursor = ''; }
+                }
+
+                function _obtenerSemanas() {
+                    const semanas = new Map();
+                    D.registros().forEach(r => {
+                        const d = new Date(r.fecha + 'T00:00:00');
+                        const dow = d.getDay();
+                        const diff = (dow === 0) ? -6 : 1 - dow;
+                        const lunes = new Date(d);
+                        lunes.setDate(d.getDate() + diff);
+                        const key = lunes.toISOString().substring(0, 10);
+                        if (!semanas.has(key)) semanas.set(key, lunes);
+                    });
+                    return Array.from(semanas.keys()).sort().reverse();
+                }
+
+                function _formatearSemana(lunesISO) {
+                    const lunes = new Date(lunesISO + 'T00:00:00');
+                    const domingo = new Date(lunes);
+                    domingo.setDate(lunes.getDate() + 6);
+                    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                    const dL = lunes.getDate();
+                    const dD = domingo.getDate();
+                    const mL = meses[lunes.getMonth()];
+                    const mD = meses[domingo.getMonth()];
+                    if (lunes.getMonth() === domingo.getMonth()) {
+                        return `${dL} al ${dD} de ${mD}`;
+                    }
+                    return `${dL} ${mL} al ${dD} ${mD}`;
+                }
+
+                function poblarSelectorSemanas() {
+                    const select = $('select-semana-stats');
+                    if (!select) return;
+                    const selActual = select.value;
+                    const semanas = _obtenerSemanas();
+                    select.innerHTML = '';
+                    if (semanas.length === 0) {
+                        const opt = document.createElement('option');
+                        opt.value = ''; opt.textContent = 'Sin registros';
+                        select.appendChild(opt);
+                        return;
+                    }
+                    semanas.forEach(key => {
+                        const opt = document.createElement('option');
+                        opt.value = key;
+                        opt.textContent = _formatearSemana(key);
+                        select.appendChild(opt);
+                    });
+                    if (selActual && semanas.includes(selActual)) {
+                        select.value = selActual;
+                    } else {
+                        const hoy = new Date();
+                        const dow = hoy.getDay();
+                        const diff = (dow === 0) ? -6 : 1 - dow;
+                        const lunes = new Date(hoy);
+                        lunes.setDate(hoy.getDate() + diff);
+                        const lunesISO = lunes.toISOString().substring(0, 10);
+                        select.value = semanas.includes(lunesISO) ? lunesISO : semanas[0];
+                    }
+                }
+
+                function calcularEstadisticasSemana(lunesISO) {
+                    const lunes = new Date(lunesISO + 'T00:00:00');
+                    const domingo = new Date(lunes);
+                    domingo.setDate(lunes.getDate() + 6);
+                    const desdeStr = lunesISO;
+                    const hastaStr = domingo.toISOString().substring(0, 10);
+
+                    const registrosSemana = D.registros().filter(r => r.fecha >= desdeStr && r.fecha <= hastaStr);
+
+                    const contarPorTipo = (tipoId) => {
+                        const tipo = TiposRegistro.obtenerTipoPorId(tipoId);
+                        if (!tipo) return 0;
+                        return registrosSemana.filter(r => r.entrada === tipo.codigo && r.salida === tipo.codigo).length;
+                    };
+
+                    const registrosValidos = registrosSemana.filter(r => {
+                        const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                        return !tipo && r.entrada && r.salida && r.entrada !== r.salida;
+                    });
+
+                    const totalHoras = registrosValidos.reduce((s, r) => s + r.total, 0);
+                    const totalTF = registrosValidos.reduce((s, r) => {
+                        if (!r.tiempoFuera) return s;
+                        const [h, m] = r.tiempoFuera.split(':').map(Number);
+                        return s + h + m / 60;
+                    }, 0);
+
+                    const hTotal = Math.floor(totalHoras);
+                    const mTotal = Math.round((totalHoras - hTotal) * 60);
+                    const hTF = Math.floor(totalTF);
+                    const mTF = Math.round((totalTF - hTF) * 60);
+
+                    let hEntrada = 0, mEntrada = 0, hSalida = 0, mSalida = 0;
+                    let hPromedio = 0, mPromedio = 0;
+
+                    if (registrosValidos.length > 0) {
+                        const avgEntrada = registrosValidos.reduce((s, r) => {
+                            const [h, m] = r.entrada.split(':').map(Number);
+                            return s + h * 60 + m;
+                        }, 0) / registrosValidos.length;
+                        hEntrada = Math.floor(avgEntrada / 60);
+                        mEntrada = Math.round(avgEntrada % 60);
+
+                        const avgSalida = registrosValidos.reduce((s, r) => {
+                            const [h, m] = r.salida.split(':').map(Number);
+                            return s + h * 60 + m;
+                        }, 0) / registrosValidos.length;
+                        hSalida = Math.floor(avgSalida / 60);
+                        mSalida = Math.round(avgSalida % 60);
+
+                        const promDiario = totalHoras / registrosValidos.length;
+                        hPromedio = Math.floor(promDiario);
+                        mPromedio = Math.round((promDiario - hPromedio) * 60);
+                    }
+
+                    return {
+                        diasTrabajados: registrosValidos.length,
+                        entradaPromedio: `${String(hEntrada).padStart(2, '0')}:${String(mEntrada).padStart(2, '0')}`,
+                        salidaPromedio: `${String(hSalida).padStart(2, '0')}:${String(mSalida).padStart(2, '0')}`,
+                        promedioDiario: registrosValidos.length > 0 ? `${hPromedio}h ${mPromedio}m` : '--:--',
+                        tiempoFueraTotal: `${hTF}h ${mTF}m`,
+                        tiempoTotal: `${hTotal}h ${mTotal}m`,
+                        feriados: contarPorTipo('feriado'),
+                        ausencias: contarPorTipo('ausencia'),
+                        vacaciones: contarPorTipo('vacaciones'),
+                        enfermedades: contarPorTipo('enfermedad'),
+                        asuetosDiaCompleto: contarPorTipo('asueto'),
+                        compensaciones: contarPorTipo('compensacion'),
+                        paros: contarPorTipo('paro'),
+                        remotos: contarPorTipo('remoto'),
+                        capacitaciones: contarPorTipo('capacitacion'),
+                        regularidadEntrada: null,
+                        regularidadJornada: null
+                    };
+                }
+
+                function actualizarEstadisticasSemana(lunesISO) {
+                    const select = $('select-semana-stats');
+                    if (!lunesISO && select) lunesISO = select.value;
+                    if (!lunesISO) return;
+
+                    const stats = calcularEstadisticasSemana(lunesISO);
+
+                    const elEntrada = $('stat-entrada-promedio');
+                    const elSalida = $('stat-salida-promedio');
+                    const elDias = $('stat-dias-trabajados');
+                    const elPromedio = $('stat-promedio-diario');
+                    const elTiempoFueraTotal = $('stat-tiempo-fuera-total');
+                    const elTiempoTotal = $('stat-tiempo-total');
+                    const elFeriados = $('stat-feriados');
+                    const elAusencias = $('stat-ausencias');
+                    const elVacaciones = $('stat-vacaciones');
+                    const elEnfermedades = $('stat-enfermedades');
+                    const elAsuetosDia = $('stat-asuetos-dia');
+                    const elCompensaciones = $('stat-compensaciones');
+                    const elParos = $('stat-paros');
+                    const elRemotos = $('stat-remotos');
+                    const elCapacitaciones = $('stat-capacitaciones');
+                    const sep = $('stat-separador-semana');
+                    const spItem = $('stat-item-semana-pasada');
+
+                    if (sep) sep.style.display = 'none';
+                    if (spItem) spItem.style.display = 'none';
+
+                    if (elEntrada) elEntrada.textContent = stats.entradaPromedio;
+                    if (elSalida) elSalida.textContent = stats.salidaPromedio;
+                    if (elTiempoFueraTotal) elTiempoFueraTotal.textContent = stats.tiempoFueraTotal;
+                    if (elTiempoTotal) elTiempoTotal.textContent = stats.tiempoTotal;
+
+                    const toggleStatItem = (element, value) => {
+                        if (!element) return;
+                        const statItem = element.closest('.stat-item');
+                        if (statItem) {
+                            if (value === 0) { statItem.style.display = 'none'; }
+                            else { statItem.style.display = ''; element.textContent = value; }
+                        }
+                    };
+
+                    toggleStatItem(elDias, stats.diasTrabajados);
+                    toggleStatItem(elFeriados, stats.feriados);
+                    toggleStatItem(elAusencias, stats.ausencias);
+                    toggleStatItem(elVacaciones, stats.vacaciones);
+                    toggleStatItem(elEnfermedades, stats.enfermedades);
+                    toggleStatItem(elAsuetosDia, stats.asuetosDiaCompleto);
+                    toggleStatItem(elCompensaciones, stats.compensaciones);
+                    toggleStatItem(elParos, stats.paros);
+                    toggleStatItem(elRemotos, stats.remotos);
+                    toggleStatItem(elCapacitaciones, stats.capacitaciones);
+
+                    if (elPromedio) {
+                        const statItem = elPromedio.closest('.stat-item');
+                        if (statItem) {
+                            if (stats.promedioDiario === '--:--') { statItem.style.display = 'none'; }
+                            else { statItem.style.display = ''; elPromedio.textContent = stats.promedioDiario; }
+                        }
+                    }
+
+                    const elRegEntrada = $('stat-regularidad-entrada');
+                    const elRegJornada = $('stat-regularidad-jornada');
+                    const btnReporte = document.getElementById('btn-reporte');
+                    if (elRegEntrada) { const si = elRegEntrada.closest('.stat-item'); if (si) si.style.display = 'none'; }
+                    if (elRegJornada) { const si = elRegJornada.closest('.stat-item'); if (si) si.style.display = 'none'; }
+                    if (btnReporte) { btnReporte.disabled = true; btnReporte.style.opacity = '0.4'; btnReporte.style.cursor = 'not-allowed'; }
+                }
+
+                function cambiarSemanaStats() {
+                    const select = $('select-semana-stats');
+                    const formStats = $('form-stats');
+                    if (!select || !formStats) return;
+                    formStats.classList.add('fade-out');
+                    setTimeout(() => {
+                        actualizarEstadisticasSemana(select.value);
+                        formStats.classList.remove('fade-out');
+                    }, 200);
                 }
 
                 function cambiarAnioStats() {
@@ -6971,23 +7287,35 @@
                     const spItem = $('stat-item-semana-pasada');
                     const formStats = $('form-stats');
 
-                    modoEstadisticas = modoEstadisticas === 'mensual' ? 'anual' : 'mensual';
+                    if (modoEstadisticas === 'mensual') modoEstadisticas = 'anual';
+                    else if (modoEstadisticas === 'anual') modoEstadisticas = 'semanal';
+                    else modoEstadisticas = 'mensual';
                     try { localStorage.setItem('modoEstadisticas', modoEstadisticas); } catch (e) { }
 
+                    const selectSemana = $('select-semana-stats');
                     formStats.classList.add('fade-out');
                     setTimeout(() => {
+                        selectMes.style.display = 'none';
+                        selectAnio.style.display = 'none';
+                        if (selectSemana) selectSemana.style.display = 'none';
+                        if (sep) sep.style.display = 'none';
+                        if (spItem) spItem.style.display = 'none';
+
                         if (modoEstadisticas === 'anual') {
-                            selectMes.style.display = 'none';
                             selectAnio.style.display = '';
                             if (label) label.textContent = 'Anual';
-                            if (sep) sep.style.display = 'none';
-                            if (spItem) spItem.style.display = 'none';
                             poblarSelectorAnios();
+                            actualizarEstadisticasAnio($('select-anio-stats')?.value);
+                        } else if (modoEstadisticas === 'semanal') {
+                            if (selectSemana) selectSemana.style.display = '';
+                            if (label) label.textContent = 'Semanal';
+                            poblarSelectorSemanas();
+                            actualizarEstadisticasSemana($('select-semana-stats')?.value);
                         } else {
-                            selectAnio.style.display = 'none';
                             selectMes.style.display = '';
                             if (label) label.textContent = 'Mensual';
                             poblarSelectorMeses();
+                            actualizarEstadisticas($('select-mes-stats')?.value);
                         }
                         formStats.classList.remove('fade-out');
                     }, 200);
@@ -7924,7 +8252,7 @@ Generado por Sistema Horarios
                         return;
                     }
 
-                    const confirmacion = window.confirm(`¿Estás seguro de que quieres eliminar el perfil "${perfil.nombre}"? Esta acción no se puede deshacer.`);
+                    const confirmacion = await confirmarModal(`¿Estás seguro de que querés eliminar el perfil "${perfil.nombre}"? Esta acción no se puede deshacer.`, 'Eliminar');
 
                     if (!confirmacion) return;
 
@@ -8693,8 +9021,8 @@ Generado por Sistema Horarios
                     function guardarConfigGist() {
                         const token = document.getElementById('gist-token')?.value.trim() || '';
                         const gistId = document.getElementById('gist-id')?.value.trim() || '';
-                        const desde = document.getElementById('gist-rango-desde')?.value || '16:00';
-                        const hasta = document.getElementById('gist-rango-hasta')?.value || '22:00';
+                        const desde = document.getElementById('gist-rango-desde')?.value || '21:00';
+                        const hasta = document.getElementById('gist-rango-hasta')?.value || '00:00';
 
                         const rango = GistSync.getRangoHorario();
                         const huboCambios = token !== GistSync.getToken()
@@ -9018,15 +9346,15 @@ Generado por Sistema Horarios
                         limpiarCampo, obtenerFechaHoy, mostrarFiltros, poblarSelectorMeses, actualizarBotonLote,
                         cerrarFiltros, registrarLoteDesdeCard, cambiarMesStats, generarReporte, toggleHistorico, toggleStats,
                         sumarMinutosAHora, toggleTimerBreakMain, actualizarEstadoBotonTimerMain, toggleBloqueoEdicion, setBloqueoEdicion,
-                        actualizarFeedbackConfig, abrirSelectorPerfiles, cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil, toggleModoLote,
+                        actualizarFeedbackConfig, abrirSelectorPerfiles, cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil,
                         eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                         iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                         toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                         mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                         iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
-                        togglePeriodoStats, cambiarAnioStats, toggleFondoCard, setFondoCard, toggleGistMerge, actualizarEstadoBotonesGist,
+                        togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleGistMerge, actualizarEstadoBotonesGist,
                         abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar,
-                        gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup,
+                        gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote,
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -9173,6 +9501,7 @@ Generado por Sistema Horarios
                     UILogic.actualizarEstadoBotonIgnorarTF();
                     UILogic.setFondoCard(config.fondoCard || 'golden-gate');
                     if (config.modoEstadisticas === 'anual') UILogic.togglePeriodoStats();
+                    else if (config.modoEstadisticas === 'semanal') { UILogic.togglePeriodoStats(); UILogic.togglePeriodoStats(); }
 
                     const perfilActual = PerfilManager.obtenerDatosPerfil();
                     const diasArraySeguro = Array.isArray(perfilActual.diasHabiles) ? perfilActual.diasHabiles : [1, 2, 3, 4, 5];
@@ -9302,16 +9631,17 @@ Generado por Sistema Horarios
                         if (!modal) return;
                         e.preventDefault();
                         const acciones = {
-                            'modal-gist':          () => cerrarModalGist(),
-                            'modal-gist-merge':    () => gistMergeCancelar(),
-                            'modal-config':        () => UILogic.cerrarConfig(),
+                            'modal-gist': () => cerrarModalGist(),
+                            'modal-gist-merge': () => gistMergeCancelar(),
+                            'modal-config': () => UILogic.cerrarConfig(),
                             'modal-selector-perfiles': () => UILogic.cerrarSelectorPerfiles(),
-                            'modal-editar':        () => UILogic.cerrarEdicion(),
-                            'modal-importar':      () => UILogic.cerrarImportar(),
-                            'modal-exportar':      () => UILogic.cerrarExportar(),
-                            'modal-filtros':       () => UILogic.cerrarFiltros(),
+                            'modal-editar': () => UILogic.cerrarEdicion(),
+                            'modal-importar': () => UILogic.cerrarImportar(),
+                            'modal-exportar': () => UILogic.cerrarExportar(),
+                            'modal-filtros': () => UILogic.cerrarFiltros(),
                             'modal-editar-perfil': () => UILogic.cerrarEditorPerfil(),
-                            'modal-editar-grupo':  () => UILogic.cerrarEdicionGrupo(),
+                            'modal-editar-grupo': () => UILogic.cerrarEdicionGrupo(),
+                            'modal-confirmar': () => document.getElementById('modal-confirmar-cancel')?.click(),
                         };
                         const accion = acciones[modal.id];
                         if (accion) accion();
@@ -9775,6 +10105,9 @@ Generado por Sistema Horarios
                         // Lógica específica de stats al abrir
                         if (modoEstadisticas === 'anual') {
                             poblarSelectorAnios();
+                        } else if (modoEstadisticas === 'semanal') {
+                            poblarSelectorSemanas();
+                            actualizarEstadisticasSemana($('select-semana-stats')?.value);
                         } else {
                             poblarSelectorMeses();
                             const selectMes = $('select-mes-stats');
@@ -9940,7 +10273,7 @@ Generado por Sistema Horarios
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
-                    togglePeriodoStats, cambiarAnioStats, toggleFondoCard, setFondoCard
+                    togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard
                 };
 
             })(SecurityAndUtils, DataManagement, GistSync);
@@ -9974,15 +10307,12 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.68
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.70
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega shimmer a la barra de progreso
-    2) limpieza de codigo en desuso
-    3) se agrega cola a la funcion mostrartoast, ahora los toast consecutivos no se pisan y esperan
-    a que termine el anterior
-    4) Se agrega listener para tecla escape para cerrar los modales
+    1) Se agrega modal para los confirm nativos
+    2) Se agrega toggle semanal en la funcion de estadisticas
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
