@@ -6795,6 +6795,7 @@
                         const opt = document.createElement('option');
                         opt.value = ''; opt.textContent = 'Sin registros';
                         select.appendChild(opt);
+                        actualizarEstadisticasSemana(null);
                         return;
                     }
                     semanas.forEach(key => {
@@ -6880,17 +6881,14 @@
                             selectAnio.style.display = '';
                             if (label) label.textContent = 'Anual';
                             poblarSelectorAnios();
-                            actualizarEstadisticasAnio($('select-anio-stats')?.value);
                         } else if (modoEstadisticas === 'semanal') {
                             if (selectSemana) selectSemana.style.display = '';
                             if (label) label.textContent = 'Semanal';
                             poblarSelectorSemanas();
-                            actualizarEstadisticasSemana($('select-semana-stats')?.value);
                         } else {
                             selectMes.style.display = '';
                             if (label) label.textContent = 'Mensual';
                             poblarSelectorMeses();
-                            actualizarEstadisticas($('select-mes-stats')?.value);
                         }
                         formStats.classList.remove('fade-out');
                     }, 200);
