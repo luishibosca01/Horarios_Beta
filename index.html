@@ -6821,7 +6821,7 @@
                     if (!lunesISO && select) lunesISO = select.value;
                     if (!lunesISO) return;
                     const stats = calcularEstadisticasSemana(lunesISO);
-                    _renderizarStats(stats, {mostrarRegularidad: false, mostrarBtnReporte: false });
+                    _renderizarStats(stats, {mostrarRegularidad: true, mostrarBtnReporte: false });
                 }
 
                 function cambiarSemanaStats() {
