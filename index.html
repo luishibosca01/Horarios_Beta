@@ -1491,7 +1491,7 @@
                     <span class="toggle-hint" id="toggle-hint">Toca para ver la Semana</span>
                 </div>
             </div>
-            <div class="card animated-card" id="card-registrar" style="animation-delay: 0.1s;">
+            <div class="card animated-card" id="card-registrar" style="animation-delay: 0.10s;">
                 <h2 class="no-margin"
                     style="display: flex; justify-content: center; align-items: center; position: relative;">
                     <button class="filter-btn timer-btn" id="btn-timer-main" onclick="UILogic.toggleTimerBreakMain()"
@@ -1606,39 +1606,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card animated-card" id="card-calendario" style="animation-delay: 0.2s;">
-                <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleCalendario()">
-                    <span style="display: flex; align-items: center; gap: 0.5rem;">
-                        <svg class="icon">
-                            <use href="#icon-calendar-simple" />
-                        </svg> Calendario
-                    </span>
-                    <svg class="icon chevron" id="icon-indicator-calendario">
-                        <use href="#icon-chevron-down" />
-                    </svg>
-                </h2>
-                <div class="form-collapsible" id="form-calendario">
-                    <div style="padding-top: 0.5rem;">
-                        <div class="calendario-nav">
-                            <span class="calendario-titulo" id="calendario-titulo-mes"></span>
-                            <button onclick="UILogic.navegarCalendario(-1)">
-                                <svg class="icon" style="transform:rotate(90deg);">
-                                    <use href="#icon-chevron-down" />
-                                </svg>
-                            </button>
-
-                            <button onclick="UILogic.navegarCalendario(1)">
-                                <svg class="icon" style="transform:rotate(-90deg);">
-                                    <use href="#icon-chevron-down" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="calendario-grid" id="calendario-grid"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card animated-card" id="card-estadisticas" style="animation-delay: 0.2s;">
+            <div class="card animated-card" id="card-estadisticas" style="animation-delay: 0.15s;">
                 <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleStats()">
                     <span style="display: flex; align-items: center; gap: 0.5rem;">
                         <svg class="icon">
@@ -1751,8 +1719,39 @@
                     </div>
                 </div>
             </div>
+            <div class="card animated-card" id="card-calendario" style="animation-delay: 0.20s;">
+                <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleCalendario()">
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        <svg class="icon">
+                            <use href="#icon-calendar-simple" />
+                        </svg> Calendario
+                    </span>
+                    <svg class="icon chevron" id="icon-indicator-calendario">
+                        <use href="#icon-chevron-down" />
+                    </svg>
+                </h2>
+                <div class="form-collapsible" id="form-calendario">
+                    <div style="padding-top: 0.5rem;">
+                        <div class="calendario-nav">
+                            <span class="calendario-titulo" id="calendario-titulo-mes"></span>
+                            <button onclick="UILogic.navegarCalendario(-1)">
+                                <svg class="icon" style="transform:rotate(90deg);">
+                                    <use href="#icon-chevron-down" />
+                                </svg>
+                            </button>
+
+                            <button onclick="UILogic.navegarCalendario(1)">
+                                <svg class="icon" style="transform:rotate(-90deg);">
+                                    <use href="#icon-chevron-down" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="calendario-grid" id="calendario-grid"></div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="card animated-card" id="card-historico" style="animation-delay: 0.3s;">
+        <div class="card animated-card" id="card-historico" style="animation-delay: 0.25s;">
             <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleHistorico()">
                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                     <svg class="icon">
@@ -1816,7 +1815,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.77</span>
+                    <span class="version-text">LUSHIBOSCA-7.78</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1887,7 +1886,8 @@
                 </div>
                 <div class="form-group">
                     <label>Tarjetas</label>
-                    <button id="btn-toggle-card-estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')">
+                    <button id="btn-toggle-card-estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')"
+                        >
                         <svg class="icon">
                             <use href="#icon-stats" />
                         </svg>
@@ -1907,7 +1907,7 @@
                         </svg>
                         <span>Histórico</span>
                     </button>
-                </div>                
+                </div>
                 <div class="form-group">
                     <label>Sincronización</label>
                     <button class="btn-edit" onclick="UILogic.abrirModalGist()">
@@ -10190,7 +10190,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.77
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.78
     // ====================================================================
     
      - CAMBIOS:
