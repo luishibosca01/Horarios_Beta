@@ -871,6 +871,36 @@
             height: 44px;
         }
 
+        .orden-card-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            touch-action: none;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: var(--text-muted);
+            padding: 0.4rem 0.3rem;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            border-radius: var(--radius);
+            touch-action: none;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .orden-card-item.dragging {
+            opacity: 0.4;
+        }
+
+        .orden-card-item.drag-over {
+            border-top: 2px solid var(--c-blue);
+        }
+
         .calendario-titulo {
             font-size: 0.9rem;
             font-weight: 600;
@@ -1491,7 +1521,7 @@
                     <span class="toggle-hint" id="toggle-hint">Toca para ver la Semana</span>
                 </div>
             </div>
-            <div class="card animated-card" style="animation-delay: 0.1s;">
+            <div class="card animated-card" id="card-registrar" style="animation-delay: 0.1s;">
                 <h2 class="no-margin"
                     style="display: flex; justify-content: center; align-items: center; position: relative;">
                     <button class="filter-btn timer-btn" id="btn-timer-main" onclick="UILogic.toggleTimerBreakMain()"
@@ -1606,7 +1636,7 @@
                     </div>
                 </div>
             </div>
-            <div class="card animated-card" style="animation-delay: 0.2s;">
+            <div class="card animated-card" id="card-calendario" style="animation-delay: 0.2s;">
                 <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleCalendario()">
                     <span style="display: flex; align-items: center; gap: 0.5rem;">
                         <svg class="icon">
@@ -1638,7 +1668,7 @@
                 </div>
             </div>
 
-            <div class="card animated-card" style="animation-delay: 0.2s;">
+            <div class="card animated-card" id="card-estadisticas" style="animation-delay: 0.2s;">
                 <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleStats()">
                     <span style="display: flex; align-items: center; gap: 0.5rem;">
                         <svg class="icon">
@@ -1752,7 +1782,7 @@
                 </div>
             </div>
         </div>
-        <div class="card animated-card" style="animation-delay: 0.3s;">
+        <div class="card animated-card" id="card-historico" style="animation-delay: 0.3s;">
             <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleHistorico()">
                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                     <svg class="icon">
@@ -1816,7 +1846,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-7.76</span>
+                    <span class="version-text">LUSHIBOSCA-7.78</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1884,6 +1914,67 @@
                         </svg>
                         <span>Ignorar calculo TF</span>
                     </button>
+                </div>
+                <div class="form-group">
+                    <label>Tarjetas</label>
+                    <div style="display: flex; flex-direction: column; gap: 0.4rem;" id="lista-orden-cards">
+                        <div class="orden-card-item" id="orden-item-registrar">
+                            <span class="drag-handle" data-card="registrar">
+                                <svg class="icon">
+                                    <use href="#icon-list" />
+                                </svg>
+                            </span>
+                            <button id="btn-toggle-card-registrar" onclick="UILogic.toggleVisibilidadCard('registrar')"
+                                style="flex: 1;">
+                                <svg class="icon">
+                                    <use href="#icon-save" />
+                                </svg>
+                                <span>Registrar</span>
+                            </button>
+                        </div>
+                        <div class="orden-card-item" id="orden-item-calendario">
+                            <span class="drag-handle" data-card="calendario">
+                                <svg class="icon">
+                                    <use href="#icon-list" />
+                                </svg>
+                            </span>
+                            <button id="btn-toggle-card-calendario"
+                                onclick="UILogic.toggleVisibilidadCard('calendario')" style="flex: 1;">
+                                <svg class="icon">
+                                    <use href="#icon-calendar-simple" />
+                                </svg>
+                                <span>Calendario</span>
+                            </button>
+                        </div>
+                        <div class="orden-card-item" id="orden-item-estadisticas">
+                            <span class="drag-handle" data-card="estadisticas">
+                                <svg class="icon">
+                                    <use href="#icon-list" />
+                                </svg>
+                            </span>
+                            <button id="btn-toggle-card-estadisticas"
+                                onclick="UILogic.toggleVisibilidadCard('estadisticas')" style="flex: 1;">
+                                <svg class="icon">
+                                    <use href="#icon-stats" />
+                                </svg>
+                                <span>Estadísticas</span>
+                            </button>
+                        </div>
+                        <div class="orden-card-item" id="orden-item-historico">
+                            <span class="drag-handle" data-card="historico">
+                                <svg class="icon">
+                                    <use href="#icon-list" />
+                                </svg>
+                            </span>
+                            <button id="btn-toggle-card-historico" onclick="UILogic.toggleVisibilidadCard('historico')"
+                                style="flex: 1;">
+                                <svg class="icon">
+                                    <use href="#icon-list" />
+                                </svg>
+                                <span>Histórico</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Sincronización</label>
@@ -6781,6 +6872,206 @@
                     }
                 }
 
+                function toggleVisibilidadCard(cual) {
+                    const key = 'cardVisible_' + cual;
+                    const actual = localStorage.getItem(key) !== 'false';
+                    const nuevoValor = !actual;
+                    try { localStorage.setItem(key, nuevoValor); } catch (e) { }
+                    aplicarVisibilidadCard(cual, nuevoValor);
+                    actualizarEstadoBotonCard(cual, nuevoValor);
+                    mostrarToast('Tarjeta ' + cual + (nuevoValor ? ' visible' : ' oculta'), 'info');
+                }
+
+                function aplicarVisibilidadCard(cual, visible) {
+                    const card = document.getElementById('card-' + cual);
+                    if (card) card.style.display = visible ? '' : 'none';
+                }
+
+                function actualizarEstadoBotonCard(cual, activo) {
+                    const btn = document.getElementById('btn-toggle-card-' + cual);
+                    if (!btn) return;
+                    if (activo) {
+                        btn.style.background = 'rgba(96, 172, 148, 0.1)';
+                        btn.style.color = 'var(--c-green)';
+                        btn.style.borderColor = 'var(--c-green)';
+                        btn.style.fontWeight = 'bold';
+                    } else {
+                        btn.style.background = '';
+                        btn.style.color = 'var(--text-main)';
+                        btn.style.borderColor = 'var(--border)';
+                        btn.style.fontWeight = '600';
+                    }
+                }
+
+                function aplicarVisibilidadCards() {
+                    ['registrar', 'estadisticas', 'calendario', 'historico'].forEach(cual => {
+                        const visible = localStorage.getItem('cardVisible_' + cual) !== 'false';
+                        aplicarVisibilidadCard(cual, visible);
+                        actualizarEstadoBotonCard(cual, visible);
+                    });
+                }
+
+                function obtenerOrdenCards() {
+                    try {
+                        const guardado = JSON.parse(localStorage.getItem('ordenCards'));
+                        const validos = ['registrar', 'calendario', 'estadisticas', 'historico'];
+                        if (Array.isArray(guardado) && guardado.length === 4 && validos.every(v => guardado.includes(v))) {
+                            return guardado;
+                        }
+                    } catch (e) { }
+                    return ['registrar', 'calendario', 'estadisticas', 'historico'];
+                }
+
+                function aplicarOrdenCards(orden) {
+                    const statsCard = document.getElementById('stats-card');
+                    const parent = statsCard ? statsCard.parentElement : null;
+                    if (!parent) return;
+                    orden.forEach(cual => {
+                        const card = document.getElementById('card-' + cual);
+                        if (card) parent.appendChild(card);
+                    });
+                    const lista = document.getElementById('lista-orden-cards');
+                    if (lista) {
+                        orden.forEach(cual => {
+                            const item = document.getElementById('orden-item-' + cual);
+                            if (item) lista.appendChild(item);
+                        });
+                    }
+                }
+
+                // DESPUÉS:
+                function moverCard(cual, direccion) {
+                    const orden = obtenerOrdenCards();
+                    const idx = orden.indexOf(cual);
+                    if (idx === -1) return;
+                    const nuevoIdx = idx + direccion;
+                    if (nuevoIdx < 0 || nuevoIdx >= orden.length) return;
+                    orden.splice(idx, 1);
+                    orden.splice(nuevoIdx, 0, cual);
+                    try { localStorage.setItem('ordenCards', JSON.stringify(orden)); } catch (e) { }
+                    aplicarOrdenCards(orden);
+                }
+
+                function iniciarDragOrdenCards() {
+                    const lista = document.getElementById('lista-orden-cards');
+                    if (!lista) return;
+
+                    let draggingEl = null;
+                    let startY = 0;
+                    let longPressTimer = null;
+                    const LONG_PRESS_MS = 300;
+
+                    function getItemFromHandle(el) {
+                        return el.closest('.orden-card-item');
+                    }
+
+                    function getCardFromItem(el) {
+                        return el?.querySelector('.drag-handle')?.dataset?.card;
+                    }
+
+                    function getItemAtY(y) {
+                        const items = [...lista.querySelectorAll('.orden-card-item')];
+                        return items.find(item => {
+                            const r = item.getBoundingClientRect();
+                            return y >= r.top && y <= r.bottom;
+                        });
+                    }
+
+                    // --- TOUCH ---
+                    lista.addEventListener('touchstart', (e) => {
+                        const handle = e.target.closest('.drag-handle');
+                        if (!handle) return;
+                        const item = getItemFromHandle(handle);
+                        if (!item) return;
+                        startY = e.touches[0].clientY;
+                        longPressTimer = setTimeout(() => {
+                            draggingEl = item;
+                            item.classList.add('dragging');
+                            navigator.vibrate && navigator.vibrate(30);
+                        }, LONG_PRESS_MS);
+                    }, { passive: true });
+
+                    lista.addEventListener('touchmove', (e) => {
+                        if (!draggingEl) {
+                            // Cancelar long press si se movió mucho
+                            if (Math.abs(e.touches[0].clientY - startY) > 10) {
+                                clearTimeout(longPressTimer);
+                            }
+                            return;
+                        }
+                        e.preventDefault();
+                        const y = e.touches[0].clientY;
+                        const target = getItemAtY(y);
+                        lista.querySelectorAll('.orden-card-item').forEach(i => i.classList.remove('drag-over'));
+                        if (target && target !== draggingEl) target.classList.add('drag-over');
+                    }, { passive: false });
+
+                    lista.addEventListener('touchend', (e) => {
+                        clearTimeout(longPressTimer);
+                        if (!draggingEl) return;
+                        const y = e.changedTouches[0].clientY;
+                        const target = getItemAtY(y);
+                        lista.querySelectorAll('.orden-card-item').forEach(i => {
+                            i.classList.remove('drag-over');
+                            i.classList.remove('dragging');
+                        });
+                        if (target && target !== draggingEl) {
+                            const cual = getCardFromItem(draggingEl);
+                            const targetCual = getCardFromItem(target);
+                            const orden = obtenerOrdenCards();
+                            const fromIdx = orden.indexOf(cual);
+                            const toIdx = orden.indexOf(targetCual);
+                            if (fromIdx !== -1 && toIdx !== -1) {
+                                orden.splice(fromIdx, 1);
+                                orden.splice(toIdx, 0, cual);
+                                try { localStorage.setItem('ordenCards', JSON.stringify(orden)); } catch (err) { }
+                                aplicarOrdenCards(orden);
+                            }
+                        }
+                        draggingEl = null;
+                    });
+
+                    // --- MOUSE (desktop) ---
+                    lista.addEventListener('mousedown', (e) => {
+                        const handle = e.target.closest('.drag-handle');
+                        if (!handle) return;
+                        const item = getItemFromHandle(handle);
+                        if (!item) return;
+                        draggingEl = item;
+                        item.classList.add('dragging');
+                    });
+
+                    document.addEventListener('mousemove', (e) => {
+                        if (!draggingEl) return;
+                        const target = getItemAtY(e.clientY);
+                        lista.querySelectorAll('.orden-card-item').forEach(i => i.classList.remove('drag-over'));
+                        if (target && target !== draggingEl) target.classList.add('drag-over');
+                    });
+
+                    document.addEventListener('mouseup', (e) => {
+                        if (!draggingEl) return;
+                        const target = getItemAtY(e.clientY);
+                        lista.querySelectorAll('.orden-card-item').forEach(i => {
+                            i.classList.remove('drag-over');
+                            i.classList.remove('dragging');
+                        });
+                        if (target && target !== draggingEl) {
+                            const cual = getCardFromItem(draggingEl);
+                            const targetCual = getCardFromItem(target);
+                            const orden = obtenerOrdenCards();
+                            const fromIdx = orden.indexOf(cual);
+                            const toIdx = orden.indexOf(targetCual);
+                            if (fromIdx !== -1 && toIdx !== -1) {
+                                orden.splice(fromIdx, 1);
+                                orden.splice(toIdx, 0, cual);
+                                try { localStorage.setItem('ordenCards', JSON.stringify(orden)); } catch (err) { }
+                                aplicarOrdenCards(orden);
+                            }
+                        }
+                        draggingEl = null;
+                    });
+                }
+
                 function cerrarEdicion() {
                     ModalManager.cerrar('modal-editar', () => {
                         D.setEditandoId(null);
@@ -9055,7 +9346,8 @@ Generado por Sistema Horarios
                         iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                         togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleCalendario, navegarCalendario, toggleGistMerge, actualizarEstadoBotonesGist,
                         abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar,
-                        gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote,
+                        gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards,
+                        aplicarOrdenCards, moverCard, iniciarDragOrdenCards
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -9233,6 +9525,9 @@ Generado por Sistema Horarios
                     D.setVistaActual(config.vistaActual);
                     D.setIgnorarTiempoFuera(config.ignorarTiempoFuera || false);
                     UILogic.actualizarEstadoBotonIgnorarTF();
+                    UILogic.aplicarVisibilidadCards();
+                    UILogic.aplicarOrdenCards(UILogic.obtenerOrdenCards());
+                    UILogic.iniciarDragOrdenCards();
                     UILogic.setFondoCard(config.fondoCard || 'golden-gate');
                     if (config.modoEstadisticas === 'anual') UILogic.togglePeriodoStats();
                     else if (config.modoEstadisticas === 'semanal') { UILogic.togglePeriodoStats(); UILogic.togglePeriodoStats(); }
@@ -10093,7 +10388,8 @@ Generado por Sistema Horarios
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
-                    togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard
+                    togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
+                    obtenerOrdenCards, aplicarOrdenCards, moverCard, iniciarDragOrdenCards
                 };
 
             })(SecurityAndUtils, DataManagement, GistSync);
@@ -10127,7 +10423,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.76
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 7.78
     // ====================================================================
     
      - CAMBIOS:
@@ -10141,6 +10437,8 @@ Generado por Sistema Horarios
     8) Se cambia el orden de los stats-items
     9) Se agrega tarjeta de calendario
     10) Se agrega listener en el modal editar para mostrar el estado segun los datos
+    11) se agrega opcion para mostrar/ocultar las tarjetas
+    12) Se agrega opcion de cambiar el orden de las tarjetas
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
