@@ -1886,8 +1886,7 @@
                 </div>
                 <div class="form-group">
                     <label>Tarjetas</label>
-                    <button id="btn-toggle-card-estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')"
-                        >
+                    <button id="btn-toggle-card-estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')">
                         <svg class="icon">
                             <use href="#icon-stats" />
                         </svg>
@@ -2876,6 +2875,9 @@
                             if (window.UILogic) UILogic.cerrarEdicion();
                         } else if (modalId === 'modal-editar-grupo') {
                             if (window.UILogic) UILogic.cerrarEdicionGrupo();
+                        } else if (modalId === 'modal-confirmar') {
+                            // ¡AQUÍ ESTÁ LA MAGIA! Forzamos el clic en cancelar para resolver la Promesa
+                            document.getElementById('modal-confirmar-cancel')?.click();
                         } else {
                             // El resto se cierra directamente
                             cerrar(modalId);
@@ -10205,6 +10207,7 @@ Generado por Sistema Horarios
     9) Se agrega tarjeta de calendario
     10) Se agrega listener en el modal editar para mostrar el estado segun los datos
     11) se agrega opcion para mostrar/ocultar las tarjetas
+    12) cambios en el orden de algunos botones de ajustes
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
