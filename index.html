@@ -1886,7 +1886,8 @@
                 </div>
                 <div class="form-group">
                     <label>Tarjetas</label>
-                    <button id="btn-toggle-card-estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')">
+                    <button id="btn-toggle-card-estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')"
+                        >
                         <svg class="icon">
                             <use href="#icon-stats" />
                         </svg>
@@ -2875,9 +2876,6 @@
                             if (window.UILogic) UILogic.cerrarEdicion();
                         } else if (modalId === 'modal-editar-grupo') {
                             if (window.UILogic) UILogic.cerrarEdicionGrupo();
-                        } else if (modalId === 'modal-confirmar') {
-                            // ¡AQUÍ ESTÁ LA MAGIA! Forzamos el clic en cancelar para resolver la Promesa
-                            document.getElementById('modal-confirmar-cancel')?.click();
                         } else {
                             // El resto se cierra directamente
                             cerrar(modalId);
