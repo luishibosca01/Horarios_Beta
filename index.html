@@ -420,11 +420,6 @@
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
-        .stats-card-content.fade-out {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
         /* Estados del borde lateral */
         .stats-card.border-blue {
             border-left-color: var(--c-blue) !important;
@@ -1088,6 +1083,13 @@
             font-weight: bold;
         }
 
+        .btn-activo {
+            background: rgba(96, 172, 148, 0.1) !important;
+            color: var(--c-green) !important;
+            border-color: var(--c-green) !important;
+            font-weight: bold !important;
+        }
+
         .btn-perfil-info {
             flex: 1;
             display: flex;
@@ -1142,12 +1144,12 @@
             transition: max-height 0.3s ease-out, opacity 0.3s ease-out, transform 0.3s ease;
         }
 
-        #modo-normal.fade-out,
-        #modo-lote.fade-out,
-        #form-stats.fade-out,
-        #calendario-grid.fade-out,
-        #lista-registros.fade-out,
-        #vista-calendario-historico.fade-out {
+        .fade-out {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        .stats-card-content.fade-out {
             opacity: 0;
             transform: translateY(-10px);
         }
@@ -1950,7 +1952,7 @@
                         </svg>
                         <span id="hint-fondo-label">Golden Gate</span>
                     </button>
-                </div>               
+                </div>
                 <div class="config-actions">
                     <label>Registros y Sincronización</label>
                     <button class="btn-edit" onclick="UILogic.abrirModalGist()">
@@ -3971,25 +3973,21 @@
                     $('edit-salida').value = r.salida || '';
                     $('edit-tiempo-fuera').value = r.tiempoFuera || '';
 
-                    // 3. CONFIGURAR EL BOTÓN DE CRÉDITO (Aquí está el cambio visual)
+                    // 3. CONFIGURAR EL BOTÓN DE CRÉDITO
                     const btnCredito = document.getElementById('btn-toggle-credito');
 
-                    // A) Limpieza total: Le quitamos cualquier estilo previo para empezar de cero
+                    // A) Limpieza total
                     btnCredito.style.background = '';
                     btnCredito.style.color = '';
                     btnCredito.style.border = '';
 
                     // B) Decidir si se pinta de verde o se queda gris
                     if (r.credito && r.credito !== '00:00') {
-                        // SI TIENE CRÉDITO -> Lo pintamos estilo "Día Hábil" (Verde transparente)
                         btnCredito.dataset.activo = "true";
-
-                        btnCredito.style.background = 'rgba(96, 172, 148, 0.1)'; // Fondo transparente
-                        btnCredito.style.color = 'var(--c-green)';                // Icono verde
-                        btnCredito.style.border = '1px solid var(--c-green)';     // Borde fino
+                        btnCredito.classList.add('btn-activo');
                     } else {
-                        // NO TIENE CRÉDITO -> Se queda como está (Gris por defecto de CSS)
                         btnCredito.dataset.activo = "false";
+                        btnCredito.classList.remove('btn-activo');
                     }
 
                     // 4. Mostrar el modal y activar bloqueos
@@ -4637,7 +4635,7 @@
                         fechaIteracion.setDate(fechaIteracion.getDate() + 1);
                     }
                     return buffer;
-                }                
+                }
 
                 function limpiarFiltros() {
                     filtroActivo = false;
@@ -6814,15 +6812,9 @@
                     const activo = D.getIgnorarTiempoFuera();
                     if (!btn) return;
                     if (activo) {
-                        btn.style.background = 'rgba(96, 172, 148, 0.1)';
-                        btn.style.color = 'var(--c-green)';
-                        btn.style.borderColor = 'var(--c-green)';
-                        btn.style.fontWeight = 'bold';
+                        btn.classList.add('btn-activo');
                     } else {
-                        btn.style.background = '';
-                        btn.style.color = 'var(--text-main)';
-                        btn.style.borderColor = 'var(--border)';
-                        btn.style.fontWeight = '600';
+                        btn.classList.remove('btn-activo');
                     }
                 }
 
@@ -6839,15 +6831,9 @@
                     const activo = localStorage.getItem('persistirTarjetas') !== 'false';
                     if (!btn) return;
                     if (activo) {
-                        btn.style.background = 'rgba(96, 172, 148, 0.1)';
-                        btn.style.color = 'var(--c-green)';
-                        btn.style.borderColor = 'var(--c-green)';
-                        btn.style.fontWeight = 'bold';
+                        btn.classList.add('btn-activo');
                     } else {
-                        btn.style.background = '';
-                        btn.style.color = 'var(--text-main)';
-                        btn.style.borderColor = 'var(--border)';
-                        btn.style.fontWeight = '600';
+                        btn.classList.remove('btn-activo');
                     }
                 }
 
@@ -6870,15 +6856,9 @@
                     const btn = document.getElementById('btn-toggle-card-' + cual);
                     if (!btn) return;
                     if (activo) {
-                        btn.style.background = 'rgba(96, 172, 148, 0.1)';
-                        btn.style.color = 'var(--c-green)';
-                        btn.style.borderColor = 'var(--c-green)';
-                        btn.style.fontWeight = 'bold';
+                        btn.classList.add('btn-activo');
                     } else {
-                        btn.style.background = '';
-                        btn.style.color = 'var(--text-main)';
-                        btn.style.borderColor = 'var(--border)';
-                        btn.style.fontWeight = '600';
+                        btn.classList.remove('btn-activo');
                     }
                 }
 
@@ -8119,8 +8099,7 @@ Generado por Sistema Horarios
                             btn.style.background = '';
                             btn.style.color = '';
 
-                            const iconUse = btn.querySelector('svg use');
-                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
+                            setIconoBtn(btn, '#icon-save');
 
                             btnTimer.disabled = true;
                             btnTimer.style.opacity = '0.3';
@@ -8145,8 +8124,7 @@ Generado por Sistema Horarios
                             btn.style.background = '';
                             btn.style.color = '';
 
-                            const iconUse = btn.querySelector('svg use');
-                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
+                            setIconoBtn(btn, '#icon-save');
 
                             btnTimer.disabled = false;
                             btnTimer.style.opacity = '1';
@@ -8305,6 +8283,11 @@ Generado por Sistema Horarios
                     }
                 }
 
+                function setIconoBtn(btn, icono) {
+                    const use = btn.querySelector('svg use');
+                    if (use) use.setAttribute('href', icono);
+                }
+
                 function actualizarBotonLote() {
                     const tipo = document.getElementById('lote-tipo').value;
                     const desde = document.getElementById('lote-fecha-desde').value;
@@ -8319,11 +8302,7 @@ Generado por Sistema Horarios
                     // 2. Si faltan fechas, mostramos "Registrar" estándar y salimos
                     if (!desde && !hasta) {
                         btnTexto.textContent = 'Registrar';
-
-                        // Restaurar ícono original
-                        const iconUse = btn.querySelector('svg use');
-                        if (iconUse) iconUse.setAttribute('href', '#icon-save');
-
+                        setIconoBtn(btn, '#icon-save');
                         return;
                     }
 
@@ -8332,11 +8311,7 @@ Generado por Sistema Horarios
                         if (tipo === 'normal') {
                             btnTexto.textContent = 'Requiere Rango';
                             btn.style.color = 'var(--c-red)';
-
-                            // Restaurar ícono
-                            const iconUse = btn.querySelector('svg use');
-                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
-
+                            setIconoBtn(btn, '#icon-save');
                             return;
                         }
 
@@ -8345,15 +8320,10 @@ Generado por Sistema Horarios
                         if (registroExiste) {
                             btnTexto.textContent = 'Registrado';
                             btn.style.color = 'var(--text-muted)';
-
-                            const iconUse = btn.querySelector('svg use');
-                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
                         } else {
                             btnTexto.textContent = 'Registrar';
-
-                            const iconUse = btn.querySelector('svg use');
-                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
                         }
+                        setIconoBtn(btn, '#icon-save');
                         return;
                     }
 
@@ -8368,30 +8338,21 @@ Generado por Sistema Horarios
                     if (!S.validarFechaSegura(desde)) {
                         btnTexto.textContent = 'Fecha Inicial Inválida';
                         btn.style.color = 'var(--c-red)';
-
-                        const iconUse = btn.querySelector('svg use');
-                        if (iconUse) iconUse.setAttribute('href', '#icon-save');
-
+                        setIconoBtn(btn, '#icon-save');
                         return;
                     }
 
                     if (!S.validarFechaSegura(hasta)) {
                         btnTexto.textContent = 'Fecha Final Inválida';
                         btn.style.color = 'var(--c-red)';
-
-                        const iconUse = btn.querySelector('svg use');
-                        if (iconUse) iconUse.setAttribute('href', '#icon-save');
-
+                        setIconoBtn(btn, '#icon-save');
                         return;
                     }
 
                     if (desde > hasta) {
                         btnTexto.textContent = 'Rango Inválido';
                         btn.style.color = 'var(--c-red)';
-
-                        const iconUse = btn.querySelector('svg use');
-                        if (iconUse) iconUse.setAttribute('href', '#icon-save');
-
+                        setIconoBtn(btn, '#icon-save');
                         return;
                     }
 
@@ -8405,7 +8366,6 @@ Generado por Sistema Horarios
                     let registrosDelTipoEnRango;
 
                     if (tipo === 'normal') {
-                        // Contar registros NORMALES (no especiales) en el rango
                         registrosDelTipoEnRango = DataManagement.registros().filter(r => {
                             const dentroDelRango = r.fecha >= desde && r.fecha <= hasta;
                             const esEspecial = TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
@@ -8414,28 +8374,19 @@ Generado por Sistema Horarios
 
                         const cantidadRegistros = registrosDelTipoEnRango.length;
 
-                        // Caso Normal: Siempre es una acción de borrado
                         if (cantidadRegistros > 0) {
                             btnTexto.textContent = `Borrar (${cantidadRegistros})`;
                             btn.style.color = 'var(--c-red)';
-
-                            // Cambiar icono a papelera
-                            const iconUse = btn.querySelector('svg use');
-                            if (iconUse) iconUse.setAttribute('href', '#icon-trash');
+                            setIconoBtn(btn, '#icon-trash');
                         } else {
                             btnTexto.textContent = 'Sin Registros';
                             btn.style.color = 'var(--text-muted)';
-
-                            // Volver al icono original (save)
-                            const iconUse = btn.querySelector('svg use');
-                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
+                            setIconoBtn(btn, '#icon-save');
                         }
                     } else {
-                        // Casos Especiales - Contar días OCUPADOS y días LIBRES
                         const codigosTipo = TiposRegistro.obtenerCodigosPorTipo(tipo);
 
                         if (codigosTipo) {
-                            // Contar cuántos días YA tienen este tipo de registro
                             registrosDelTipoEnRango = DataManagement.registros().filter(r =>
                                 r.fecha >= desde &&
                                 r.fecha <= hasta &&
@@ -8443,7 +8394,6 @@ Generado por Sistema Horarios
                                 r.salida === codigosTipo.salida
                             );
 
-                            // Contar cuántos días tienen CUALQUIER tipo de registro
                             const diasOcupados = DataManagement.registros().filter(r =>
                                 r.fecha >= desde && r.fecha <= hasta
                             );
@@ -8455,31 +8405,18 @@ Generado por Sistema Horarios
                             if (disponibles === 0 && yaRegistrados === diasTotales) {
                                 btnTexto.textContent = `Registrado (${diasTotales})`;
                                 btn.style.color = 'var(--text-muted)';
-
-                                const iconUse = btn.querySelector('svg use');
-                                if (iconUse) iconUse.setAttribute('href', '#icon-save');
                             } else if (disponibles === diasTotales) {
                                 btnTexto.textContent = `Registrar (${diasTotales})`;
-
-                                const iconUse = btn.querySelector('svg use');
-                                if (iconUse) iconUse.setAttribute('href', '#icon-save');
                             } else if (sobreescribirOtros > 0) {
                                 btnTexto.textContent = `Registrar (${disponibles} - ${sobreescribirOtros})`;
-
-                                const iconUse = btn.querySelector('svg use');
-                                if (iconUse) iconUse.setAttribute('href', '#icon-save');
                             } else {
                                 btnTexto.textContent = `Registrar (${disponibles})`;
-
-                                const iconUse = btn.querySelector('svg use');
-                                if (iconUse) iconUse.setAttribute('href', '#icon-save');
                             }
+                            setIconoBtn(btn, '#icon-save');
                         } else {
                             registrosDelTipoEnRango = [];
                             btnTexto.textContent = 'Registrar';
-
-                            const iconUse = btn.querySelector('svg use');
-                            if (iconUse) iconUse.setAttribute('href', '#icon-save');
+                            setIconoBtn(btn, '#icon-save');
                         }
                     }
                 }
@@ -8493,19 +8430,10 @@ Generado por Sistema Horarios
                     if (estaActivo) {
                         // --- DESACTIVAR (Volver a Gris original) ---
                         btn.dataset.activo = "false";
-
-                        // Limpiamos estilos para que retome la clase .time-btn original
-                        btn.style.background = '';
-                        btn.style.color = '';
-                        btn.style.border = ''; // Quitar borde
+                        btn.classList.remove('btn-activo');
                     } else {
-                        // --- ACTIVAR (Estilo "Día Hábil/Perfil") ---
                         btn.dataset.activo = "true";
-
-                        // Aplicamos EXACTAMENTE el mismo estilo que .day-checkbox input:checked~span
-                        btn.style.background = 'rgba(96, 172, 148, 0.1)'; // Fondo verde transparente
-                        btn.style.color = 'var(--c-green)';                // Icono verde
-                        btn.style.border = '1px solid var(--c-green)';     // Borde verde
+                        btn.classList.add('btn-activo');
                     }
                 }
 
@@ -8941,15 +8869,12 @@ Generado por Sistema Horarios
                         if (!btn) return;
 
                         const configs = [
-                            { texto: 'Sin automatizar', hint: '', bg: '', color: 'var(--text-main)', border: 'var(--border)', fw: '600' },
-                            { texto: 'Restaurar', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' },
-                            { texto: 'Respaldar', hint: '', bg: 'rgba(96,172,148,0.1)', color: 'var(--c-green)', border: 'var(--c-green)', fw: 'bold' }
+                            { texto: 'Sin automatizar', hint: '', activo: false },
+                            { texto: 'Restaurar', hint: '', activo: true },
+                            { texto: 'Respaldar', hint: '', activo: true }
                         ];
                         const c = configs[estado];
-                        btn.style.background = c.bg;
-                        btn.style.color = c.color;
-                        btn.style.borderColor = c.border;
-                        btn.style.fontWeight = c.fw;
+                        btn.classList.toggle('btn-activo', c.activo);
                         if (label) label.textContent = c.texto;
                         if (hint) { hint.textContent = c.hint; hint.style.color = c.color; }
 
@@ -9901,7 +9826,6 @@ Generado por Sistema Horarios
                                 if (lista) lista.style.display = 'none';
                                 if (cal) cal.style.display = '';
                                 if (btnFiltro) { btnFiltro.disabled = true; btnFiltro.style.opacity = '0.4'; }
-                                if (btnVista) { btnVista.style.color = 'var(--c-green)'; btnVista.style.borderColor = 'var(--c-green)'; }
                                 _renderizarCalendario();
                             }
 
@@ -10056,7 +9980,6 @@ Generado por Sistema Horarios
 
                     const lista = document.getElementById('lista-registros');
                     const cal = document.getElementById('vista-calendario-historico');
-                    const btn = document.getElementById('btn-vista-calendario');
                     const btnFiltro = document.getElementById('btn-filtro');
 
                     // Fade-out del elemento visible
@@ -10074,11 +9997,9 @@ Generado por Sistema Horarios
                         }
 
                         if (_vistaHistoricoCalendario) {
-                            if (btn) { btn.style.color = 'var(--c-green)'; btn.style.borderColor = 'var(--c-green)'; }
                             if (btnFiltro) { btnFiltro.disabled = true; btnFiltro.style.opacity = '0.4'; }
                             _renderizarCalendario();
                         } else {
-                            if (btn) { btn.style.color = ''; btn.style.borderColor = ''; }
                             if (btnFiltro) { btnFiltro.disabled = false; btnFiltro.style.opacity = ''; }
                         }
                     }, 300);
@@ -10421,6 +10342,8 @@ Generado por Sistema Horarios
     14) Se agrega cambio inmediato a los filtro del historico
     15) Se agrega opcion de persistencia al estado de las tarjetas
     16) Se unifica la tarjeta de calendario en la tarjeta de historico
+    17) Se crea una clase generica para aplicar a varios botones cuando estan activos
+    18) Se crea una funcion helper para refactorizar el aplicado de iconos
 
      - BUGS MENORES CONOCIDOS:
      1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
