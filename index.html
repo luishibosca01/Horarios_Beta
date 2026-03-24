@@ -1136,14 +1136,18 @@
 
         /* Transición suave entre meses en estadísticas */
         #form-stats,
-        #calendario-grid {
+        #calendario-grid,
+        #lista-registros,
+        #vista-calendario-historico {
             transition: max-height 0.3s ease-out, opacity 0.3s ease-out, transform 0.3s ease;
         }
 
         #modo-normal.fade-out,
         #modo-lote.fade-out,
         #form-stats.fade-out,
-        #calendario-grid.fade-out {
+        #calendario-grid.fade-out,
+        #lista-registros.fade-out,
+        #vista-calendario-historico.fade-out {
             opacity: 0;
             transform: translateY(-10px);
         }
@@ -1766,37 +1770,6 @@
                     </div>
                 </div>
             </div>
-            <div class="card animated-card" id="card-calendario" style="animation-delay: 0.20s;">
-                <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleCalendario()">
-                    <span style="display: flex; align-items: center; gap: 0.5rem;">
-                        <svg class="icon">
-                            <use href="#icon-calendar-simple" />
-                        </svg> Calendario
-                    </span>
-                    <svg class="icon chevron" id="icon-indicator-calendario">
-                        <use href="#icon-chevron-down" />
-                    </svg>
-                </h2>
-                <div class="form-collapsible" id="form-calendario">
-                    <div style="padding-top: 0.5rem;">
-                        <div class="calendario-nav">
-                            <span class="calendario-titulo" id="calendario-titulo-mes"></span>
-                            <button onclick="UILogic.navegarCalendario(-1)">
-                                <svg class="icon" style="transform:rotate(90deg);">
-                                    <use href="#icon-chevron-down" />
-                                </svg>
-                            </button>
-
-                            <button onclick="UILogic.navegarCalendario(1)">
-                                <svg class="icon" style="transform:rotate(-90deg);">
-                                    <use href="#icon-chevron-down" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="calendario-grid" id="calendario-grid"></div>
-                    </div>
-                </div>
-            </div>
         </div>
         <div class="card animated-card" id="card-historico" style="animation-delay: 0.25s;">
             <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleHistorico()">
@@ -1815,10 +1788,10 @@
                     <div
                         style="display: flex; justify-content: space-between; gap: 0.5rem; padding: 0 0.5rem; margin-top: 0.5rem">
                         <div style="display: flex; gap: 0.5rem;">
-                            <button class="filter-btn" id="btn-filtro" onclick="UILogic.mostrarFiltros()"
-                                title="Filtrar">
+                            <button class="filter-btn" id="btn-vista-calendario"
+                                onclick="UILogic.toggleVistaHistorico()" title="Vista calendario">
                                 <svg class="icon">
-                                    <use href="#icon-filter" />
+                                    <use href="#icon-calendar-simple" />
                                 </svg>
                             </button>
                             <button class="filter-btn" id="btn-hist-restaurar" onclick="UILogic.mostrarImportar(true)"
@@ -1831,6 +1804,12 @@
                                 title="Respaldar">
                                 <svg class="icon">
                                     <use href="#icon-download" />
+                                </svg>
+                            </button>
+                            <button class="filter-btn" id="btn-filtro" onclick="UILogic.mostrarFiltros()"
+                                title="Filtrar">
+                                <svg class="icon">
+                                    <use href="#icon-filter" />
                                 </svg>
                             </button>
                         </div>
@@ -1849,6 +1828,22 @@
                     </div>
                 </div>
                 <div id="lista-registros" class="custom-scroll"></div>
+                <div id="vista-calendario-historico" style="display:none; padding: 0 0.5rem 0.5rem;">
+                    <div class="calendario-nav">
+                        <span class="calendario-titulo" id="calendario-titulo-mes"></span>
+                        <button onclick="UILogic.navegarCalendario(-1)">
+                            <svg class="icon" style="transform:rotate(90deg);">
+                                <use href="#icon-chevron-down" />
+                            </svg>
+                        </button>
+                        <button onclick="UILogic.navegarCalendario(1)">
+                            <svg class="icon" style="transform:rotate(-90deg);">
+                                <use href="#icon-chevron-down" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="calendario-grid" id="calendario-grid"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1862,7 +1857,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.11</span>
+                    <span class="version-text">LUSHIBOSCA-8.12</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -1921,13 +1916,6 @@
                         </svg>
                         <span>Estadísticas</span>
                     </button>
-                    <button id="btn-toggle-card-calendario" onclick="UILogic.toggleVisibilidadCard('calendario')"
-                        style="margin-top: 0.5rem;">
-                        <svg class="icon">
-                            <use href="#icon-calendar-simple" />
-                        </svg>
-                        <span>Calendario</span>
-                    </button>
                     <button id="btn-toggle-card-historico" onclick="UILogic.toggleVisibilidadCard('historico')"
                         style="margin-top: 0.5rem;">
                         <svg class="icon">
@@ -1962,18 +1950,15 @@
                         </svg>
                         <span id="hint-fondo-label">Golden Gate</span>
                     </button>
-                </div>
-                <div class="form-group">
-                    <label>Sincronización</label>
+                </div>               
+                <div class="config-actions">
+                    <label>Registros y Sincronización</label>
                     <button class="btn-edit" onclick="UILogic.abrirModalGist()">
                         <svg class="icon">
                             <use href="#icon-cloud" />
                         </svg>
                         GitHub Gist
                     </button>
-                </div>
-                <div class="config-actions">
-                    <label>Registros</label>
                     <button class="btn-backup" onclick="UILogic.mostrarImportar()">
                         <svg class="icon">
                             <use href="#icon-upload" />
@@ -4652,38 +4637,7 @@
                         fechaIteracion.setDate(fechaIteracion.getDate() + 1);
                     }
                     return buffer;
-                }
-
-                function aplicarFiltros() {
-                    const desde = $('filtro-fecha-desde').value;
-                    const hasta = $('filtro-fecha-hasta').value;
-                    const tipo = $('filtro-tipo').value;
-
-                    if (!desde && !hasta && !tipo) {
-                        UILogic.mostrarToast('Selecciona al menos un filtro', 'warning');
-                        return;
-                    }
-
-                    filtroActivo = true;
-                    filtroDesde = desde || null;
-                    filtroHasta = hasta || null;
-                    filtroTipo = tipo || null;
-
-                    guardarYActualizar();
-                    UILogic.cerrarFiltros();
-
-                    let mensaje = 'Filtro aplicado';
-                    if (tipo) {
-                        if (tipo === 'normal') {
-                            mensaje += ': Normales';
-                        } else {
-                            const tipoConfig = TiposRegistro.obtenerTipoPorId(tipo);
-                            mensaje += `: ${tipoConfig ? tipoConfig.labelPlural : tipo}`;
-                        }
-                    }
-                    UILogic.mostrarToast(mensaje, 'success');
-                    document.getElementById('btn-filtro').classList.add('filtro-activo');
-                }
+                }                
 
                 function limpiarFiltros() {
                     filtroActivo = false;
@@ -4889,7 +4843,6 @@
                     exportarJSON,
                     importarDatos,
                     calcularBufferSemanal,
-                    aplicarFiltros,
                     aplicarFiltrosInmediato,
                     limpiarFiltros,
                     obtenerRegistrosFiltrados,
@@ -6669,7 +6622,7 @@
                     }
                     actualizarEstadoBotonTimerMain();
                     // Actualizar calendario si está abierto
-                    if (document.getElementById('form-calendario')?.classList.contains('expanded')) {
+                    if (_vistaHistoricoCalendario) {
                         _renderizarCalendario();
                     }
                 }
@@ -8751,7 +8704,6 @@ Generado por Sistema Horarios
                         eliminarRegistroActual: D.eliminarRegistroActual,
                         undoAction: D.undoAction,
                         redoAction: D.redoAction,
-                        aplicarFiltros: D.aplicarFiltros,
                         aplicarFiltrosInmediato: D.aplicarFiltrosInmediato,
                         limpiarFiltros: D.limpiarFiltros,
                         registrarDiaEspecial: D.registrarDiaEspecial,
@@ -9210,8 +9162,8 @@ Generado por Sistema Horarios
                         toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                         mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                         iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
-                        togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleCalendario, navegarCalendario, toggleGistMerge,
-                        actualizarEstadoBotonesGist, togglePersistirTarjetas, actualizarEstadoBotonPersistir,
+                        togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, navegarCalendario, toggleGistMerge,
+                        actualizarEstadoBotonesGist, togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
                         abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar,
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards, _popupCalendario,
                     };
@@ -9446,7 +9398,6 @@ Generado por Sistema Horarios
                     try {
                         const persistir = localStorage.getItem('persistirTarjetas') !== 'false';
                         if (persistir && localStorage.getItem('formularioExpandido') === 'true') toggleFormulario();
-                        if (persistir && localStorage.getItem('calendarioExpandido') === 'true') toggleCalendario();
                         if (persistir && localStorage.getItem('statsExpandido') === 'true') toggleStats();
 
                         // Restaurar estado de Histórico (3 estados)
@@ -9482,6 +9433,18 @@ Generado por Sistema Horarios
                             if (icon) {
                                 icon.classList.remove('rotated');
                                 icon.style.transform = '';
+                            }
+                        }
+
+                        // Restaurar vista calendario dentro del histórico (solo si histórico está abierto)
+                        if (localStorage.getItem('vistaHistoricoCalendario') === 'true') {
+                            const contenidoAbierto = $('contenido-historico')?.classList.contains('expanded');
+                            if (contenidoAbierto) {
+                                _vistaHistoricoCalendario = false; // resetear para que el toggle funcione
+                                toggleVistaHistorico();
+                            } else {
+                                // Histórico cerrado: solo pre-setear el estado, se aplicará cuando se abra
+                                _vistaHistoricoCalendario = true;
                             }
                         }
                     } catch (e) {
@@ -9929,6 +9892,19 @@ Generado por Sistema Horarios
                             localStorage.setItem('historicoExpandido', 'meses');
                             tiempoExpansionBotones = null;
 
+                            // Si la vista calendario estaba activa, aplicarla al abrir
+                            if (_vistaHistoricoCalendario) {
+                                const lista = document.getElementById('lista-registros');
+                                const cal = document.getElementById('vista-calendario-historico');
+                                const btnFiltro = document.getElementById('btn-filtro');
+                                const btnVista = document.getElementById('btn-vista-calendario');
+                                if (lista) lista.style.display = 'none';
+                                if (cal) cal.style.display = '';
+                                if (btnFiltro) { btnFiltro.disabled = true; btnFiltro.style.opacity = '0.4'; }
+                                if (btnVista) { btnVista.style.color = 'var(--c-green)'; btnVista.style.borderColor = 'var(--c-green)'; }
+                                _renderizarCalendario();
+                            }
+
                         } else if (contenidoExpandido && !botonesExpandidos) {
                             // ESTADO 2 → ESTADO 3: Mostrar botones (chevron a 90°)
                             botones.classList.add('expanded');
@@ -10072,10 +10048,40 @@ Generado por Sistema Horarios
                     grid.innerHTML = html;
                 }
 
-                function toggleCalendario() {
-                    toggleSeccionGen('form-calendario', 'icon-indicator-calendario', 'calendarioExpandido', () => {
-                        _renderizarCalendario();
-                    });
+                let _vistaHistoricoCalendario = false;
+
+                function toggleVistaHistorico() {
+                    _vistaHistoricoCalendario = !_vistaHistoricoCalendario;
+                    try { localStorage.setItem('vistaHistoricoCalendario', _vistaHistoricoCalendario); } catch (e) { }
+
+                    const lista = document.getElementById('lista-registros');
+                    const cal = document.getElementById('vista-calendario-historico');
+                    const btn = document.getElementById('btn-vista-calendario');
+                    const btnFiltro = document.getElementById('btn-filtro');
+
+                    // Fade-out del elemento visible
+                    const saliente = _vistaHistoricoCalendario ? lista : cal;
+                    const entrante = _vistaHistoricoCalendario ? cal : lista;
+                    if (saliente) saliente.classList.add('fade-out');
+
+                    setTimeout(() => {
+                        if (saliente) { saliente.classList.remove('fade-out'); saliente.style.display = 'none'; }
+                        if (entrante) {
+                            entrante.style.display = '';
+                            entrante.classList.add('fade-out');
+                            entrante.offsetHeight; // forzar reflow
+                            entrante.classList.remove('fade-out');
+                        }
+
+                        if (_vistaHistoricoCalendario) {
+                            if (btn) { btn.style.color = 'var(--c-green)'; btn.style.borderColor = 'var(--c-green)'; }
+                            if (btnFiltro) { btnFiltro.disabled = true; btnFiltro.style.opacity = '0.4'; }
+                            _renderizarCalendario();
+                        } else {
+                            if (btn) { btn.style.color = ''; btn.style.borderColor = ''; }
+                            if (btnFiltro) { btnFiltro.disabled = false; btnFiltro.style.opacity = ''; }
+                        }
+                    }, 300);
                 }
 
                 let _popupCalendarioEl = null;
@@ -10360,7 +10366,7 @@ Generado por Sistema Horarios
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
-                    togglePersistirTarjetas, actualizarEstadoBotonPersistir,
+                    togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, toggleVistaHistorico,
                     _popupCalendario
                 };
 
@@ -10395,7 +10401,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.11
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.12
     // ====================================================================
     
      - CAMBIOS:
