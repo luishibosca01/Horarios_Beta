@@ -443,7 +443,7 @@
 
         .stats-card.border-transparent {
             border-left-color: transparent !important;
-        }        
+        }
 
         .progress-bar {
             width: 100%;
@@ -958,6 +958,27 @@
             transform-origin: center;
             z-index: 10;
             position: relative;
+        }
+
+        .calendario-dia.nuevo-registro-animacion {
+            animation: cal-destello 0.8s ease-out forwards;
+        }
+
+        @keyframes cal-destello {
+            0% {
+                box-shadow: 0 0 0 3px var(--c-green);
+                opacity: 0;
+            }
+
+            60% {
+                box-shadow: 0 0 0 6px rgba(76, 172, 140, 0);
+                opacity: 1;
+            }
+
+            100% {
+                box-shadow: none;
+                opacity: 1;
+            }
         }
 
         /* Animación del boton tiempo fuera*/
@@ -1797,7 +1818,7 @@
                         style="display: flex; justify-content: space-between; gap: 0.5rem; padding: 0 0.5rem; margin-top: 0.5rem">
                         <div style="display: flex; gap: 0.5rem;">
                             <button class="filter-btn" id="btn-vista-calendario"
-                                onclick="UILogic.toggleVistaHistorico()" title="Vista calendario">
+                                onclick="UILogic.toggleVistaHistorico()" title="Vista">
                                 <svg class="icon">
                                     <use href="#icon-calendar-simple" />
                                 </svg>
@@ -1920,20 +1941,29 @@
                     <label>Mostrar / Ordenar Tarjetas</label>
                     <div style="display:flex;flex-direction:column;gap:0.4rem;" id="lista-orden-cards">
                         <div class="orden-card-item" id="orden-item-registrar">
-                            <button id="btn-toggle-card-registrar" class="drag-handle" data-card="registrar" onclick="UILogic.toggleVisibilidadCard('registrar')" style="flex:1;">
-                                <svg class="icon"><use href="#icon-save"/></svg>
+                            <button id="btn-toggle-card-registrar" class="drag-handle" data-card="registrar"
+                                onclick="UILogic.toggleVisibilidadCard('registrar')" style="flex:1;">
+                                <svg class="icon">
+                                    <use href="#icon-save" />
+                                </svg>
                                 <span>Registrar</span>
                             </button>
                         </div>
                         <div class="orden-card-item" id="orden-item-estadisticas">
-                            <button id="btn-toggle-card-estadisticas" class="drag-handle" data-card="estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')" style="flex:1;">
-                                <svg class="icon"><use href="#icon-stats"/></svg>
+                            <button id="btn-toggle-card-estadisticas" class="drag-handle" data-card="estadisticas"
+                                onclick="UILogic.toggleVisibilidadCard('estadisticas')" style="flex:1;">
+                                <svg class="icon">
+                                    <use href="#icon-stats" />
+                                </svg>
                                 <span>Estadísticas</span>
                             </button>
                         </div>
                         <div class="orden-card-item" id="orden-item-historico">
-                            <button id="btn-toggle-card-historico" class="drag-handle" data-card="historico" onclick="UILogic.toggleVisibilidadCard('historico')" style="flex:1;">
-                                <svg class="icon"><use href="#icon-list"/></svg>
+                            <button id="btn-toggle-card-historico" class="drag-handle" data-card="historico"
+                                onclick="UILogic.toggleVisibilidadCard('historico')" style="flex:1;">
+                                <svg class="icon">
+                                    <use href="#icon-list" />
+                                </svg>
                                 <span>Histórico</span>
                             </button>
                         </div>
@@ -6068,19 +6098,19 @@
                     bg.dataset.estado = estado;
 
                     const coloresVar = {
-                        blue:   'rgba(76,114,172,0.12)',
-                        green:  'rgba(76,172,140,0.12)',
-                        red:    'rgba(172,90,76,0.12)',
+                        blue: 'rgba(76,114,172,0.12)',
+                        green: 'rgba(76,172,140,0.12)',
+                        red: 'rgba(172,90,76,0.12)',
                         purple: 'rgba(140,80,200,0.12)',
-                        gold:   'rgba(172,155,76,0.12)',
+                        gold: 'rgba(172,155,76,0.12)',
                     };
 
                     const colores = {
-                        esperando:      'rgba(140,150,170,0.07)',
-                        en_curso:       coloresVar.blue,
-                        finalizado_ok:  coloresVar.green,
+                        esperando: 'rgba(140,150,170,0.07)',
+                        en_curso: coloresVar.blue,
+                        finalizado_ok: coloresVar.green,
                         finalizado_fail: coloresVar.red,
-                        especial:       coloresVar.pruple
+                        especial: coloresVar.pruple
                     };
 
                     const color = colorOverride
@@ -6648,7 +6678,7 @@
                     actualizarEstadoBotonTimerMain();
                     // Actualizar calendario si está abierto
                     if (_vistaHistoricoCalendario) {
-                        _renderizarCalendario();
+                        _renderizarCalendario(idNuevo);
                     }
                 }
 
@@ -10102,7 +10132,7 @@ Generado por Sistema Horarios
 
                 let _calendarioMes = null; // { anio, mes } — null = mes actual
 
-                function _renderizarCalendario() {
+                function _renderizarCalendario(idResaltar = null) {
                     const grid = document.getElementById('calendario-grid');
                     const titulo = document.getElementById('calendario-titulo-mes');
                     if (!grid) return;
@@ -10156,7 +10186,7 @@ Generado por Sistema Horarios
                             const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
                             return `dia-especial-${tipo ? tipo.color : 'purple'}`;  // ← cambio
                         }
-                        if (r.entrada && (!r.salida || r.entrada === r.salida)) return 'dia-en-curso';
+                        if (r.entrada && !r.salida) return 'dia-en-curso';
                         if (r.total >= horasDiariasObj) return 'dia-normal';
                         return 'dia-incompleto';
                     };
@@ -10179,7 +10209,8 @@ Generado por Sistema Horarios
                         const esHoy = anio === hoy.getFullYear() && mes === hoy.getMonth() && dia === hoy.getDate();
                         const reg = regsPorFecha[fecha];
                         const onclick = reg ? ` onclick="UILogic._popupCalendario(event, '${reg.id}')" style="cursor:pointer;"` : '';
-                        html += `<div class="calendario-dia ${clase}${esHoy ? ' hoy' : ''}"${onclick}>${dia}</div>`;
+                        const esNuevo = idResaltar && reg && reg.id === idResaltar ? ' nuevo-registro-animacion' : '';
+                        html += `<div class="calendario-dia ${clase}${esHoy ? ' hoy' : ''}${esNuevo}"${onclick}>${dia}</div>`;
                     }
 
                     if (filtroActivo) {
@@ -10251,7 +10282,7 @@ Generado por Sistema Horarios
                         const emoji = tipoConfig ? tipoConfig.emoji : '';
                         const label = tipoConfig ? tipoConfig.label : reg.entrada;
                         infoHtml = `<span class="cal-popup-badge" style="background:var(--c-${tipoConfig.color})">${emoji} ${label}</span>`;
-                    } else if (reg.entrada && (!reg.salida || reg.entrada === reg.salida)) {
+                    } else if (reg.entrada && !reg.salida) {
                         infoHtml = `<div class="cal-popup-info">En curso</div>
                                     <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${reg.entrada}</div>`;
                     } else {
@@ -10319,7 +10350,7 @@ Generado por Sistema Horarios
                     };
                     setTimeout(() => document.addEventListener('click', cerrar, true), 10);
                     window.addEventListener('scroll', cerrar, { once: true, capture: true });
-                }                
+                }
 
                 function navegarCalendario(delta) {
                     const hoy = new Date();
