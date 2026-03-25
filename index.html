@@ -10133,6 +10133,26 @@ Generado por Sistema Horarios
                     const titulo = document.getElementById('calendario-titulo-mes');
                     if (!grid) return;
 
+                    // Swipe para móvil (se adjunta una sola vez)
+                    if (!grid.dataset.swipeInit) {
+                        grid.dataset.swipeInit = '1';
+                        let _sx = null, _sy = null;
+                        grid.addEventListener('touchstart', e => {
+                            if (e.touches.length !== 1) return;
+                            _sx = e.touches[0].clientX;
+                            _sy = e.touches[0].clientY;
+                        }, { passive: true });
+                        grid.addEventListener('touchend', e => {
+                            if (_sx === null) return;
+                            const dx = e.changedTouches[0].clientX - _sx;
+                            const dy = e.changedTouches[0].clientY - _sy;
+                            _sx = null; _sy = null;
+                            if (Math.abs(dy) > 80) return;  // scroll vertical, ignorar
+                            if (Math.abs(dx) < 50) return;  // muy corto, ignorar
+                            navegarCalendario(dx < 0 ? 1 : -1);
+                        }, { passive: true });
+                    }
+
                     const hoy = new Date();
                     const anio = _calendarioMes ? _calendarioMes.anio : hoy.getFullYear();
                     const mes = _calendarioMes ? _calendarioMes.mes : hoy.getMonth();
@@ -10258,7 +10278,7 @@ Generado por Sistema Horarios
                         const label = tipoConfig ? tipoConfig.label : reg.entrada;
                         infoHtml = `<span class="cal-popup-badge" style="background:var(--c-${tipoConfig.color})">${emoji} ${label}</span>`;
                     } else if (reg.entrada && (!reg.salida || reg.entrada === reg.salida)) {
-                        infoHtml = `<div class="cal-popup-info" style="color:var(--c-blue)">En curso</div>
+                        infoHtml = `<div class="cal-popup-info">En curso</div>
                                     <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${reg.entrada}</div>`;
                     } else {
                         const totalHoras = reg.total || 0;
@@ -10325,7 +10345,7 @@ Generado por Sistema Horarios
                     };
                     setTimeout(() => document.addEventListener('click', cerrar, true), 10);
                     window.addEventListener('scroll', cerrar, { once: true, capture: true });
-                }
+                }                
 
                 function navegarCalendario(delta) {
                     const hoy = new Date();
@@ -10567,6 +10587,7 @@ Generado por Sistema Horarios
     5) Se extiende la propiedad color de tipos de registros module al historico y tarjeta de estado
     6) Se corrige el bug del timer
     7) Se agrega opcion de ordenar las tarjetas
+    8) Se agrega "swipe" en la vista de calendario
 
      - BUGS MENORES CONOCIDOS:
           
