@@ -1917,23 +1917,30 @@
                     <div id="config-total-feedback" class="config-hint-text">(Total semanal: --hs)</div>
                 </div>
                 <div class="form-group">
-                    <label>Mostrar tarjetas</label>
-                    <button id="btn-toggle-card-estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')">
-                        <svg class="icon">
-                            <use href="#icon-stats" />
-                        </svg>
-                        <span>Estadísticas</span>
-                    </button>
-                    <button id="btn-toggle-card-historico" onclick="UILogic.toggleVisibilidadCard('historico')"
-                        style="margin-top: 0.5rem;">
-                        <svg class="icon">
-                            <use href="#icon-list" />
-                        </svg>
-                        <span>Histórico</span>
-                    </button>
+                    <label>Mostrar / Ordenar Tarjetas</label>
+                    <div style="display:flex;flex-direction:column;gap:0.4rem;" id="lista-orden-cards">
+                        <div class="orden-card-item" id="orden-item-registrar">
+                            <button id="btn-toggle-card-registrar" class="drag-handle" data-card="registrar" onclick="UILogic.toggleVisibilidadCard('registrar')" style="flex:1;">
+                                <svg class="icon"><use href="#icon-save"/></svg>
+                                <span>Registrar</span>
+                            </button>
+                        </div>
+                        <div class="orden-card-item" id="orden-item-estadisticas">
+                            <button id="btn-toggle-card-estadisticas" class="drag-handle" data-card="estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')" style="flex:1;">
+                                <svg class="icon"><use href="#icon-stats"/></svg>
+                                <span>Estadísticas</span>
+                            </button>
+                        </div>
+                        <div class="orden-card-item" id="orden-item-historico">
+                            <button id="btn-toggle-card-historico" class="drag-handle" data-card="historico" onclick="UILogic.toggleVisibilidadCard('historico')" style="flex:1;">
+                                <svg class="icon"><use href="#icon-list"/></svg>
+                                <span>Histórico</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Apertura de tarjetas</label>
+                    <label>Estado de Tarjetas</label>
                     <button id="btn-toggle-persistir-tarjetas" onclick="UILogic.togglePersistirTarjetas()">
                         <svg class="icon">
                             <use href="#icon-save" />
@@ -1951,7 +1958,7 @@
                     </button>
                 </div>
                 <div class="form-group">
-                    <label>Fondo de estado</label>
+                    <label>Fondo de Estado</label>
                     <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()">
                         <svg class="icon">
                             <use href="#icon-landscape" />
@@ -4233,6 +4240,10 @@
                     localStorage.removeItem(`history_${perfilId}`);
                     localStorage.removeItem(`fondoCard_${perfilId}`);
                     localStorage.removeItem(`ignorarTiempoFuera_${perfilId}`);
+                    localStorage.removeItem(`cardVisible_registrar_${perfilId}`);
+                    localStorage.removeItem(`cardVisible_estadisticas_${perfilId}`);
+                    localStorage.removeItem(`cardVisible_historico_${perfilId}`);
+                    localStorage.removeItem(`ordenCards_${perfilId}`);
 
                     // Limpiar gistId y lastSync del perfil activo
                     if (window.PerfilManager) {
@@ -6854,7 +6865,7 @@
                 }
 
                 function toggleVisibilidadCard(cual) {
-                    const key = 'cardVisible_' + cual;
+                    const key = _perfilKey('cardVisible_' + cual);
                     const actual = localStorage.getItem(key) !== 'false';
                     const nuevoValor = !actual;
                     try { localStorage.setItem(key, nuevoValor); } catch (e) { }
@@ -6879,10 +6890,175 @@
                 }
 
                 function aplicarVisibilidadCards() {
-                    ['estadisticas', 'calendario', 'historico'].forEach(cual => {
-                        const visible = localStorage.getItem('cardVisible_' + cual) !== 'false';
+                    ['registrar', 'estadisticas', 'historico'].forEach(cual => {
+                        const visible = localStorage.getItem(_perfilKey('cardVisible_' + cual)) !== 'false';
                         aplicarVisibilidadCard(cual, visible);
                         actualizarEstadoBotonCard(cual, visible);
+                    });
+                }
+
+                function obtenerOrdenCards() {
+                    try {
+                        const guardado = JSON.parse(localStorage.getItem(_perfilKey('ordenCards')));
+                        const validos = ['registrar', 'estadisticas', 'historico'];
+                        if (Array.isArray(guardado) && guardado.length === 3 && validos.every(v => guardado.includes(v))) {
+                            return guardado;
+                        }
+                    } catch (e) { }
+                    return ['registrar', 'estadisticas', 'historico'];
+                }
+
+                function aplicarOrdenCards(orden) {
+                    const statsCard = document.getElementById('stats-card');
+                    const leftColumn = statsCard ? statsCard.parentElement : null;
+                    const container = leftColumn ? leftColumn.parentElement : null;
+                    if (!leftColumn || !container) return;
+
+                    orden.forEach((cual, idx) => {
+                        const card = document.getElementById('card-' + cual);
+                        if (!card) return;
+                        const esUltima = idx === orden.length - 1;
+                        if (esUltima) {
+                            // La última va fuera de left-column (columna derecha en desktop)
+                            container.appendChild(card);
+                        } else {
+                            leftColumn.appendChild(card);
+                        }
+                    });
+
+                    // Reordenar filas en ajustes
+                    const lista = document.getElementById('lista-orden-cards');
+                    if (lista) {
+                        orden.forEach(cual => {
+                            const item = document.getElementById('orden-item-' + cual);
+                            if (item) lista.appendChild(item);
+                        });
+                    }
+                }
+
+                function iniciarDragOrdenCards() {
+                    const lista = document.getElementById('lista-orden-cards');
+                    if (!lista) return;
+
+                    let draggingEl = null;
+                    let startY = 0;
+                    let longPressTimer = null;
+                    const LONG_PRESS_MS = 300;
+
+                    function getItemFromHandle(el) { return el.closest('.orden-card-item'); }
+                    function getCardFromItem(el) {
+                        const handle = el?.classList?.contains('drag-handle') ? el : el?.querySelector('.drag-handle');
+                        return handle?.dataset?.card;
+                    }
+                    function getItemAtY(y) {
+                        return [...lista.querySelectorAll('.orden-card-item')].find(item => {
+                            if (item === draggingEl) return false;
+                            const r = item.getBoundingClientRect();
+                            return y >= r.top && y <= r.bottom;
+                        });
+                    }
+                    function aplicarCambioOrden(desde, hasta) {
+                        const orden = obtenerOrdenCards();
+                        const fromIdx = orden.indexOf(desde);
+                        const toIdx = orden.indexOf(hasta);
+                        if (fromIdx === -1 || toIdx === -1) return;
+                        orden.splice(fromIdx, 1);
+                        orden.splice(toIdx, 0, desde);
+                        try { localStorage.setItem(_perfilKey('ordenCards'), JSON.stringify(orden)); } catch (e) { }
+                        aplicarOrdenCards(orden);
+                    }
+
+                    // Touch
+                    let dragActivado = false;
+
+                    lista.addEventListener('touchstart', (e) => {
+                        const handle = e.target.closest('.drag-handle');
+                        if (!handle) return;
+                        const item = getItemFromHandle(handle);
+                        if (!item) return;
+                        startY = e.touches[0].clientY;
+                        dragActivado = false;
+                        longPressTimer = setTimeout(() => {
+                            draggingEl = item;
+                            dragActivado = true;
+                            item.classList.add('dragging');
+                            navigator.vibrate && navigator.vibrate(30);
+                        }, LONG_PRESS_MS);
+                    }, { passive: true });
+
+                    lista.addEventListener('touchmove', (e) => {
+                        if (!draggingEl) {
+                            if (Math.abs(e.touches[0].clientY - startY) > 10) clearTimeout(longPressTimer);
+                            return;
+                        }
+                        e.preventDefault();
+                        const y = e.touches[0].clientY;
+                        const deltaY = y - startY;
+                        draggingEl.style.transform = `translateY(${deltaY}px)`;
+                        draggingEl.style.zIndex = '10';
+                        draggingEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                        lista.querySelectorAll('.orden-card-item').forEach(i => {
+                            if (i !== draggingEl) i.classList.remove('drag-over');
+                        });
+                        const target = getItemAtY(y);
+                        if (target && target !== draggingEl) target.classList.add('drag-over');
+                    }, { passive: false });
+
+                    lista.addEventListener('touchend', (e) => {
+                        clearTimeout(longPressTimer);
+                        if (!draggingEl) return;
+                        const target = getItemAtY(e.changedTouches[0].clientY);
+                        draggingEl.style.transform = '';
+                        draggingEl.style.zIndex = '';
+                        draggingEl.style.boxShadow = '';
+                        lista.querySelectorAll('.orden-card-item').forEach(i => {
+                            i.classList.remove('drag-over');
+                            i.classList.remove('dragging');
+                        });
+                        if (target && target !== draggingEl) {
+                            aplicarCambioOrden(getCardFromItem(draggingEl), getCardFromItem(target));
+                        }
+                        draggingEl = null;
+                    });
+
+                    // Mouse (desktop)
+                    lista.addEventListener('mousedown', (e) => {
+                        const handle = e.target.closest('.drag-handle');
+                        if (!handle) return;
+                        e.preventDefault();
+                        draggingEl = getItemFromHandle(handle);
+                        if (!draggingEl) return;
+                        startY = e.clientY;
+                        draggingEl.classList.add('dragging');
+                    });
+
+                    document.addEventListener('mousemove', (e) => {
+                        if (!draggingEl) return;
+                        const deltaY = e.clientY - startY;
+                        draggingEl.style.transform = `translateY(${deltaY}px)`;
+                        draggingEl.style.zIndex = '10';
+                        draggingEl.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+                        lista.querySelectorAll('.orden-card-item').forEach(i => {
+                            if (i !== draggingEl) i.classList.remove('drag-over');
+                        });
+                        const target = getItemAtY(e.clientY);
+                        if (target && target !== draggingEl) target.classList.add('drag-over');
+                    });
+
+                    document.addEventListener('mouseup', (e) => {
+                        if (!draggingEl) return;
+                        const target = getItemAtY(e.clientY);
+                        draggingEl.style.transform = '';
+                        draggingEl.style.zIndex = '';
+                        draggingEl.style.boxShadow = '';
+                        lista.querySelectorAll('.orden-card-item').forEach(i => {
+                            i.classList.remove('drag-over');
+                            i.classList.remove('dragging');
+                        });
+                        if (target && target !== draggingEl) {
+                            aplicarCambioOrden(getCardFromItem(draggingEl), getCardFromItem(target));
+                        }
+                        draggingEl = null;
                     });
                 }
 
@@ -6918,7 +7094,7 @@
                         const btnVolverI = $('btn-volver-importar');
                         if (btnVolverI) {
                             btnVolverI.lastChild.textContent = desdeLista ? ' Cerrar' : ' Volver';
-                            btnVolverI.querySelector('use').setAttribute('href', desdeLista ? '#icon-cancel' : '#icon-undo');
+                            btnVolverI.querySelector('use').setAttribute('href', desdeLista ? '#icon-cancelar' : '#icon-undo');
                         }
                         // Abrir selector de archivo automáticamente al abrir el modal
                         setTimeout(() => $('file-import').click(), 50);
@@ -7694,6 +7870,13 @@ Generado por Sistema Horarios
                         }
 
                         // Calcular nuevo tiempo
+                        if (!registroHoy) {
+                            localStorage.removeItem(storageKey);
+                            mostrarToast('No hay registro para hoy, tiempo fuera descartado', 'warning');
+                            actualizarEstadoBotonTimerMain();
+                            actualizarUI();
+                            return;
+                        }
                         const tiempoActual = registroHoy.tiempoFuera || '00:00';
                         const nuevoTiempoFuera = sumarMinutosAHora(tiempoActual, minutosTranscurridos);
 
@@ -8050,6 +8233,18 @@ Generado por Sistema Horarios
                     const confirmacion = await confirmarModal(`¿Estás seguro de que querés eliminar el perfil "${perfil.nombre}"? Esta acción no se puede deshacer.`, 'Eliminar');
 
                     if (!confirmacion) return;
+
+                    // Eliminar el perfil
+                    // Limpiar claves localStorage del perfil eliminado
+                    const pid = perfilEnEdicion;
+                    localStorage.removeItem(`breakStartTime_${pid}`);
+                    localStorage.removeItem(`history_${pid}`);
+                    localStorage.removeItem(`fondoCard_${pid}`);
+                    localStorage.removeItem(`ignorarTiempoFuera_${pid}`);
+                    localStorage.removeItem(`cardVisible_registrar_${pid}`);
+                    localStorage.removeItem(`cardVisible_estadisticas_${pid}`);
+                    localStorage.removeItem(`cardVisible_historico_${pid}`);
+                    localStorage.removeItem(`ordenCards_${pid}`);
 
                     // Eliminar el perfil
                     delete perfiles[perfilEnEdicion];
@@ -9106,7 +9301,7 @@ Generado por Sistema Horarios
                         togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, navegarCalendario, toggleGistMerge,
                         actualizarEstadoBotonesGist, togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
                         abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar,
-                        gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards, _popupCalendario,
+                        gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, _popupCalendario,
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -9285,6 +9480,8 @@ Generado por Sistema Horarios
                     D.setIgnorarTiempoFuera(config.ignorarTiempoFuera || false);
                     UILogic.actualizarEstadoBotonIgnorarTF();
                     UILogic.aplicarVisibilidadCards();
+                    UILogic.aplicarOrdenCards(UILogic.obtenerOrdenCards());
+                    UILogic.iniciarDragOrdenCards();
                     UILogic.setFondoCard(config.fondoCard || 'golden-gate');
                     if (config.modoEstadisticas === 'anual') UILogic.togglePeriodoStats();
                     else if (config.modoEstadisticas === 'semanal') { UILogic.togglePeriodoStats(); UILogic.togglePeriodoStats(); }
@@ -10323,7 +10520,7 @@ Generado por Sistema Horarios
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
-                    togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
+                    togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, toggleVistaHistorico,
                     _popupCalendario
                 };
@@ -10368,11 +10565,9 @@ Generado por Sistema Horarios
     3) Se crea una funcion helper para refactorizar el aplicado de iconos
     4) Se agrega tiempo fuera en el popup del calendario
     5) Se extiende la propiedad color de tipos de registros module al historico y tarjeta de estado
+    6) Se corrige el bug del timer
+    7) Se agrega opcion de ordenar las tarjetas
 
      - BUGS MENORES CONOCIDOS:
-     1) al tener un registro con entrada y luego agregar una salida, deshacer la accion
-     y tocar el timer, al rehacer la accion, el timer sigue corriendo
-     2) en modo pwa desde una pc desktop, el boton reestablecer no funciona, hasta que se desbloquea
-     abriendo otro confirm de alguna funcion (por ejemplo: reemplazar, restaurar, etc)
-     
+          
     -->
