@@ -1865,7 +1865,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.15</span>
+                    <span class="version-text">LUSHIBOSCA-8.16</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -6799,20 +6799,14 @@
                 function cambiarHorasDiarias(incremento) {
                     let valorActual = parseFloat($('config-horas-diarias').value);
                     if (isNaN(valorActual)) valorActual = D.horasDiarias();
-                    let nuevoValor = valorActual + incremento;
-                    if (nuevoValor > 24) nuevoValor = 24;
-                    if (nuevoValor < 0) nuevoValor = 0;
+                    let nuevoValor = Math.min(24, Math.max(0, valorActual + incremento));
+                    if (isNaN(nuevoValor)) return;
                     $('config-horas-diarias').value = nuevoValor;
                     actualizarFeedbackConfig();
-                    aplicarHorasDiariasInmediato(nuevoValor);
-                }
-
-                function aplicarHorasDiariasInmediato(valor) {
-                    if (isNaN(valor) || valor < 0 || valor > 24) return;
-                    D.setHorasDiarias(valor);
+                    D.setHorasDiarias(nuevoValor);
                     try {
                         const esDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
-                        if (esDefault) localStorage.setItem('horasDiarias', valor);
+                        if (esDefault) localStorage.setItem('horasDiarias', nuevoValor);
                     } catch (e) { }
                     D.guardarYActualizar();
                 }
@@ -6834,15 +6828,14 @@
                     mostrarToast(nuevoValor ? 'Tiempo fuera ignorado en cálculos' : 'Tiempo fuera incluido en cálculos', 'info');
                 }
 
-                function actualizarEstadoBotonIgnorarTF() {
-                    const btn = document.getElementById('btn-toggle-ignorar-tf');
-                    const activo = D.getIgnorarTiempoFuera();
+                function _setBtnActivo(id, activo) {
+                    const btn = document.getElementById(id);
                     if (!btn) return;
-                    if (activo) {
-                        btn.classList.add('btn-activo');
-                    } else {
-                        btn.classList.remove('btn-activo');
-                    }
+                    btn.classList.toggle('btn-activo', activo);
+                }
+
+                function actualizarEstadoBotonIgnorarTF() {
+                    _setBtnActivo('btn-toggle-ignorar-tf', D.getIgnorarTiempoFuera());
                 }
 
                 function togglePersistirTarjetas() {
@@ -6854,14 +6847,7 @@
                 }
 
                 function actualizarEstadoBotonPersistir() {
-                    const btn = document.getElementById('btn-toggle-persistir-tarjetas');
-                    const activo = localStorage.getItem('persistirTarjetas') !== 'false';
-                    if (!btn) return;
-                    if (activo) {
-                        btn.classList.add('btn-activo');
-                    } else {
-                        btn.classList.remove('btn-activo');
-                    }
+                    _setBtnActivo('btn-toggle-persistir-tarjetas', localStorage.getItem('persistirTarjetas') !== 'false');
                 }
 
                 function toggleVisibilidadCard(cual) {
@@ -6880,13 +6866,7 @@
                 }
 
                 function actualizarEstadoBotonCard(cual, activo) {
-                    const btn = document.getElementById('btn-toggle-card-' + cual);
-                    if (!btn) return;
-                    if (activo) {
-                        btn.classList.add('btn-activo');
-                    } else {
-                        btn.classList.remove('btn-activo');
-                    }
+                    _setBtnActivo('btn-toggle-card-' + cual, activo);
                 }
 
                 function aplicarVisibilidadCards() {
@@ -8638,14 +8618,8 @@ Generado por Sistema Horarios
                     // Usamos el dataset como fuente de verdad
                     const estaActivo = btn.dataset.activo === "true";
 
-                    if (estaActivo) {
-                        // --- DESACTIVAR (Volver a Gris original) ---
-                        btn.dataset.activo = "false";
-                        btn.classList.remove('btn-activo');
-                    } else {
-                        btn.dataset.activo = "true";
-                        btn.classList.add('btn-activo');
-                    }
+                    btn.dataset.activo = estaActivo ? "false" : "true";
+                    _setBtnActivo('btn-toggle-credito', !estaActivo);
                 }
 
                 function mostrarExportar(desdeLista = false) {
@@ -9085,7 +9059,7 @@ Generado por Sistema Horarios
                             { texto: 'Respaldar', hint: '', activo: true }
                         ];
                         const c = configs[estado];
-                        btn.classList.toggle('btn-activo', c.activo);
+                        _setBtnActivo(btn.id, c.activo);
                         if (label) label.textContent = c.texto;
                         if (hint) { hint.textContent = c.hint; hint.style.color = c.color; }
 
@@ -10541,7 +10515,7 @@ Generado por Sistema Horarios
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
-                    togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, toggleVistaHistorico,
+                    togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
                     _popupCalendario
                 };
 
@@ -10576,18 +10550,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.15
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.16
     // ====================================================================
     
      - CAMBIOS:
-    1) Se unifica la tarjeta de calendario en la tarjeta de historico
-    2) Se crea una clase generica para aplicar a varios botones cuando estan activos
-    3) Se crea una funcion helper para refactorizar el aplicado de iconos
-    4) Se agrega tiempo fuera en el popup del calendario
-    5) Se extiende la propiedad color de tipos de registros module al historico y tarjeta de estado
-    6) Se corrige el bug del timer
-    7) Se agrega opcion de ordenar las tarjetas
-    8) Se agrega "swipe" en la vista de calendario
+    1) Refactorizacion de varias funciones
 
      - BUGS MENORES CONOCIDOS:
           
