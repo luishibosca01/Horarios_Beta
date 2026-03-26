@@ -1889,7 +1889,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.18</span>
+                    <span class="version-text">LUSHIBOSCA-8.19</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2785,6 +2785,10 @@
                     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 }
 
+                function parsearFechaLocal(fechaStr) {
+                    return new Date(fechaStr.replace(/-/g, '/') + ' 00:00:00');
+                }
+
                 return {
                     SECURITY_LIMITS,
                     REGEX_PATTERNS,
@@ -2795,7 +2799,8 @@
                     calcularHashSHA256,
                     validarRegistroSeguro,
                     fechaLocalISO,
-                    formatearFechaLocal
+                    formatearFechaLocal,
+                    parsearFechaLocal
                 };
             })();
 
@@ -3439,8 +3444,8 @@
                     // 3. VALIDACIÓN DE RANGO RAZONABLE (2 AÑOS)
                     // ============================================
                     const hoy = new Date();
-                    const fechaInicioObj = new Date(nuevaDesde.replace(/-/g, '/') + ' 00:00:00');
-                    const fechaFinObj = new Date(nuevaHasta.replace(/-/g, '/') + ' 00:00:00');
+                    const fechaInicioObj = S.parsearFechaLocal(nuevaDesde);
+                    const fechaFinObj = S.parsearFechaLocal(nuevaHasta);
 
                     // Permitir hasta 2 años en el futuro
                     const dosPasado = new Date(hoy);
@@ -3500,8 +3505,8 @@
                     // 7. GENERAR LISTA DE FECHAS NUEVAS
                     // ============================================
                     const fechasNuevas = [];
-                    let checkFecha = new Date(nuevaDesde.replace(/-/g, '/') + ' 00:00:00');
-                    const checkFin = new Date(nuevaHasta.replace(/-/g, '/') + ' 00:00:00');
+                    let checkFecha = S.parsearFechaLocal(nuevaDesde);
+                    const checkFin = S.parsearFechaLocal(nuevaHasta);
 
                     while (checkFecha <= checkFin) {
                         const y = checkFecha.getFullYear();
@@ -3765,7 +3770,7 @@
                                 return; // Saltar este registro
                             }
 
-                            const fechaObj = new Date(r.fecha.replace(/-/g, '/') + ' 00:00:00');
+                            const fechaObj = S.parsearFechaLocal(r.fecha);
                             const diaSemana = fechaObj.getDay();
 
                             if (diasHabilesConfig.includes(diaSemana)) {
@@ -4664,8 +4669,8 @@
                     const registrosRango = registros.filter(r => r.fecha >= inicioSemana && r.fecha <= fechaHoy);
                     const registrosMap = new Map(registrosRango.map(r => [r.fecha, r]));
 
-                    let fechaIteracion = new Date(inicioSemana.replace(/-/g, '/') + ' 00:00:00');
-                    let fechaLimite = new Date(fechaHoy.replace(/-/g, '/') + ' 00:00:00');
+                    let fechaIteracion = S.parsearFechaLocal(inicioSemana);
+                    let fechaLimite = S.parsearFechaLocal(fechaHoy);
 
                     while (fechaIteracion <= fechaLimite) {
                         const y = fechaIteracion.getFullYear();
@@ -4774,8 +4779,8 @@
                     const entrada = tipoConfig.codigo;
                     const salida = tipoConfig.codigo;
 
-                    let fechaActual = new Date(desde.replace(/-/g, '/') + ' 00:00:00');
-                    const fechaFin = new Date(hasta.replace(/-/g, '/') + ' 00:00:00');
+                    let fechaActual = S.parsearFechaLocal(desde);
+                    const fechaFin = S.parsearFechaLocal(hasta);
                     const fechasARegistrar = [];
 
                     while (fechaActual <= fechaFin) {
@@ -5400,7 +5405,7 @@
                 }
 
                 function obtenerLunesSemana(fecha) {
-                    const date = new Date(fecha.replace(/-/g, '/') + ' 00:00:00');
+                    const date = S.parsearFechaLocal(fecha);
                     const dia = date.getDay();
                     const offset = dia === 0 ? -6 : 1 - dia;
                     const lunes = new Date(date);
@@ -5495,8 +5500,8 @@
 
                 // Función auxiliar para verificar si una fecha es consecutiva a otra
                 function esFechaConsecutiva(fechaActual, fechaSiguiente) {
-                    const actual = new Date(fechaActual.replace(/-/g, '/') + ' 00:00:00');
-                    const siguiente = new Date(fechaSiguiente.replace(/-/g, '/') + ' 00:00:00');
+                    const actual = S.parsearFechaLocal(fechaActual);
+                    const siguiente = S.parsearFechaLocal(fechaSiguiente);
                     actual.setDate(actual.getDate() - 1);
                     return S.formatearFechaLocal(actual) === fechaSiguiente;
                 }
@@ -7659,7 +7664,7 @@ REPORTE DE HORAS TRABAJADAS
                                 let minutosSem = Math.round((totalSemanal - horasSem) * 60);
                                 if (minutosSem === 60) { horasSem++; minutosSem = 0; }
 
-                                const fechaLunes = new Date(lunes.replace(/-/g, '/') + ' 00:00:00');
+                                const fechaLunes = S.parsearFechaLocal(lunes);
                                 const fechaDomingo = new Date(fechaLunes);
                                 fechaDomingo.setDate(fechaLunes.getDate() + 6);
                                 const domingo = S.formatearFechaLocal(fechaDomingo);
@@ -8624,8 +8629,8 @@ Generado por Sistema Horarios
                     }
 
                     // 3. Calcular días totales en el rango
-                    const fechaInicio = new Date(desde.replace(/-/g, '/') + ' 00:00:00');
-                    const fechaFin = new Date(hasta.replace(/-/g, '/') + ' 00:00:00');
+                    const fechaInicio = S.parsearFechaLocal(desde);
+                    const fechaFin = S.parsearFechaLocal(hasta);
                     const diffTime = Math.abs(fechaFin - fechaInicio);
                     const diasTotales = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
@@ -10647,7 +10652,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.18
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.19
     // ====================================================================
     
      - CAMBIOS:
@@ -10655,5 +10660,5 @@ Generado por Sistema Horarios
     2) Se agrega swipe a las tarjetas de estado y estadisticas
 
      - BUGS MENORES CONOCIDOS:
-          
+
     -->
