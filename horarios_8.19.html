@@ -1941,6 +1941,15 @@
                     <div id="config-total-feedback" class="config-hint-text">(Total semanal: --hs)</div>
                 </div>
                 <div class="form-group">
+                    <label>Fondo de Estado</label>
+                    <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()">
+                        <svg class="icon">
+                            <use href="#icon-landscape" />
+                        </svg>
+                        <span id="hint-fondo-label">Golden Gate</span>
+                    </button>
+                </div>
+                <div class="form-group">
                     <label>Mostrar / Ordenar Tarjetas</label>
                     <div style="display:flex;flex-direction:column;gap:0.4rem;" id="lista-orden-cards">
                         <div class="orden-card-item" id="orden-item-registrar">
@@ -1989,14 +1998,14 @@
                         </svg>
                         <span>Ignorar calculo TF</span>
                     </button>
-                </div>
+                </div>                
                 <div class="form-group">
-                    <label>Fondo de Estado</label>
-                    <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()">
+                    <label>Calendario</label>
+                    <button id="btn-toggle-hover-popup" onclick="UILogic.toggleHoverPopupCalendario()">
                         <svg class="icon">
-                            <use href="#icon-landscape" />
+                            <use href="#icon-calendar-simple" />
                         </svg>
-                        <span id="hint-fondo-label">Golden Gate</span>
+                        <span>Popup al pasar mouse</span>
                     </button>
                 </div>
                 <div class="config-actions">
@@ -6919,6 +6928,18 @@
                     _setBtnActivo('btn-toggle-ignorar-tf', D.getIgnorarTiempoFuera());
                 }
 
+                function toggleHoverPopupCalendario() {
+                    const actual = localStorage.getItem('hoverPopupCalendario') !== 'false';
+                    const nuevo = !actual;
+                    try { localStorage.setItem('hoverPopupCalendario', nuevo); } catch (e) { }
+                    actualizarEstadoBotonHoverPopup();
+                    mostrarToast(nuevo ? 'Popup al pasar mouse activado' : 'Popup al pasar mouse desactivado', 'info');
+                }
+
+                function actualizarEstadoBotonHoverPopup() {
+                    _setBtnActivo('btn-toggle-hover-popup', localStorage.getItem('hoverPopupCalendario') !== 'false');
+                }
+
                 function togglePersistirTarjetas() {
                     const actual = localStorage.getItem('persistirTarjetas') !== 'false';
                     const nuevo = !actual;
@@ -9381,8 +9402,8 @@ Generado por Sistema Horarios
                         togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, navegarCalendario, toggleGistMerge,
                         actualizarEstadoBotonesGist, togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
                         abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar,
-                        gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, 
-                        _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover
+                        gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
+                        _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -9561,6 +9582,7 @@ Generado por Sistema Horarios
                     D.setVistaActual(config.vistaActual);
                     D.setIgnorarTiempoFuera(config.ignorarTiempoFuera || false);
                     UILogic.actualizarEstadoBotonIgnorarTF();
+                    UILogic.actualizarEstadoBotonHoverPopup();
                     UILogic.aplicarVisibilidadCards();
                     UILogic.aplicarOrdenCards(UILogic.obtenerOrdenCards());
                     UILogic.iniciarDragOrdenCards();
@@ -10444,6 +10466,7 @@ Generado por Sistema Horarios
 
                 function _popupCalendarioHover(event, registroId) {
                     if (!window.matchMedia('(hover: hover)').matches) return;
+                    if (localStorage.getItem('hoverPopupCalendario') === 'false') return;
                     clearTimeout(_popupCalendarioHoverTimer);
                     _popupCalendarioEsHover = true;
                     _popupCalendario(event, registroId);
@@ -10662,7 +10685,7 @@ Generado por Sistema Horarios
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
-                    _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover
+                    _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
                 };
 
             })(SecurityAndUtils, DataManagement, GistSync);
