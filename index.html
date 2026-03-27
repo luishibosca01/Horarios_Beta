@@ -10481,7 +10481,10 @@ Generado por Sistema Horarios
 
                 function _popupCalendarioHover(event, registroId) {
                     if (!window.matchMedia('(hover: hover)').matches) return;
-                    if (localStorage.getItem('hoverPopupCalendario') === 'false') return;
+                    const stored = localStorage.getItem('hoverPopupCalendario');
+                    const esHover = window.matchMedia('(hover: hover)').matches;
+                    // Default: activo en pc (hover), desactivado en móvil (touch)
+                    if (stored === null ? !esHover : stored !== 'true') return;
                     clearTimeout(_popupCalendarioHoverTimer);
                     _popupCalendarioHoverTimer = setTimeout(() => {
                         _popupCalendarioEsHover = true;
