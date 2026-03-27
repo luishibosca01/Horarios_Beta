@@ -721,6 +721,7 @@
                 opacity: 0;
                 transform: translateY(24px) scale(0.96);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0) scale(1);
@@ -1316,7 +1317,7 @@
             .btn-cancel:hover:not(:disabled),
             .btn-export:hover:not(:disabled),
             .btn-backup:hover:not(:disabled),
-            .btn-edit:hover:not(:disabled),            
+            .btn-edit:hover:not(:disabled),
             .registro-item:hover,
             .header-profile-btn:hover,
             .btn-perfil-select:hover,
@@ -1363,6 +1364,17 @@
 
             .week-selector {
                 gap: 5px;
+            }
+
+            #modal-config .modal-content {
+                max-width: 700px;
+            }
+
+            #modal-config .modal-config-cols {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0 1.5rem;
+                align-items: start;
             }
         }
     </style>
@@ -1904,151 +1916,163 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.19</span>
+                    <span class="version-text">LUSHIBOSCA-8.20</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
-                <div class="form-group">
-                    <label>Horas Diarias</label>
-                    <div class="input-number-group">
-                        <input type="number" id="config-horas-diarias" min="0" max="24" step="0.5" readonly />
-                        <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(0.5)"
-                            onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
-                            ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(0.5)"
-                            ontouchend="event.preventDefault(); UILogic.detenerCambio()">+</button>
-                        <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(-0.5)"
-                            onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
-                            ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(-0.5)"
-                            ontouchend="event.preventDefault(); UILogic.detenerCambio()">−</button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Días Laborales</label>
-                    <div class="week-selector">
-                        <label class="day-checkbox">
-                            <input type="checkbox" name="dia-habil" value="1">
-                            <span>Lu</span>
-                        </label>
-                        <label class="day-checkbox">
-                            <input type="checkbox" name="dia-habil" value="2">
-                            <span>Ma</span>
-                        </label>
-                        <label class="day-checkbox">
-                            <input type="checkbox" name="dia-habil" value="3">
-                            <span>Mi</span>
-                        </label>
-                        <label class="day-checkbox">
-                            <input type="checkbox" name="dia-habil" value="4">
-                            <span>Ju</span>
-                        </label>
-                        <label class="day-checkbox">
-                            <input type="checkbox" name="dia-habil" value="5">
-                            <span>Vi</span>
-                        </label>
-                        <label class="day-checkbox">
-                            <input type="checkbox" name="dia-habil" value="6">
-                            <span>Sa</span>
-                        </label>
-                        <label class="day-checkbox">
-                            <input type="checkbox" name="dia-habil" value="0"> <span>Do</span>
-                        </label>
-                    </div>
-                    <div id="config-total-feedback" class="config-hint-text">(Total semanal: --hs)</div>
-                </div>
-                <div class="form-group">
-                    <label>Fondo de Estado</label>
-                    <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()">
-                        <svg class="icon">
-                            <use href="#icon-landscape" />
-                        </svg>
-                        <span id="hint-fondo-label">Golden Gate</span>
-                    </button>
-                </div>
-                <div class="form-group">
-                    <label>Mostrar / Ordenar Tarjetas</label>
-                    <div style="display:flex;flex-direction:column;gap:0.4rem;" id="lista-orden-cards">
-                        <div class="orden-card-item" id="orden-item-registrar">
-                            <button id="btn-toggle-card-registrar" class="drag-handle" data-card="registrar"
-                                onclick="UILogic.toggleVisibilidadCard('registrar')" style="flex:1;">
+                <div class="modal-config-cols">
+
+                    <!-- COLUMNA IZQUIERDA -->
+                    <div>
+                        <div class="form-group">
+                            <label>Horas Diarias</label>
+                            <div class="input-number-group">
+                                <input type="number" id="config-horas-diarias" min="0" max="24" step="0.5" readonly />
+                                <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(0.5)"
+                                    onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
+                                    ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(0.5)"
+                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()">+</button>
+                                <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(-0.5)"
+                                    onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
+                                    ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(-0.5)"
+                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()">−</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Días Laborales</label>
+                            <div class="week-selector">
+                                <label class="day-checkbox">
+                                    <input type="checkbox" name="dia-habil" value="1">
+                                    <span>Lu</span>
+                                </label>
+                                <label class="day-checkbox">
+                                    <input type="checkbox" name="dia-habil" value="2">
+                                    <span>Ma</span>
+                                </label>
+                                <label class="day-checkbox">
+                                    <input type="checkbox" name="dia-habil" value="3">
+                                    <span>Mi</span>
+                                </label>
+                                <label class="day-checkbox">
+                                    <input type="checkbox" name="dia-habil" value="4">
+                                    <span>Ju</span>
+                                </label>
+                                <label class="day-checkbox">
+                                    <input type="checkbox" name="dia-habil" value="5">
+                                    <span>Vi</span>
+                                </label>
+                                <label class="day-checkbox">
+                                    <input type="checkbox" name="dia-habil" value="6">
+                                    <span>Sa</span>
+                                </label>
+                                <label class="day-checkbox">
+                                    <input type="checkbox" name="dia-habil" value="0"> <span>Do</span>
+                                </label>
+                            </div>
+                            <div id="config-total-feedback" class="config-hint-text">(Total semanal: --hs)</div>
+                        </div>
+                        <div class="form-group">
+                            <label>Fondo del dashboard</label>
+                            <button id="btn-toggle-fondo" onclick="UILogic.toggleFondoCard()">
+                                <svg class="icon">
+                                    <use href="#icon-landscape" />
+                                </svg>
+                                <span id="hint-fondo-label">Golden Gate</span>
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label>Tiempo Fuera</label>
+                            <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()">
+                                <svg class="icon">
+                                    <use href="#icon-exit" />
+                                </svg>
+                                <span>Ignorar calculo TF</span>
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label>Calendario</label>
+                            <button id="btn-toggle-hover-popup" onclick="UILogic.toggleHoverPopupCalendario()">
+                                <svg class="icon">
+                                    <use href="#icon-calendar-simple" />
+                                </svg>
+                                <span>Popup al pasar mouse (PC)</span>
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label>Estado de Tarjetas</label>
+                            <button id="btn-toggle-persistir-tarjetas" onclick="UILogic.togglePersistirTarjetas()">
                                 <svg class="icon">
                                     <use href="#icon-save" />
                                 </svg>
-                                <span>Registrar</span>
-                            </button>
-                        </div>
-                        <div class="orden-card-item" id="orden-item-estadisticas">
-                            <button id="btn-toggle-card-estadisticas" class="drag-handle" data-card="estadisticas"
-                                onclick="UILogic.toggleVisibilidadCard('estadisticas')" style="flex:1;">
-                                <svg class="icon">
-                                    <use href="#icon-stats" />
-                                </svg>
-                                <span>Estadísticas</span>
-                            </button>
-                        </div>
-                        <div class="orden-card-item" id="orden-item-historico">
-                            <button id="btn-toggle-card-historico" class="drag-handle" data-card="historico"
-                                onclick="UILogic.toggleVisibilidadCard('historico')" style="flex:1;">
-                                <svg class="icon">
-                                    <use href="#icon-list" />
-                                </svg>
-                                <span>Histórico</span>
+                                <span>Recordar estado</span>
                             </button>
                         </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Estado de Tarjetas</label>
-                    <button id="btn-toggle-persistir-tarjetas" onclick="UILogic.togglePersistirTarjetas()">
-                        <svg class="icon">
-                            <use href="#icon-save" />
-                        </svg>
-                        <span>Recordar estado</span>
-                    </button>
-                </div>
-                <div class="form-group">
-                    <label>Tiempo Fuera</label>
-                    <button id="btn-toggle-ignorar-tf" onclick="UILogic.toggleIgnorarTiempoFuera()">
-                        <svg class="icon">
-                            <use href="#icon-exit" />
-                        </svg>
-                        <span>Ignorar calculo TF</span>
-                    </button>
-                </div>                
-                <div class="form-group">
-                    <label>Calendario</label>
-                    <button id="btn-toggle-hover-popup" onclick="UILogic.toggleHoverPopupCalendario()">
-                        <svg class="icon">
-                            <use href="#icon-calendar-simple" />
-                        </svg>
-                        <span>Popup al pasar mouse (PC)</span>
-                    </button>
-                </div>
-                <div class="config-actions">
-                    <label>Datos</label>
-                    <button class="btn-edit" onclick="UILogic.abrirModalGist()">
-                        <svg class="icon">
-                            <use href="#icon-cloud" />
-                        </svg>
-                        GitHub Gist
-                    </button>
-                    <button class="btn-backup" onclick="UILogic.mostrarImportar()">
-                        <svg class="icon">
-                            <use href="#icon-upload" />
-                        </svg>
-                        Restaurar
-                    </button>
-                    <button class="btn-export" onclick="UILogic.mostrarExportar()">
-                        <svg class="icon">
-                            <use href="#icon-download" />
-                        </svg>
-                        Respaldar
-                    </button>
-                    <button class="btn-delete" onclick="DataManagement.borrarTodoHistorial()">
-                        <svg class="icon">
-                            <use href="#icon-trash" />
-                        </svg>
-                        Restablecer
-                    </button>
+
+                    <!-- COLUMNA DERECHA -->
+                    <div>
+                        <div class="form-group">
+                            <label>Tarjetas</label>
+                            <div style="display:flex;flex-direction:column;gap:0.4rem;" id="lista-orden-cards">
+                                <div class="orden-card-item" id="orden-item-registrar">
+                                    <button id="btn-toggle-card-registrar" class="drag-handle" data-card="registrar"
+                                        onclick="UILogic.toggleVisibilidadCard('registrar')" style="flex:1;">
+                                        <svg class="icon">
+                                            <use href="#icon-save" />
+                                        </svg>
+                                        <span>Registrar</span>
+                                    </button>
+                                </div>
+                                <div class="orden-card-item" id="orden-item-estadisticas">
+                                    <button id="btn-toggle-card-estadisticas" class="drag-handle"
+                                        data-card="estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')"
+                                        style="flex:1;">
+                                        <svg class="icon">
+                                            <use href="#icon-stats" />
+                                        </svg>
+                                        <span>Estadísticas</span>
+                                    </button>
+                                </div>
+                                <div class="orden-card-item" id="orden-item-historico">
+                                    <button id="btn-toggle-card-historico" class="drag-handle" data-card="historico"
+                                        onclick="UILogic.toggleVisibilidadCard('historico')" style="flex:1;">
+                                        <svg class="icon">
+                                            <use href="#icon-list" />
+                                        </svg>
+                                        <span>Histórico</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="config-actions">
+                            <label>Datos</label>
+                            <button class="btn-edit" onclick="UILogic.abrirModalGist()">
+                                <svg class="icon">
+                                    <use href="#icon-cloud" />
+                                </svg>
+                                GitHub Gist
+                            </button>
+                            <button class="btn-backup" onclick="UILogic.mostrarImportar()">
+                                <svg class="icon">
+                                    <use href="#icon-upload" />
+                                </svg>
+                                Restaurar
+                            </button>
+                            <button class="btn-export" onclick="UILogic.mostrarExportar()">
+                                <svg class="icon">
+                                    <use href="#icon-download" />
+                                </svg>
+                                Respaldar
+                            </button>
+                            <button class="btn-delete" onclick="DataManagement.borrarTodoHistorial()">
+                                <svg class="icon">
+                                    <use href="#icon-trash" />
+                                </svg>
+                                Restablecer
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div><!-- /modal-config-body -->
             <div class="modal-config-footer">
@@ -10480,10 +10504,11 @@ Generado por Sistema Horarios
                 let _popupCalendarioHoverTimer = null;
 
                 function _popupCalendarioHover(event, registroId) {
+                    // Ignorar si el evento fue precedido por un touch (browsers Android simulan mouse events)
+                    if (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents) return;
                     if (!window.matchMedia('(hover: hover)').matches) return;
                     const stored = localStorage.getItem('hoverPopupCalendario');
                     const esHover = window.matchMedia('(hover: hover)').matches;
-                    // Default: activo en pc (hover), desactivado en móvil (touch)
                     if (stored === null ? !esHover : stored !== 'true') return;
                     clearTimeout(_popupCalendarioHoverTimer);
                     _popupCalendarioHoverTimer = setTimeout(() => {
@@ -10738,7 +10763,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.19
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.20
     // ====================================================================
     
      - CAMBIOS:
