@@ -1916,7 +1916,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.21</span>
+                    <span class="version-text">LUSHIBOSCA-8.20</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2154,17 +2154,6 @@
                             </svg>
                             <span id="hint-gist-merge">Reemplazar</span>
                         </button>
-                    </div>
-                    <div id="gist-limite-sync" style="max-height:0; overflow:hidden; transition:max-height 0.3s ease, opacity 0.3s ease; opacity:0; margin-top:0.5rem;">
-                        <div class="form-group" style="margin-bottom:0.5rem">
-                            <label id="gist-limite-label">Límite por hora</label>
-                            <div class="input-number-group">
-                                <input type="number" id="gist-limite-valor" min="0" max="99" step="1" readonly />
-                                <button class="btn-increment" onclick="UILogic.cambiarLimiteSync(1)">+</button>
-                                <button class="btn-increment" onclick="UILogic.cambiarLimiteSync(-1)">−</button>
-                                <button class="btn-increment" id="btn-limite-siempre" onclick="UILogic.toggleLimiteSiempre()" title="Sin límite" style="min-width:60px; font-size:0.8rem;">Siempre</button>
-                            </div>
-                        </div>
                     </div>
                     <div id="gist-rango-horario"
                         style="max-height:0; overflow:hidden; transition:max-height 0.3s ease, opacity 0.3s ease; opacity:0; margin-top:0.5rem; gap:0.5rem; align-items:center; display:flex;">
@@ -5160,21 +5149,7 @@
                     }
                 }
 
-                function getSyncLimite(tipo) {
-                    const key = `gistSyncLimite_${tipo}`;
-                    const val = parseInt(localStorage.getItem(key));
-                    if (tipo === 'bajar') return isNaN(val) ? 2 : val;
-                    if (tipo === 'subir') return isNaN(val) ? 1 : val;
-                    return 2;
-                }
-
-                function setSyncLimite(tipo, valor) {
-                    try { localStorage.setItem(`gistSyncLimite_${tipo}`, valor); } catch (e) { }
-                }
-
-                function superaLimite(tipo) {
-                    const limite = getSyncLimite(tipo);
-                    if (limite === 0) return false; // 0 = siempre
+                function superaLimite(tipo, limite) {
                     return getSyncCount(tipo) >= limite;
                 }
 
@@ -5316,7 +5291,7 @@
                     return data;
                 }
 
-                return { getToken, getGistId, getLastSync, getMergeBehavior, setMergeBehavior, getAutoSync, setAutoSync, getRangoHorario, setRangoHorario, getSyncCount, marcarSync, superaLimite, getSyncLimite, setSyncLimite, dentroDelRangoHorario, saveCredentials, esGistIdValido, subir, bajar };
+                return { getToken, getGistId, getLastSync, getMergeBehavior, setMergeBehavior, getAutoSync, setAutoSync, getRangoHorario, setRangoHorario, getSyncCount, marcarSync, superaLimite, dentroDelRangoHorario, saveCredentials, esGistIdValido, subir, bajar };
 
             })(SecurityAndUtils);
 
@@ -9004,7 +8979,6 @@ Generado por Sistema Horarios
 
                     let _gistModalPadre = null;
                     let _gistAutoSyncTemp = null;
-                    let _gistLimitesTemp = null;
 
                     function actualizarEstadoBotonesGist() {
                         const token = document.getElementById('gist-token')?.value.trim() || '';
@@ -9070,8 +9044,6 @@ Generado por Sistema Horarios
                         actualizarEstadoBotonesGist();
                         ModalManager.cerrarTodos();
                         ModalManager.abrir('modal-gist');
-                        _gistLimitesTemp = null;
-                        _actualizarCampoLimite();
                     }
 
                     function actualizarBotonesHistorico() {
@@ -9111,19 +9083,13 @@ Generado por Sistema Horarios
                             || gistId !== GistSync.getGistId()
                             || desde !== rango.desde
                             || hasta !== rango.hasta
-                            || (_gistAutoSyncTemp !== null && _gistAutoSyncTemp !== GistSync.getAutoSync())
-                            || (_gistLimitesTemp !== null);
+                            || (_gistAutoSyncTemp !== null && _gistAutoSyncTemp !== GistSync.getAutoSync());
 
                         if (_gistAutoSyncTemp !== null) GistSync.setAutoSync(_gistAutoSyncTemp);
-                        if (_gistLimitesTemp !== null) {
-                            GistSync.setSyncLimite('bajar', _gistLimitesTemp.bajar);
-                            GistSync.setSyncLimite('subir', _gistLimitesTemp.subir);
-                        }
                         GistSync.saveCredentials(token, gistId);
                         GistSync.setRangoHorario(desde, hasta);
                         mostrarToast(huboCambios ? 'Configuración guardada' : 'Sin cambios', huboCambios ? 'success' : 'info');
                         _gistAutoSyncTemp = null;
-                        _gistLimitesTemp = null;
                         _gistModalPadre = null;
                         ModalManager.cerrar('modal-gist');
                         actualizarBotonesHistorico();
@@ -9131,7 +9097,6 @@ Generado por Sistema Horarios
 
                     function cerrarModalGist() {
                         _gistAutoSyncTemp = null;
-                        _gistLimitesTemp = null;
                         ModalManager.cerrar('modal-gist');
                         if (_gistModalPadre) ModalManager.abrir(_gistModalPadre);
                         _gistModalPadre = null;
@@ -9237,7 +9202,6 @@ Generado por Sistema Horarios
                         _gistAutoSyncTemp = (actual + 1) % 3;
                         actualizarBotonGistBackup();
                         actualizarEstadoBotonesGist();
-                        _actualizarCampoLimite();
                     }
 
                     function actualizarBotonGistBackup() {
@@ -9291,48 +9255,6 @@ Generado por Sistema Horarios
                                 : tipo === 'ok' ? 'var(--c-green)'
                                     : 'var(--text-muted)';
                         }
-                    }
-
-                    function _tipoSyncActual() {
-                        const estado = parseInt(_gistAutoSyncTemp ?? GistSync.getAutoSync());
-                        return estado === 1 ? 'bajar' : estado === 2 ? 'subir' : null;
-                    }
-
-                    function _actualizarCampoLimite() {
-                        const tipo = _tipoSyncActual();
-                        const contenedor = document.getElementById('gist-limite-sync');
-                        if (!contenedor) return;
-                        if (!tipo) {
-                            contenedor.style.maxHeight = '0';
-                            contenedor.style.opacity = '0';
-                            return;
-                        }
-                        const limite = _gistLimitesTemp ? _gistLimitesTemp[tipo] : GistSync.getSyncLimite(tipo);
-                        const input = document.getElementById('gist-limite-valor');
-                        const label = document.getElementById('gist-limite-label');
-                        const btnSiempre = document.getElementById('btn-limite-siempre');
-                        if (input) input.value = limite === 0 ? '∞' : limite;
-                        if (label) label.textContent = tipo === 'bajar' ? 'Límite bajadas por hora' : 'Límite subidas por hora';
-                        if (btnSiempre) _setBtnActivo('btn-limite-siempre', limite === 0);
-                        contenedor.style.maxHeight = '80px';
-                        contenedor.style.opacity = '1';
-                    }
-
-                    function cambiarLimiteSync(delta) {
-                        const tipo = _tipoSyncActual();
-                        if (!tipo) return;
-                        if (!_gistLimitesTemp) _gistLimitesTemp = { bajar: GistSync.getSyncLimite('bajar'), subir: GistSync.getSyncLimite('subir') };
-                        if (_gistLimitesTemp[tipo] === 0) return;
-                        _gistLimitesTemp[tipo] = Math.max(1, Math.min(99, _gistLimitesTemp[tipo] + delta));
-                        _actualizarCampoLimite();
-                    }
-
-                    function toggleLimiteSiempre() {
-                        const tipo = _tipoSyncActual();
-                        if (!tipo) return;
-                        if (!_gistLimitesTemp) _gistLimitesTemp = { bajar: GistSync.getSyncLimite('bajar'), subir: GistSync.getSyncLimite('subir') };
-                        _gistLimitesTemp[tipo] = _gistLimitesTemp[tipo] === 0 ? (tipo === 'bajar' ? 2 : 1) : 0;
-                        _actualizarCampoLimite();
                     }
 
                     async function gistSubir() {
@@ -9520,7 +9442,7 @@ Generado por Sistema Horarios
                         actualizarEstadoBotonesGist, togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
                         abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar,
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
-                        _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup, cambiarLimiteSync, toggleLimiteSiempre,
+                        _popupCalendario, _popupCalendarioHover,_onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -9823,7 +9745,7 @@ Generado por Sistema Horarios
                     if (_tieneCredenciales) {
                         if (_autoSyncEstado === 1) {
                             // Estado 1: restaurar al inicio si está en rango — máx 2 bajas por hora
-                            if (GistSync.dentroDelRangoHorario() && !GistSync.superaLimite('bajar')) {
+                            if (GistSync.dentroDelRangoHorario() && !GistSync.superaLimite('bajar', 2)) {
                                 setTimeout(async () => {
                                     await gistBajar(true);
                                     GistSync.marcarSync('bajar');
@@ -9831,7 +9753,7 @@ Generado por Sistema Horarios
                             }
                         } else if (_autoSyncEstado === 2) {
                             // Estado 2: respaldo automático — máx 1 subida por hora
-                            if (GistSync.dentroDelRangoHorario() && !GistSync.superaLimite('subir')) {
+                            if (GistSync.dentroDelRangoHorario() && !GistSync.superaLimite('subir', 1)) {
                                 setTimeout(async () => {
                                     await gistSubir();
                                     GistSync.marcarSync('subir');
@@ -10351,6 +10273,18 @@ Generado por Sistema Horarios
 
                 let _calendarioMes = null; // { anio, mes } — null = mes actual
 
+                function _onclickCalendarioDia(event, registroId) {
+    const esHover = window.matchMedia('(hover: hover)').matches;
+    const storedHover = localStorage.getItem('hoverPopupCalendario');
+    const hoverActivo = esHover && (storedHover === null ? true : storedHover === 'true');
+
+    if (hoverActivo) {
+        DataManagement.editarRegistro(registroId);
+    } else {
+        _popupCalendario(event, registroId);
+    }
+}
+
                 function _renderizarCalendario(idResaltar = null) {
                     const grid = document.getElementById('calendario-grid');
                     const titulo = document.getElementById('calendario-titulo-mes');
@@ -10413,7 +10347,7 @@ Generado por Sistema Horarios
                         const clase = claseDelDia(fecha);
                         const esHoy = anio === hoy.getFullYear() && mes === hoy.getMonth() && dia === hoy.getDate();
                         const reg = regsPorFecha[fecha];
-                        const onclick = reg ? ` onclick="UILogic._popupCalendario(event, '${reg.id}')"` : '';
+                        const onclick = reg ? ` onclick="UILogic._onclickCalendarioDia(event, '${reg.id}')"` : '';
                         const onhover = reg ? ` onmouseenter="UILogic._popupCalendarioHover(event, '${reg.id}')" onmouseleave="UILogic._cerrarPopupCalendarioHover(event)"` : '';
                         const cursor = reg ? ' style="cursor:pointer;"' : '';
                         const esNuevo = idResaltar && reg && reg.id === idResaltar ? ' nuevo-registro-animacion' : '';
@@ -10810,7 +10744,7 @@ Generado por Sistema Horarios
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
-                    _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
+                    _popupCalendario, _popupCalendarioHover,_onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
                 };
 
             })(SecurityAndUtils, DataManagement, GistSync);
@@ -10843,13 +10777,13 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.21
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.20
     // ====================================================================
     
      - CAMBIOS:
     1) Se agrega comparacion interna de los registros en el modo combinar (gist y local)
     2) Se agrega swipe a las tarjetas de estado y estadisticas
-    3) Se agrega opcion para configurar la cantidad de subidas o bajadas de gist
+    3) Se agrega ocultamiento de los botones undo redo, etc al recargar la pagina 
 
      - BUGS MENORES CONOCIDOS:
 
