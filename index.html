@@ -1916,7 +1916,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.20</span>
+                    <span class="version-text">LUSHIBOSCA-8.21</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -9442,7 +9442,7 @@ Generado por Sistema Horarios
                         actualizarEstadoBotonesGist, togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
                         abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar,
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
-                        _popupCalendario, _popupCalendarioHover,_onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
+                        _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -10273,18 +10273,6 @@ Generado por Sistema Horarios
 
                 let _calendarioMes = null; // { anio, mes } — null = mes actual
 
-                function _onclickCalendarioDia(event, registroId) {
-    const esHover = window.matchMedia('(hover: hover)').matches;
-    const storedHover = localStorage.getItem('hoverPopupCalendario');
-    const hoverActivo = esHover && (storedHover === null ? true : storedHover === 'true');
-
-    if (hoverActivo) {
-        DataManagement.editarRegistro(registroId);
-    } else {
-        _popupCalendario(event, registroId);
-    }
-}
-
                 function _renderizarCalendario(idResaltar = null) {
                     const grid = document.getElementById('calendario-grid');
                     const titulo = document.getElementById('calendario-titulo-mes');
@@ -10347,7 +10335,7 @@ Generado por Sistema Horarios
                         const clase = claseDelDia(fecha);
                         const esHoy = anio === hoy.getFullYear() && mes === hoy.getMonth() && dia === hoy.getDate();
                         const reg = regsPorFecha[fecha];
-                        const onclick = reg ? ` onclick="UILogic._onclickCalendarioDia(event, '${reg.id}')"` : '';
+                        const onclick = reg ? ` onclick="UILogic._popupCalendario(event, '${reg.id}')"` : '';
                         const onhover = reg ? ` onmouseenter="UILogic._popupCalendarioHover(event, '${reg.id}')" onmouseleave="UILogic._cerrarPopupCalendarioHover(event)"` : '';
                         const cursor = reg ? ' style="cursor:pointer;"' : '';
                         const esNuevo = idResaltar && reg && reg.id === idResaltar ? ' nuevo-registro-animacion' : '';
@@ -10744,7 +10732,7 @@ Generado por Sistema Horarios
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
-                    _popupCalendario, _popupCalendarioHover,_onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
+                    _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
                 };
 
             })(SecurityAndUtils, DataManagement, GistSync);
@@ -10777,7 +10765,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.20
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.21
     // ====================================================================
     
      - CAMBIOS:
