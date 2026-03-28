@@ -835,6 +835,7 @@
             grid-template-columns: repeat(7, 1fr);
             gap: 4px;
             margin-top: 0.75rem;
+            grid-template-rows: auto repeat(6, 1fr);
         }
 
         .calendario-dia-nombre {
@@ -1924,7 +1925,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.24</span>
+                    <span class="version-text">LUSHIBOSCA-8.27</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2602,6 +2603,8 @@
                     </button>
                 </div>
             </div>
+            <div id="edit-grupo-hint" class="config-hint-text"
+                style="text-align: center; margin-top: 0; min-height: 1.2em;"></div>
             <div class="btn-group">
                 <button class="btn-edit" onclick="DataManagement.guardarEdicionGrupo()">
                     <svg class="icon">
@@ -3452,16 +3455,18 @@
                     grupoEnEdicion = {
                         registros: grupo.registros,
                         subtipo: grupo.subtipo,
-                        fechaDesde: grupo.registros[grupo.registros.length - 1].fecha, // El más antiguo
-                        fechaHasta: grupo.registros[0].fecha // El más reciente
+                        fechaDesde: grupo.registros[grupo.registros.length - 1].fecha,
+                        fechaHasta: grupo.registros[0].fecha
                     };
 
                     $('edit-grupo-tipo').value = grupo.subtipo;
                     $('edit-grupo-desde').value = grupoEnEdicion.fechaDesde;
                     $('edit-grupo-hasta').value = grupoEnEdicion.fechaHasta;
 
-                    ModalManager.abrir('modal-editar-grupo');
+                    // Hint con cantidad de registros y tipo
+                    UILogic.actualizarHintGrupo();
 
+                    ModalManager.abrir('modal-editar-grupo');
                     UILogic.setBloqueoEdicionGrupo(true);
                 }
 
@@ -6896,6 +6901,7 @@
                         // --- Avisar que se borró para bloquear el botón ---
                         if (id === 'edit-entrada' || id === 'edit-salida') {
                             verificarBloqueoCredito();
+                            c.dispatchEvent(new Event('input'));
                         }
                         return;
                     }
@@ -6909,6 +6915,7 @@
                     // --- Avisar que se pegó para habilitar el botón ---
                     if (id === 'edit-entrada' || id === 'edit-salida') {
                         verificarBloqueoCredito();
+                        c.dispatchEvent(new Event('input'));
                     }
                 }
 
@@ -9553,7 +9560,8 @@ Generado por Sistema Horarios
                         abrirModalGist, cerrarModalGist, guardarConfigGist, toggleVerToken, abrirGistEnBrowser, gistSubir, gistBajar,
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards,
                         _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup,
-                        cambiarLimiteSync, toggleLimiteSiempre, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, _onclickCalendarioDia
+                        cambiarLimiteSync, toggleLimiteSiempre, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, _onclickCalendarioDia,
+                        actualizarHintGrupo
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -10174,6 +10182,31 @@ Generado por Sistema Horarios
                     }
                 }
 
+                // E) Hint resumen en tiempo real para editar grupo
+                function actualizarHintGrupo() {
+                    const hint = document.getElementById('edit-grupo-hint');
+                    if (!hint) return;
+                    const desde = document.getElementById('edit-grupo-desde')?.value;
+                    const hasta = document.getElementById('edit-grupo-hasta')?.value;
+                    if (!desde && !hasta) { hint.textContent = ''; return; }
+                    if (desde && !hasta) {
+                        hint.textContent = `1 día`;
+                        return;
+                    }
+                    if (!S.validarFechaSegura(desde) || !S.validarFechaSegura(hasta) || desde > hasta) {
+                        hint.textContent = 'Rango inválido';
+                        return;
+                    }
+                    const fechaInicio = S.parsearFechaLocal(desde);
+                    const fechaFin = S.parsearFechaLocal(hasta);
+                    const diasTotales = Math.ceil(Math.abs(fechaFin - fechaInicio) / (1000 * 60 * 60 * 24)) + 1;
+                    hint.textContent = `${diasTotales} día${diasTotales !== 1 ? 's' : ''}`;
+                }
+                ['edit-grupo-desde', 'edit-grupo-hasta'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.addEventListener('change', actualizarHintGrupo);
+                });
+
                 function mostrarFiltros() {
                     // Si hay filtro activo, limpiarlo directamente
                     if (D.obtenerRegistrosFiltrados().length !== D.registros().length) {
@@ -10563,6 +10596,7 @@ Generado por Sistema Horarios
                     const popup = document.createElement('div');
                     popup.className = 'cal-popup';
                     popup.id = '_cal-popup';
+                    popup.dataset.registroId = reg.id;
                     popup.innerHTML = `
         <div class="cal-popup-fecha">${fechaLabel}</div>
         ${infoHtml}
@@ -10617,6 +10651,10 @@ Generado por Sistema Horarios
 
                     // Cerrar al tocar fuera
                     const cerrar = (e) => {
+                        // Si el click es en el mismo día que abrió el popup, ignorar
+                        const diaClickeado = e.target.closest('.calendario-dia');
+                        if (diaClickeado && diaClickeado.getAttribute('onclick')?.includes(popup.dataset.registroId)) return;
+
                         if (!popup.contains(e.target)) {
                             popup.remove();
                             _popupCalendarioEl = null;
@@ -10624,7 +10662,13 @@ Generado por Sistema Horarios
                         }
                     };
                     setTimeout(() => document.addEventListener('click', cerrar, true), 10);
-                    window.addEventListener('scroll', cerrar, { once: true, capture: true });
+                    const cerrarPorScroll = () => {
+                        popup.remove();
+                        _popupCalendarioEl = null;
+                        document.removeEventListener('click', cerrar, true);
+                        document.removeEventListener('scroll', cerrarPorScroll, true);
+                    };
+                    setTimeout(() => document.addEventListener('scroll', cerrarPorScroll, true), 10);
                 }
 
                 let _popupCalendarioEsHover = false;
@@ -10657,6 +10701,8 @@ Generado por Sistema Horarios
                         clearTimeout(_popupCalendarioHoverTimer);
                         DataManagement.editarRegistro(registroId);
                     } else {
+                        // Si el popup ya está abierto para este mismo registro, no hacer nada
+                        if (_popupCalendarioEl && _popupCalendarioEl.dataset.registroId === registroId) return;
                         _popupCalendario(event, registroId);
                     }
                 }
@@ -10676,6 +10722,12 @@ Generado por Sistema Horarios
                 }
 
                 function navegarCalendario(delta) {
+                    // Cerrar popup si está abierto
+                    if (_popupCalendarioEl) {
+                        _popupCalendarioEl.remove();
+                        _popupCalendarioEl = null;
+                    }
+
                     const hoy = new Date();
                     const base = _calendarioMes || { anio: hoy.getFullYear(), mes: hoy.getMonth() };
                     let nuevoMes = base.mes + delta;
@@ -10732,6 +10784,10 @@ Generado por Sistema Horarios
 
                     // Actualizar el estado del botón principal
                     actualizarBotonLote();
+                    // Actualizar hint si es campo del grupo
+                    if (id === 'edit-grupo-desde' || id === 'edit-grupo-hasta') {
+                        c.dispatchEvent(new Event('change'));
+                    }
                 }
 
                 function verificarBloqueoCredito() {
@@ -10873,7 +10929,7 @@ Generado por Sistema Horarios
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
-                    togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
+                    togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, actualizarHintGrupo,
                     _popupCalendario, _popupCalendarioHover, _onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
                 };
 
@@ -10907,17 +10963,14 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.24
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.27
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega comparacion interna de los registros en el modo combinar (gist y local)
-    2) Se agrega swipe a las tarjetas de estado y estadisticas
-    3) Se agrega ocultamiento de los botones undo redo, etc al recargar la pagina 
-    4) Se agrega limite configurable para subida o bajada de gist
-    5) Se agrega apertura de modal al tocar calendario-dia con popup activado
-    6) Se agrega editar grupo en la vista calendario
+    1) Se corrige hint de modales editar para que se actualicen en tiempo real en todos los casos
 
+
+    
      - BUGS MENORES CONOCIDOS:
 
     -->
