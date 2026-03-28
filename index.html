@@ -9834,14 +9834,15 @@ Generado por Sistema Horarios
                             }
                         }
 
-                        // Restaurar vista calendario dentro del histórico (solo si histórico está abierto)
-                        if (localStorage.getItem('vistaHistoricoCalendario') === 'true') {
+                        // Default: calendario si no hay nada guardado (primera vez)
+                        const vistaGuardada = localStorage.getItem('vistaHistoricoCalendario');
+                        const usarCalendario = vistaGuardada === null ? true : vistaGuardada === 'true';
+                        if (usarCalendario) {
                             const contenidoAbierto = $('contenido-historico')?.classList.contains('expanded');
                             if (contenidoAbierto) {
-                                _vistaHistoricoCalendario = false; // resetear para que el toggle funcione
+                                _vistaHistoricoCalendario = false;
                                 toggleVistaHistorico();
                             } else {
-                                // Histórico cerrado: solo pre-setear el estado, se aplicará cuando se abra
                                 _vistaHistoricoCalendario = true;
                             }
                         }
@@ -10979,7 +10980,7 @@ Generado por Sistema Horarios
      - CAMBIOS:
     1) Se corrige hint de modales editar para que se actualicen en tiempo real en todos los casos
     2) Se crea la variable disabled para color y se refactoriza algunos casos de botones deshabilitados
-
+    3) Se configura la vista calendario como predeterminada al abrir por primera vez
     
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
