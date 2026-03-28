@@ -29,7 +29,8 @@
             --bg-card: #f0f4f9;
             --bg-header: #ffffff;
             --text-main: #1f1f1f;
-            --text-muted: #444746 --text-inv: #ffffff;
+            --text-muted: #444746;
+            --text-disabled: #444746a2;
             --border: #dde3ea;
             --input-bg: #dde3ea;
             --input-focus: #dde3ea;
@@ -53,6 +54,7 @@
             --bg-header: #131314f6;
             --text-main: #e3e3e3;
             --text-muted: #b4b4b4;
+            --text-disabled: #b4b4b4a2;
             --border: #313333;
             --input-bg: #313333;
             --input-focus: #313333;
@@ -222,9 +224,9 @@
         input:disabled,
         select:disabled {
             background-color: var(--bg-card);
-            color: var(--text-muted);
+            color: var(--text-disabled);
             opacity: 1;
-            -webkit-text-fill-color: var(--text-muted);
+            -webkit-text-fill-color: var(--text-disabled);
             /* Corrección para Safari/iOS */
             cursor: not-allowed;
         }
@@ -291,7 +293,7 @@
             background: transparent;
             cursor: not-allowed;
             transform: none;
-            color: #6b7280;
+            color: var(--text-disabled);
         }
 
         #btn-timer-main {
@@ -2943,7 +2945,6 @@
                     const btnEliminar = document.getElementById('btn-eliminar-perfil-modal');
                     if (btnEliminar) {
                         btnEliminar.disabled = (perfilActual === 'default');
-                        btnEliminar.style.opacity = (perfilActual === 'default') ? '0.5' : '1';
                     }
                 }
 
@@ -6155,8 +6156,6 @@
                     const btnReporte = document.getElementById('btn-reporte');
                     if (btnReporte) {
                         btnReporte.disabled = !mostrarBtnReporte;
-                        btnReporte.style.opacity = mostrarBtnReporte ? '' : '0.4';
-                        btnReporte.style.cursor = mostrarBtnReporte ? '' : 'not-allowed';
                     }
                 }
 
@@ -7261,11 +7260,9 @@
 
                         if (btnCombinar) {
                             btnCombinar.disabled = true;
-                            btnCombinar.style.opacity = '0.5';
                         }
                         if (btnReemplazar) {
                             btnReemplazar.disabled = true;
-                            btnReemplazar.style.opacity = '0.5';
                         }
 
                         const btnVolverI = $('btn-volver-importar');
@@ -8307,7 +8304,6 @@ Generado por Sistema Horarios
                     const btnEliminar = document.getElementById('btn-eliminar-perfil-editor');
                     if (btnEliminar) {
                         btnEliminar.disabled = (perfilId === 'default');
-                        btnEliminar.style.opacity = (perfilId === 'default') ? '0.5' : '1';
                     }
 
                     // Cerrar selector y abrir editor
@@ -9100,8 +9096,6 @@ Generado por Sistema Horarios
                         const btn = document.getElementById(id);
                         if (!btn) return;
                         btn.disabled = disabled;
-                        btn.style.opacity = disabled ? '0.4' : '1';
-                        btn.style.cursor = disabled ? 'not-allowed' : '';
                     }
 
                     function actualizarBotonesHistorico() {
@@ -10173,11 +10167,9 @@ Generado por Sistema Horarios
                                 }
                                 if (btnCombinar) {
                                     btnCombinar.disabled = true;
-                                    btnCombinar.style.opacity = '0.5';
                                 }
                                 if (btnReemplazar) {
                                     btnReemplazar.disabled = true;
-                                    btnReemplazar.style.opacity = '0.5';
                                 }
                             }
                         });
@@ -10986,9 +10978,11 @@ Generado por Sistema Horarios
     
      - CAMBIOS:
     1) Se corrige hint de modales editar para que se actualicen en tiempo real en todos los casos
-
+    2) Se crea la variable disabled para color y se refactoriza algunos casos de botones deshabilitados
 
     
-     - BUGS MENORES CONOCIDOS:
+     - BUGS CONOCIDOS:
+    1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
+    espacio para mostrarse por debajo), y el cursor estar cerca del popup
 
     -->
