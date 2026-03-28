@@ -1899,6 +1899,8 @@
                 <div id="vista-calendario-historico" style="display:none; padding: 0 0.5rem 0.5rem;">
                     <div class="calendario-nav">
                         <span class="calendario-titulo" id="calendario-titulo-mes"></span>
+                        <button onclick="UILogic.irHoyCalendario()"
+                            style="width:auto; padding: 4px 10px; font-size:0.8rem; font-weight:600;">Hoy</button>
                         <button onclick="UILogic.navegarCalendario(-1)">
                             <svg class="icon" style="transform:rotate(90deg);">
                                 <use href="#icon-chevron-down" />
@@ -1925,7 +1927,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.27</span>
+                    <span class="version-text">LUSHIBOSCA-8.28</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -9561,7 +9563,7 @@ Generado por Sistema Horarios
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards,
                         _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup,
                         cambiarLimiteSync, toggleLimiteSiempre, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, _onclickCalendarioDia,
-                        actualizarHintGrupo
+                        actualizarHintGrupo, irHoyCalendario
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -10650,18 +10652,21 @@ Generado por Sistema Horarios
                     popup.style.left = left + 'px';
 
                     // Cerrar al tocar fuera
+                    const cerrarPopup = () => {
+                        popup.remove();
+                        _popupCalendarioEl = null;
+                        document.removeEventListener('click', cerrar, true);
+                        document.removeEventListener('scroll', cerrarPopup, true);
+                    };
                     const cerrar = (e) => {
-                        // Si el click es en el mismo día que abrió el popup, ignorar
                         const diaClickeado = e.target.closest('.calendario-dia');
                         if (diaClickeado && diaClickeado.getAttribute('onclick')?.includes(popup.dataset.registroId)) return;
-
-                        if (!popup.contains(e.target)) {
-                            popup.remove();
-                            _popupCalendarioEl = null;
-                            document.removeEventListener('click', cerrar, true);
-                        }
+                        if (!popup.contains(e.target)) cerrarPopup();
                     };
-                    setTimeout(() => document.addEventListener('click', cerrar, true), 10);
+                    setTimeout(() => {
+                        document.addEventListener('click', cerrar, true);
+                        document.addEventListener('scroll', cerrarPopup, true);
+                    }, 10);
                     const cerrarPorScroll = () => {
                         popup.remove();
                         _popupCalendarioEl = null;
@@ -10747,7 +10752,20 @@ Generado por Sistema Horarios
                     }
                 }
 
-                // DESPUÉS:
+                function irHoyCalendario() {
+                    _calendarioMes = null; // null = mes actual
+                    const grid = document.getElementById('calendario-grid');
+                    if (grid) {
+                        grid.classList.add('fade-out');
+                        setTimeout(() => {
+                            _renderizarCalendario();
+                            grid.classList.remove('fade-out');
+                        }, 300);
+                    } else {
+                        _renderizarCalendario();
+                    }
+                }
+
                 function toggleStats() {
                     toggleSeccionGen('form-stats', 'icon-indicator-stats', 'statsExpandido', () => {
                         // Swipe para alternar período (mensual/anual/semanal)
@@ -10917,9 +10935,9 @@ Generado por Sistema Horarios
                 return {
                     init, obtenerFechaHoy, pegarHoraActual, alternarTema, alternarVista, cerrarConfig,
                     cerrarEdicion, mostrarImportar, cerrarImportar, actualizarUI, mostrarToast, mostrarError,
-                    limpiarError, resetearBoton, restaurarBotonGuardarEdicion, toggleFormulario,
-                    limpiarCampo, mostrarFiltros, cerrarFiltros, registrarLoteDesdeCard,
-                    cambiarMesStats, generarReporte, toggleHistorico, toggleStats, sumarMinutosAHora,
+                    limpiarError, resetearBoton, restaurarBotonGuardarEdicion, toggleFormulario, aplicarOrdenCards, iniciarDragOrdenCards,
+                    limpiarCampo, mostrarFiltros, cerrarFiltros, registrarLoteDesdeCard, irHoyCalendario, obtenerOrdenCards,
+                    cambiarMesStats, generarReporte, toggleHistorico, toggleStats, sumarMinutosAHora, actualizarEstadoBotonHoverPopup,
                     toggleTimerBreakMain, actualizarEstadoBotonTimerMain, toggleBloqueoEdicion, setBloqueoEdicion,
                     actualizarFeedbackConfig, poblarSelectorMeses, abrirSelectorPerfiles, actualizarBotonLote,
                     cerrarSelectorPerfiles, abrirEditorPerfil, cerrarEditorPerfil, guardarEdicionPerfil, toggleModoLote,
@@ -10928,9 +10946,9 @@ Generado por Sistema Horarios
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
                     mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
-                    togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards,
+                    togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, actualizarHintGrupo,
-                    _popupCalendario, _popupCalendarioHover, _onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup
+                    _popupCalendario, _popupCalendarioHover, _onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario
                 };
 
             })(SecurityAndUtils, DataManagement, GistSync);
@@ -10963,7 +10981,7 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.27
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.28
     // ====================================================================
     
      - CAMBIOS:
