@@ -3444,7 +3444,7 @@
                         label: 'Compensatorio',
                         labelPlural: 'Compensatorios',
                         descripcion: 'Día compensatorio',
-                        color: 'blue',
+                        color: 'purple',
                         contabiliza: true
                     }
                 };
@@ -5584,6 +5584,15 @@
                     return partes.join(' ');
                 }
 
+                function horasATextoCorto(totalHoras) {
+                    const abs = Math.abs(totalHoras);
+                    let h = Math.floor(abs);
+                    let m = Math.round((abs - h) * 60);
+                    if (m === 60) { h++; m = 0; }
+                    const signo = totalHoras >= 0 ? '+' : '-';
+                    return m > 0 ? `${signo}${h}h ${m}m` : `${signo}${h}h`;
+                }
+
                 function formatoDiferencia(tiempoTotalHoras) {
                     const horasDiarias = D.horasDiarias();
                     const objetivoMinutos = horasDiarias * 60;
@@ -6109,7 +6118,7 @@
                         diasTrabajados: 0, promedioDiario: '--:--',
                         tiempoFueraTotal: '--:--', tiempoTotal: '0h 0m',
                         feriados, ausencias, vacaciones, enfermedades,
-                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios, compensatorios,
+                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios,
                         regularidadEntrada: '--', regularidadJornada: '--',
                         bufferPeriodo: null
                     };
@@ -7737,12 +7746,13 @@ REPORTE DE HORAS TRABAJADAS
    • Paros:                  ${stats.paros}
    • Remotos:                ${stats.remotos}
    • Capacitaciones:         ${stats.capacitaciones}
-
+   • Compensatorios:         ${stats.compensatorios}
    • Entrada promedio:       ${stats.entradaPromedio}
    • Salida promedio:        ${stats.salidaPromedio}
    • Promedio diario:        ${stats.promedioDiario}
    
-   • Total horas trabajadas: ${hTotal}h ${mTotal}m`,
+   • Total horas trabajadas: ${hTotal}h ${mTotal}m
+   • Acumulado:              ${stats.bufferPeriodo !== null ? horasATextoCorto(stats.bufferPeriodo) : 'N/A'}`,
 
                         detallePeriodo: () => {
                             if (esAnual) {
@@ -11105,7 +11115,8 @@ Generado por Sistema Horarios
      - CAMBIOS:
     1) cambios en el campo limite del modal de gist
     2) Se agrega stat-item acumulado en estadisticas
-    3) Se agrega compensatorio
+    3) Se agrega compensatorio como dia especial
+    4) Se agregan los stats-item implementados en la funcion reporte
     
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
