@@ -1710,6 +1710,7 @@
                                     <option value="paro">📢 Paro (15:15)</option>
                                     <option value="remoto">💻 Remoto (16:16)</option>
                                     <option value="capacitacion">📚 Capacitación (17:17)</option>
+                                    <option value="compensatorio">🔄 Compensatorio (18:18)</option>
                                     <option value="normal">🕒 Normales (borrar)</option>
                                 </select>
                                 <button class="time-btn" onclick="UILogic.toggleModoLote()" title="Ir al modo normal"
@@ -1809,6 +1810,10 @@
                                 <div class="stat-label">Tiempo Fuera</div>
                                 <div class="stat-value" id="stat-tiempo-fuera-total">0h 0m</div>
                             </div>
+                            <div class="stat-item" id="stat-item-acumulado">
+                                <div class="stat-label">Acumulado</div>
+                                <div class="stat-value" id="stat-acumulado">--</div>
+                            </div>
                             <div class="stat-item">
                                 <div class="stat-label">Jornadas</div>
                                 <div class="stat-value" id="stat-dias-trabajados">0</div>
@@ -1844,6 +1849,10 @@
                             <div class="stat-item">
                                 <div class="stat-label">Capacitaciones</div>
                                 <div class="stat-value" id="stat-capacitaciones">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Compensatorios</div>
+                                <div class="stat-value" id="stat-compensatorios">0</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Salidas Temprano</div>
@@ -1951,7 +1960,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.30</span>
+                    <span class="version-text">LUSHIBOSCA-8.32</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2477,6 +2486,7 @@
                     <option value="paro">📢 Paros</option>
                     <option value="remoto">💻 Remotos</option>
                     <option value="capacitacion">📚 Capacitaciones</option>
+                    <option value="compensatorio">🔄 Compensatorios</option>
                 </select>
             </div>
             <div class="btn-group">
@@ -2599,6 +2609,7 @@
                         <option value="paro">📢 Paro</option>
                         <option value="remoto">💻 Remoto</option>
                         <option value="capacitacion">📚 Capacitación</option>
+                        <option value="compensatorio">🔄 Compensatorio</option>
                     </select>
                     <button class="time-btn" id="btn-lock-grupo-toggle" onclick="UILogic.toggleBloqueoEdicionGrupo()"
                         title="Desbloquear edición">
@@ -3424,6 +3435,16 @@
                         labelPlural: 'Capacitaciones',
                         descripcion: 'Formacion profesional',
                         color: 'purple',
+                        contabiliza: true
+                    },
+                    COMPENSATORIO: {
+                        id: 'compensatorio',
+                        codigo: '18:18',
+                        emoji: '🔄',
+                        label: 'Compensatorio',
+                        labelPlural: 'Compensatorios',
+                        descripcion: 'Día compensatorio',
+                        color: 'blue',
                         contabiliza: true
                     }
                 };
@@ -6066,6 +6087,7 @@
                     const paros = contarPorTipo('paro');
                     const remotos = contarPorTipo('remoto');
                     const capacitaciones = contarPorTipo('capacitacion');
+                    const compensatorios = contarPorTipo('compensatorio');
                     const compensaciones = registrosRango.filter(r => r.credito && r.credito !== '00:00').length;
 
                     let tiempoFueraTotalMinutos = 0;
@@ -6087,8 +6109,9 @@
                         diasTrabajados: 0, promedioDiario: '--:--',
                         tiempoFueraTotal: '--:--', tiempoTotal: '0h 0m',
                         feriados, ausencias, vacaciones, enfermedades,
-                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
-                        regularidadEntrada: '--', regularidadJornada: '--'
+                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios, compensatorios,
+                        regularidadEntrada: '--', regularidadJornada: '--',
+                        bufferPeriodo: null
                     };
                     if (registrosValidos.length === 0) return vacios;
 
@@ -6126,6 +6149,36 @@
                         regJornada = calcularRegularidad(desviacionEstandar(registrosValidos.map(r => Math.round(r.total * 60))));
                     }
 
+                    // Calcular buffer del período iterando todos los días del rango
+                    const horasDiariasObj = D.horasDiarias();
+                    let bufferPeriodo = null;
+                    if (horasDiariasObj > 0 && opciones.desde && opciones.hasta) {
+                        const diasHabilesConfig = D.diasHabiles();
+                        const regsPorFecha = new Map(registrosRango.map(r => [r.fecha, r]));
+                        const hoy = obtenerFechaHoy();
+                        let objetivo = 0;
+                        let hechas = 0;
+                        let fechaIt = S.parsearFechaLocal(opciones.desde);
+                        const fechaFin = S.parsearFechaLocal(opciones.hasta);
+                        while (fechaIt <= fechaFin) {
+                            const iso = S.formatearFechaLocal(fechaIt);
+                            if (iso > hoy) { fechaIt.setDate(fechaIt.getDate() + 1); continue; }
+                            const esDiaHabil = diasHabilesConfig.includes(fechaIt.getDay());
+                            const r = regsPorFecha.get(iso);
+                            const esEspecial = r && TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
+                            const esHoy = iso === hoy;
+                            const diaTerminado = esHoy ? (r && r.salida) : true;
+                            if (esDiaHabil && !esEspecial && diaTerminado) {
+                                objetivo += horasDiariasObj;
+                            }
+                            if (r && r.salida && !esEspecial && diaTerminado) {
+                                hechas += r.total;
+                            }
+                            fechaIt.setDate(fechaIt.getDate() + 1);
+                        }
+                        bufferPeriodo = hechas - objetivo;
+                    }
+
                     return {
                         entradaPromedio: `${String(Math.floor(promedioEntrada / 60)).padStart(2, '0')}:${String(promedioEntrada % 60).padStart(2, '0')}`,
                         salidaPromedio: `${String(Math.floor(promedioSalida / 60)).padStart(2, '0')}:${String(promedioSalida % 60).padStart(2, '0')}`,
@@ -6134,9 +6187,10 @@
                         tiempoFueraTotal: `${hTiempoFuera}h ${mTiempoFuera}m`,
                         tiempoTotal: `${hTotal}h ${mTotal}m`,
                         feriados, ausencias, vacaciones, enfermedades,
-                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones,
+                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios, compensatorios,
                         regularidadEntrada: regEntrada,
-                        regularidadJornada: regJornada
+                        regularidadJornada: regJornada,
+                        bufferPeriodo
                     };
                 }
 
@@ -6164,6 +6218,7 @@
                     toggleStatItem('stat-paros', stats.paros);
                     toggleStatItem('stat-remotos', stats.remotos);
                     toggleStatItem('stat-capacitaciones', stats.capacitaciones);
+                    toggleStatItem('stat-compensatorios', stats.compensatorios);
 
                     const elProm = $('stat-promedio-diario');
                     if (elProm) {
@@ -6183,6 +6238,23 @@
                     if (btnReporte) {
                         btnReporte.disabled = !mostrarBtnReporte;
                     }
+                    const elAcumulado = $('stat-acumulado');
+                    const itemAcumulado = $('stat-item-acumulado');
+                    if (elAcumulado && itemAcumulado) {
+                        if (stats.bufferPeriodo === null) {
+                            itemAcumulado.style.display = 'none';
+                        } else {
+                            itemAcumulado.style.display = '';
+                            const b = stats.bufferPeriodo;
+                            const abs = Math.abs(b);
+                            const h = Math.floor(abs);
+                            const m = Math.round((abs - h) * 60);
+                            if (m === 60) { h++; m = 0; }
+                            const texto = m > 0 ? `${b >= 0 ? '+' : '-'}${h}h ${m}m` : `${b >= 0 ? '+' : '-'}${h}h`;
+                            elAcumulado.textContent = b === 0 ? '0h' : texto;
+                            elAcumulado.style.color = b > 0 ? 'var(--c-green)' : b < 0 ? 'var(--c-red)' : 'var(--text-main)';
+                        }
+                    }
                 }
 
                 function calcularEstadisticasMes(mesAnio = null) {
@@ -6198,7 +6270,9 @@
                         const [a, m] = r.fecha.split('-').map(Number);
                         return a === añoActual && m === mesActual + 1;
                     });
-                    return _calcularEstadisticasRango(registros, { regularidadPorMes: false });
+                    const primerDia = `${añoActual}-${String(mesActual + 1).padStart(2, '0')}-01`;
+                    const ultimoDia = S.formatearFechaLocal(new Date(añoActual, mesActual + 1, 0));
+                    return _calcularEstadisticasRango(registros, { regularidadPorMes: false, desde: primerDia, hasta: ultimoDia });
                 }
 
                 function actualizarEstadisticas(mesAnio = null) {
@@ -7310,7 +7384,7 @@
                 function calcularEstadisticasAnio(anio) {
                     const anioNum = parseInt(anio);
                     const registros = D.registros().filter(r => parseInt(r.fecha.substring(0, 4)) === anioNum);
-                    return _calcularEstadisticasRango(registros, { regularidadPorMes: true });
+                    return _calcularEstadisticasRango(registros, { regularidadPorMes: true, desde: `${anioNum}-01-01`, hasta: `${anioNum}-12-31` });
                 }
 
                 function poblarSelectorAnios() {
@@ -7431,7 +7505,7 @@
                     domingo.setDate(lunes.getDate() + 6);
                     const hasta = S.formatearFechaLocal(domingo);
                     const registros = D.registros().filter(r => r.fecha >= lunesISO && r.fecha <= hasta);
-                    return _calcularEstadisticasRango(registros, { regularidadPorMes: false });
+                    return _calcularEstadisticasRango(registros, { regularidadPorMes: false, desde: lunesISO, hasta });
                 }
 
                 function actualizarEstadisticasSemana(lunesISO) {
@@ -10991,8 +11065,8 @@ Generado por Sistema Horarios
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, actualizarHintGrupo,
-                    _popupCalendario, _popupCalendarioHover, _onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, 
-                    
+                    _popupCalendario, _popupCalendarioHover, _onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario,
+
                 };
 
             })(SecurityAndUtils, DataManagement, GistSync);
@@ -11025,11 +11099,13 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.30
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.32
     // ====================================================================
     
      - CAMBIOS:
-    1) cambios en el campo limite del modal de gist 
+    1) cambios en el campo limite del modal de gist
+    2) Se agrega stat-item acumulado en estadisticas
+    3) Se agrega compensatorio
     
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
