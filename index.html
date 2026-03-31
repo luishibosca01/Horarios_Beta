@@ -1960,7 +1960,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.31</span>
+                    <span class="version-text">LUSHIBOSCA-8.32</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -4802,23 +4802,17 @@
                         const m = String(fechaIteracion.getMonth() + 1).padStart(2, '0');
                         const d = String(fechaIteracion.getDate()).padStart(2, '0');
                         const isoDate = `${y}-${m}-${d}`;
-
                         const numDia = fechaIteracion.getDay();
                         const esDiaLaboralConfigurado = diasHabiles.includes(numDia);
-
                         const r = registrosMap.get(isoDate);
                         let horasObjetivoDia = 0;
                         let horasHechasDia = 0;
-
                         const esEspecial = r && TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
-
-                        // Validar si el registro está cerrado o si es un día pasado
                         const tieneSalida = r && r.salida && !esEspecial;
                         const esDiaPasado = isoDate < fechaHoy;
+                        const esRemoto = esEspecial && TiposRegistro.obtenerTipoPorCodigo(r?.entrada, r?.salida)?.id === 'remoto';
 
-                        // Solo sumamos objetivo si es un día configurado Y no es especial
-                        if (esDiaLaboralConfigurado && !esEspecial) {
-                            // Si es un día pasado (ya terminó) O es hoy y ya cerraste turno, cuenta el objetivo
+                        if (esDiaLaboralConfigurado && (!esEspecial || esRemoto)) {
                             if (esDiaPasado || (isoDate === fechaHoy && tieneSalida)) {
                                 horasObjetivoDia = horasDiariasLocal;
                             }
@@ -4828,6 +4822,9 @@
                             if (r.salida) {
                                 horasHechasDia = r.total;
                             }
+                        }
+                        if (esRemoto) {
+                            horasHechasDia = horasDiariasLocal;
                         }
 
                         buffer += (horasHechasDia - horasObjetivoDia);
@@ -6177,11 +6174,15 @@
                             const esEspecial = r && TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
                             const esHoy = iso === hoy;
                             const diaTerminado = esHoy ? (r && r.salida) : true;
-                            if (esDiaHabil && !esEspecial && diaTerminado) {
+                            const esRemoto = esEspecial && TiposRegistro.obtenerTipoPorCodigo(r?.entrada, r?.salida)?.id === 'remoto';
+                            if (esDiaHabil && (!esEspecial || esRemoto) && diaTerminado) {
                                 objetivo += horasDiariasObj;
                             }
                             if (r && r.salida && !esEspecial && diaTerminado) {
                                 hechas += r.total;
+                            }
+                            if (esRemoto) {
+                                hechas += horasDiariasObj;
                             }
                             fechaIt.setDate(fechaIt.getDate() + 1);
                         }
@@ -6196,7 +6197,7 @@
                         tiempoFueraTotal: `${hTiempoFuera}h ${mTiempoFuera}m`,
                         tiempoTotal: `${hTotal}h ${mTotal}m`,
                         feriados, ausencias, vacaciones, enfermedades,
-                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios, compensatorios,
+                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios,
                         regularidadEntrada: regEntrada,
                         regularidadJornada: regJornada,
                         bufferPeriodo
@@ -11104,16 +11105,11 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.31
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.32
     // ====================================================================
     
      - CAMBIOS:
-    1) cambios en el campo limite del modal de gist
-    2) Se agrega stat-item saldo en estadisticas
-    3) Se agrega compensatorio como dia especial
-    4) Se agregan los stats-item implementados en la funcion reporte
-    5) Se coloca el dia Domingo primero en el calendario de acuerdo al uso argentino
-    6) Se corrigen 2 bugs en estadisticasanio y saldo
+    1) Se corrigen 2 bugs relacionados con el tipo de registro REMOTO en buffer y estadisticas
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
