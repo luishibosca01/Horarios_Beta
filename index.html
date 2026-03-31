@@ -1912,7 +1912,7 @@
                                 <svg class="icon">
                                     <use href="#icon-download" />
                                 </svg>
-                            </button>                            
+                            </button>
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
                             <button class="filter-btn" id="btn-undo" onclick="HistoryManager.undo()" title="Deshacer">
@@ -6256,10 +6256,14 @@
                             itemSaldo.style.display = '';
                             const b = stats.bufferPeriodo;
                             const abs = Math.abs(b);
-                            const h = Math.floor(abs);
-                            const m = Math.round((abs - h) * 60);
+                            let h = Math.floor(abs);
+                            let m = Math.round((abs - h) * 60);
                             if (m === 60) { h++; m = 0; }
-                            const texto = m > 0 ? `${b >= 0 ? '+' : '-'}${h}h ${m}m` : `${b >= 0 ? '+' : '-'}${h}h`;
+                            const signo = b >= 0 ? '+' : '-';
+                            const texto = h > 0 && m > 0 ? `${signo}${h}h ${m}m`
+                                : h > 0 ? `${signo}${h}h`
+                                    : m > 0 ? `${signo}${m}m`
+                                        : '0h';
                             elSaldo.textContent = b === 0 ? '0h' : texto;
                             elSaldo.style.color = b > 0 ? 'var(--c-green)' : b < 0 ? 'var(--c-red)' : 'var(--text-main)';
                         }
@@ -11109,6 +11113,7 @@ Generado por Sistema Horarios
     3) Se agrega compensatorio como dia especial
     4) Se agregan los stats-item implementados en la funcion reporte
     5) Se coloca el dia Domingo primero en el calendario de acuerdo al uso argentino
+    6) Se corrigen 2 bugs en estadisticasanio y saldo
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
