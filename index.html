@@ -1810,9 +1810,9 @@
                                 <div class="stat-label">Tiempo Fuera</div>
                                 <div class="stat-value" id="stat-tiempo-fuera-total">0h 0m</div>
                             </div>
-                            <div class="stat-item" id="stat-item-acumulado">
-                                <div class="stat-label">Acumulado</div>
-                                <div class="stat-value" id="stat-acumulado">--</div>
+                            <div class="stat-item" id="stat-item-saldo">
+                                <div class="stat-label">Saldo</div>
+                                <div class="stat-value" id="stat-saldo">--</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Jornadas</div>
@@ -1895,6 +1895,12 @@
                                     <use href="#icon-calendar-simple" />
                                 </svg>
                             </button>
+                            <button class="filter-btn" id="btn-filtro" onclick="UILogic.mostrarFiltros()"
+                                title="Filtrar">
+                                <svg class="icon">
+                                    <use href="#icon-filter" />
+                                </svg>
+                            </button>
                             <button class="filter-btn" id="btn-hist-restaurar" onclick="UILogic.mostrarImportar(true)"
                                 title="Restaurar">
                                 <svg class="icon">
@@ -1906,13 +1912,7 @@
                                 <svg class="icon">
                                     <use href="#icon-download" />
                                 </svg>
-                            </button>
-                            <button class="filter-btn" id="btn-filtro" onclick="UILogic.mostrarFiltros()"
-                                title="Filtrar">
-                                <svg class="icon">
-                                    <use href="#icon-filter" />
-                                </svg>
-                            </button>
+                            </button>                            
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
                             <button class="filter-btn" id="btn-undo" onclick="HistoryManager.undo()" title="Deshacer">
@@ -1960,7 +1960,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.32</span>
+                    <span class="version-text">LUSHIBOSCA-8.31</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -6247,21 +6247,21 @@
                     if (btnReporte) {
                         btnReporte.disabled = !mostrarBtnReporte;
                     }
-                    const elAcumulado = $('stat-acumulado');
-                    const itemAcumulado = $('stat-item-acumulado');
-                    if (elAcumulado && itemAcumulado) {
+                    const elSaldo = $('stat-saldo');
+                    const itemSaldo = $('stat-item-saldo');
+                    if (elSaldo && itemSaldo) {
                         if (stats.bufferPeriodo === null) {
-                            itemAcumulado.style.display = 'none';
+                            itemSaldo.style.display = 'none';
                         } else {
-                            itemAcumulado.style.display = '';
+                            itemSaldo.style.display = '';
                             const b = stats.bufferPeriodo;
                             const abs = Math.abs(b);
                             const h = Math.floor(abs);
                             const m = Math.round((abs - h) * 60);
                             if (m === 60) { h++; m = 0; }
                             const texto = m > 0 ? `${b >= 0 ? '+' : '-'}${h}h ${m}m` : `${b >= 0 ? '+' : '-'}${h}h`;
-                            elAcumulado.textContent = b === 0 ? '0h' : texto;
-                            elAcumulado.style.color = b > 0 ? 'var(--c-green)' : b < 0 ? 'var(--c-red)' : 'var(--text-main)';
+                            elSaldo.textContent = b === 0 ? '0h' : texto;
+                            elSaldo.style.color = b > 0 ? 'var(--c-green)' : b < 0 ? 'var(--c-red)' : 'var(--text-main)';
                         }
                     }
                 }
@@ -7752,7 +7752,7 @@ REPORTE DE HORAS TRABAJADAS
    • Promedio diario:        ${stats.promedioDiario}
    
    • Total horas trabajadas: ${hTotal}h ${mTotal}m
-   • Acumulado:              ${stats.bufferPeriodo !== null ? horasATextoCorto(stats.bufferPeriodo) : 'N/A'}`,
+   • Saldo:              ${stats.bufferPeriodo !== null ? horasATextoCorto(stats.bufferPeriodo) : 'N/A'}`,
 
                         detallePeriodo: () => {
                             if (esAnual) {
@@ -10552,12 +10552,9 @@ Generado por Sistema Horarios
                     const hoy = new Date();
                     const anio = _calendarioMes ? _calendarioMes.anio : hoy.getFullYear();
                     const mes = _calendarioMes ? _calendarioMes.mes : hoy.getMonth();
-
                     const nombresMes = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
                     if (titulo) titulo.textContent = `${nombresMes[mes]} ${anio}`;
-
                     const fechaStr = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-
                     // ← CAMBIO: usar registros filtrados
                     const registrosFiltrados = D.obtenerRegistrosFiltrados();
                     const todosLosRegistros = D.registros();
@@ -10566,10 +10563,8 @@ Generado por Sistema Horarios
                     // Para saber si un día tiene registro pero fue filtrado
                     const todosRegsPorFecha = {};
                     todosLosRegistros.forEach(r => { todosRegsPorFecha[r.fecha] = r; });
-
                     const horasDiariasObj = D.horasDiarias();
                     const filtroActivo = D.obtenerRegistrosFiltrados().length !== D.registros().length;
-
                     const claseDelDia = (fecha) => {
                         const r = regsPorFecha[fecha];
                         if (!r && filtroActivo && todosRegsPorFecha[fecha]) return 'dia-filtrado';
@@ -10586,14 +10581,11 @@ Generado por Sistema Horarios
                         return 'dia-incompleto';
                     };
 
-                    const diasNombre = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+                    const diasNombre = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
                     let html = diasNombre.map(d => `<div class="calendario-dia-nombre">${d}</div>`).join('');
-
                     const primerDia = new Date(anio, mes, 1);
                     const ultimoDia = new Date(anio, mes + 1, 0);
                     let offsetInicio = primerDia.getDay();
-                    offsetInicio = offsetInicio === 0 ? 6 : offsetInicio - 1;
-
                     for (let i = 0; i < offsetInicio; i++) {
                         html += `<div class="calendario-dia vacio"></div>`;
                     }
@@ -10674,7 +10666,6 @@ Generado por Sistema Horarios
                     );
 
                     const esEspecial = TiposRegistro.esRegistroEspecial(reg.entrada, reg.salida);
-
                     const fechaObj = new Date(reg.fecha + 'T12:00:00');
                     const opcFecha = { weekday: 'long', day: 'numeric', month: 'long' };
                     const fechaLabel = fechaObj.toLocaleDateString('es-AR', opcFecha);
@@ -11109,15 +11100,16 @@ Generado por Sistema Horarios
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.32
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.31
     // ====================================================================
     
      - CAMBIOS:
     1) cambios en el campo limite del modal de gist
-    2) Se agrega stat-item acumulado en estadisticas
+    2) Se agrega stat-item saldo en estadisticas
     3) Se agrega compensatorio como dia especial
     4) Se agregan los stats-item implementados en la funcion reporte
-    
+    5) Se coloca el dia Domingo primero en el calendario de acuerdo al uso argentino
+
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
     espacio para mostrarse por debajo), y el cursor estar cerca del popup
