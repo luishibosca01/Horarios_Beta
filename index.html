@@ -45,6 +45,7 @@
             --hover: #989ca0;
             --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             --radius: 20px;
+            --hover: brightness(0.9);
         }
 
         body.dark-mode {
@@ -61,6 +62,7 @@
             --c-gray-btn: #313333;
             --hover: #696e6d;
             --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --hover: brightness(1.2);
         }
 
         body.modal-open {
@@ -557,23 +559,29 @@
 
         .registro-fecha {
             font-weight: 600;
-            margin-bottom: 0.25rem;
             color: var(--text-main);
         }
 
-        .registro-horas {
-            font-size: 0.875rem;
-            color: var(--text-muted);
+        .registro-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
         }
 
         .registro-total {
             font-size: 0.75rem;
             font-weight: 600;
-            margin-top: 0.25rem;
+            margin-top: 0;
             color: var(--c-white);
             display: inline-block;
             border-radius: var(--radius);
             padding: .1rem 1rem .1rem 1rem;
+        }
+
+        .registro-horas {
+            font-size: 0.875rem;
+            color: var(--text-muted);
         }
 
         .registro-total.green-text,
@@ -1344,7 +1352,7 @@
             .btn-perfil-select:hover,
             .day-checkbox:hover span,
             .btn-perfil-edit:hover {
-                border: 1px solid var(--hover);
+                filter: var(--hover);
             }
 
             .calendario-dia:not(.vacio):not(.dia-sin-registro) {
@@ -1951,7 +1959,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.33</span>
+                    <span class="version-text">LUSHIBOSCA-8.34</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -5727,7 +5735,12 @@
 
                     fechaEl.textContent = `${obtenerNombreDia(r.fecha)} ${r.fecha.substring(8)}${etiqueta}`;
                     // --- VISUALIZACIÓN DE EXTRAS ---
-                    const tfText = r.tiempoFuera && r.tiempoFuera !== '' ? ` (${r.tiempoFuera} Fuera)` : '';
+                    const tfText = (() => {
+                        if (!r.tiempoFuera || r.tiempoFuera === '' || r.tiempoFuera === '00:00') return '';
+                        const [tfH, tfM] = r.tiempoFuera.split(':').map(Number);
+                        const tfStr = tfH > 0 ? `${tfH}h${tfM > 0 ? ' ' + tfM + 'm' : ''}` : `${tfM}m`;
+                        return ` (${tfStr} Fuera)`;
+                    })();
                     const crText = r.credito && r.credito !== '00:00' ? ' (Salida Temprano)' : '';
 
                     const horasEl = document.createElement('div');
@@ -5775,9 +5788,12 @@
                     }
 
                     totalEl.textContent = totalText;
-                    info.appendChild(fechaEl);
+                    const headerRow = document.createElement('div');
+                    headerRow.className = 'registro-header';
+                    headerRow.appendChild(fechaEl);
+                    headerRow.appendChild(totalEl);
+                    info.appendChild(headerRow);
                     info.appendChild(horasEl);
-                    info.appendChild(totalEl);
                     item.appendChild(info);
 
                     return item;
@@ -6021,9 +6037,12 @@
                     totalEl.className = `registro-total ${colorClase}`;
                     totalEl.textContent = 'Justificado';
 
-                    info.appendChild(fechaEl);
+                    const headerRowGrupo = document.createElement('div');
+                    headerRowGrupo.className = 'registro-header';
+                    headerRowGrupo.appendChild(fechaEl);
+                    headerRowGrupo.appendChild(totalEl);
+                    info.appendChild(headerRowGrupo);
                     info.appendChild(horasEl);
-                    info.appendChild(totalEl);
                     header.appendChild(info);
 
                     // Preparar datos para event delegation
@@ -10718,7 +10737,7 @@ Generado por Sistema Lushibosca
                         let tfStr = '';
                         if (reg.tiempoFuera && reg.tiempoFuera !== '00:00') {
                             const [tfH, tfM] = reg.tiempoFuera.split(':').map(Number);
-                            tfStr = tfH > 0 ? `${tfH}h ${tfM}m fuera` : `${tfM}m fuera`;
+                            tfStr = tfH > 0 ? `${tfH}h${tfM > 0 ? ' ' + tfM + 'm' : ''} fuera` : `${tfM}m fuera`;
                         }
                         infoHtml = `<div class="cal-popup-info">${totalStr}</div>
                     <div style="font-size:0.82rem;color:var(--text-muted)">${reg.entrada} – ${reg.salida}</div>
@@ -11131,14 +11150,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.33
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.34
     // ====================================================================
     
      - CAMBIOS:
-    1) Se corrigen 2 bugs relacionados con el tipo de registro REMOTO en buffer y estadisticas
-    2) Se suma al tiempo total: REMOTO
-    3) se vuelve a agregar el toast subiendo, bajando de gist
-    4) Se agrega poblarselectortipos, para tomar automaticamente los tipos de registros especiales
+    1) Se agrupan las lineas 1 y 2 de los mosaicos en la vista de lista del historico
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
