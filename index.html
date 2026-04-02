@@ -528,7 +528,7 @@
         .registro-item {
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 1rem;
+            padding: 0.5rem;
             margin-bottom: 0.5rem;
             display: flex;
             justify-content: space-between;
@@ -559,29 +559,23 @@
 
         .registro-fecha {
             font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .registro-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 0.25rem;
-        }
-
-        .registro-total {
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-top: 0;
-            color: var(--c-white);
-            display: inline-block;
-            border-radius: var(--radius);
-            padding: .1rem 1rem .1rem 1rem;
+            color: var(--text-main);
         }
 
         .registro-horas {
             font-size: 0.875rem;
             color: var(--text-muted);
+        }
+
+        .registro-total {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+            color: var(--c-white);
+            display: inline-block;
+            border-radius: var(--radius);
+            padding: .1rem 1rem .1rem 1rem;
         }
 
         .registro-total.green-text,
@@ -1387,6 +1381,10 @@
             .right-column {
                 position: sticky;
                 top: 4.5rem;
+            }
+
+            .registro-item {
+                padding: 1rem;
             }
 
             #lista-registros {
@@ -5788,12 +5786,9 @@
                     }
 
                     totalEl.textContent = totalText;
-                    const headerRow = document.createElement('div');
-                    headerRow.className = 'registro-header';
-                    headerRow.appendChild(fechaEl);
-                    headerRow.appendChild(totalEl);
-                    info.appendChild(headerRow);
+                    info.appendChild(fechaEl);
                     info.appendChild(horasEl);
+                    info.appendChild(totalEl);
                     item.appendChild(info);
 
                     return item;
@@ -6037,12 +6032,9 @@
                     totalEl.className = `registro-total ${colorClase}`;
                     totalEl.textContent = 'Justificado';
 
-                    const headerRowGrupo = document.createElement('div');
-                    headerRowGrupo.className = 'registro-header';
-                    headerRowGrupo.appendChild(fechaEl);
-                    headerRowGrupo.appendChild(totalEl);
-                    info.appendChild(headerRowGrupo);
+                    info.appendChild(fechaEl);
                     info.appendChild(horasEl);
+                    info.appendChild(totalEl);
                     header.appendChild(info);
 
                     // Preparar datos para event delegation
