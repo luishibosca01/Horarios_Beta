@@ -1051,13 +1051,14 @@
         }
 
         .registro-mes-header {
-            margin: 1rem 0rem;
+            margin: 1rem;
             color: var(--text-muted);
             font-size: 18px;
             transition: color 0.2s;
             cursor: pointer;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 0.5rem;
         }
 
@@ -1085,6 +1086,7 @@
             stroke-width: 2;
             flex-shrink: 0;
             transition: transform 0.3s ease;
+            order: 1;
         }
 
         /* Botón de perfil en el Header */
@@ -11146,7 +11148,7 @@ Generado por Sistema Lushibosca
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrupan las lineas 1 y 2 de los mosaicos en la vista de lista del historico
+    1) cambios de presentacion en la vista de lista del historico
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
