@@ -1342,7 +1342,7 @@
             .btn-perfil-select:hover,
             .day-checkbox:hover span,
             .btn-perfil-edit:hover,
-            .registro-mes-header:hover  {
+            .registro-mes-header:hover {
                 filter: var(--hover);
             }
 
@@ -1378,10 +1378,6 @@
             .right-column {
                 position: sticky;
                 top: 4.5rem;
-            }
-
-            .registro-item {
-                padding: 1rem;
             }
 
             #lista-registros {
@@ -1954,7 +1950,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.34</span>
+                    <span class="version-text">LUSHIBOSCA-8.36</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -3041,19 +3037,37 @@
             // ====================================================================
             const ModalManager = (function () {
 
+                // Mapa de relaciones hijo → padre registradas vía alternar()
+                const _padres = {};
+
+                // Mapa de acciones "volver" por modal (se poblará después de que UILogic esté listo)
+                function _getAccionVolver(modalId) {
+                    const acciones = {
+                        'modal-gist': () => window.UILogic?.cerrarModalGist(),
+                        'modal-gist-merge': () => window.UILogic?.gistMergeCancelar(),
+                        'modal-config': () => window.UILogic && UILogic.cerrarConfig(),
+                        'modal-selector-perfiles': () => window.UILogic && UILogic.cerrarSelectorPerfiles(),
+                        'modal-editar': () => window.UILogic && UILogic.cerrarEdicion(),
+                        'modal-importar': () => window.UILogic && UILogic.cerrarImportar(),
+                        'modal-exportar': () => window.UILogic && UILogic.cerrarExportar(),
+                        'modal-filtros': () => window.UILogic && UILogic.cerrarFiltros(),
+                        'modal-editar-perfil': () => window.UILogic && UILogic.cerrarEditorPerfil(),
+                        'modal-editar-grupo': () => window.UILogic && UILogic.cerrarEdicionGrupo(),
+                        'modal-confirmar': () => document.getElementById('modal-confirmar-cancel')?.click(),
+                    };
+                    return acciones[modalId] || null;
+                }
+
                 // Función para manejar clics fuera del modal
                 function handleOutsideClick(event) {
-                    // Verificar si el clic fue en el overlay (fondo del modal)
                     if (event.target.classList.contains('modal') && event.target.classList.contains('show')) {
                         const modalId = event.target.id;
 
-                        // Solo los modales con estado crítico usan su función específica
-                        if (modalId === 'modal-editar') {
-                            if (window.UILogic) UILogic.cerrarEdicion();
-                        } else if (modalId === 'modal-editar-grupo') {
-                            if (window.UILogic) UILogic.cerrarEdicionGrupo();
+                        // Si este modal fue abierto desde otro, el overlay actúa como "volver"
+                        const accionVolver = _getAccionVolver(modalId);
+                        if (accionVolver) {
+                            accionVolver();
                         } else {
-                            // El resto se cierra directamente
                             cerrar(modalId);
                         }
                     }
@@ -3069,7 +3083,6 @@
                     modal.classList.add('show');
                     document.body.classList.add('modal-open');
 
-                    // Agregar listener para clics fuera del modal
                     setTimeout(() => {
                         modal.addEventListener('click', handleOutsideClick);
                     }, 100);
@@ -3086,14 +3099,19 @@
 
                     modal.classList.remove('show');
                     document.body.classList.remove('modal-open');
-
-                    // Remover listener cuando se cierra
                     modal.removeEventListener('click', handleOutsideClick);
+
+                    // Limpiar relación padre si existía
+                    delete _padres[modalId];
 
                     if (callback) callback();
                 }
 
                 function alternar(modalIdCerrar, modalIdAbrir, callbackCerrar = null, callbackAbrir = null) {
+                    // Si hay un modal padre cerrándose para abrir un hijo, registrar la relación
+                    if (modalIdCerrar && modalIdAbrir) {
+                        _padres[modalIdAbrir] = modalIdCerrar;
+                    }
                     cerrar(modalIdCerrar, callbackCerrar);
                     abrir(modalIdAbrir, callbackAbrir);
                 }
@@ -3103,6 +3121,8 @@
                         modal.classList.remove('show');
                         modal.removeEventListener('click', handleOutsideClick);
                     });
+                    // Limpiar todas las relaciones
+                    Object.keys(_padres).forEach(k => delete _padres[k]);
                     document.body.classList.remove('modal-open');
                 }
 
@@ -9218,7 +9238,6 @@ Generado por Sistema Lushibosca
                         if (hastaEl) hastaEl.value = rango.hasta;
 
                         _gistAutoSyncTemp = GistSync.getAutoSync();
-                        gistSetStatus('');
                         actualizarBotonGistBackup();
                         actualizarBotonGistMerge();
                         actualizarEstadoBotonesGist();
@@ -9383,8 +9402,7 @@ Generado por Sistema Lushibosca
 
                         if (resultado.vacio) {
                             ModalManager.cerrar('modal-gist-merge');
-                            gistSetStatus('Sin días nuevos ni datos para completar', 'ok');
-                            mostrarToast('Sin días nuevos ni datos para completar', 'info');
+                            mostrarToast('Sin datos nuevos para completar', 'info');
                             return;
                         }
                         if (resultado.limiteAlcanzado) {
@@ -9407,7 +9425,6 @@ Generado por Sistema Lushibosca
                         if (!modoAutomatico) ModalManager.cerrar('modal-gist-merge');
                         const lastSyncEl = document.getElementById('gist-ultima-sync');
                         if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.getLastSync()}`;
-                        gistSetStatus(`✓ ${mensajeExito}`, 'ok');
                         mostrarToast(mensajeExito, 'success');
 
                         const btn = document.getElementById('btn-gist-bajar');
@@ -9419,7 +9436,6 @@ Generado por Sistema Lushibosca
                         ModalManager.cerrar('modal-gist-merge');
                         const btn = document.getElementById('btn-gist-bajar');
                         if (btn) btn.disabled = false;
-                        gistSetStatus('Cancelado', '');
                     }
 
                     function toggleGistMerge() {
@@ -9530,24 +9546,12 @@ Generado por Sistema Lushibosca
                         if (_timeoutLimite) { clearTimeout(_timeoutLimite); _timeoutLimite = null; }
                         if (_intervaloLimite) { clearInterval(_intervaloLimite); _intervaloLimite = null; }
                     }
-
-                    function gistSetStatus(msg, tipo = '') {
-                        const modal = document.getElementById('modal-gist');
-                        const modalAbierto = modal?.classList.contains('show');
-                        const el = document.getElementById('gist-status');
-                        if (el && modalAbierto) {
-                            el.textContent = msg;
-                            el.style.color = tipo === 'error' ? 'var(--c-red)'
-                                : tipo === 'ok' ? 'var(--c-green)'
-                                    : 'var(--text-muted)';
-                        }
-                    }
+                    
 
                     async function gistSubir() {
                         _gistGuardarCredencialesSiModalAbierto();
                         const btn = document.getElementById('btn-gist-subir');
                         if (btn) btn.disabled = true;
-                        gistSetStatus('Subiendo...');
                         mostrarToast('Subiendo...', 'info');
 
 
@@ -9563,11 +9567,9 @@ Generado por Sistema Lushibosca
                             // Actualizar última sync
                             const lastSyncEl = document.getElementById('gist-ultima-sync');
                             if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.getLastSync()}`;
-                            gistSetStatus(`✓ Subido correctamente (${D.registros().length} registros)`, 'ok');
                             mostrarToast('Datos respaldados en Gist', 'success');
                         } catch (e) {
                             console.error('Gist subir error:', e);
-                            gistSetStatus(`Error: ${e.message}`, 'error');
                             mostrarToast('Error al subir', 'error');
                         } finally {
                             if (btn) btn.disabled = false;
@@ -9580,7 +9582,6 @@ Generado por Sistema Lushibosca
                         _gistGuardarCredencialesSiModalAbierto();
                         const btn = document.getElementById('btn-gist-bajar');
                         if (btn) btn.disabled = true;
-                        gistSetStatus('Bajando...');
                         mostrarToast('Bajando...', 'info');
 
                         try {
@@ -9589,8 +9590,6 @@ Generado por Sistema Lushibosca
                             if (!data.registros || !Array.isArray(data.registros)) {
                                 throw new Error('Datos inválidos en el Gist');
                             }
-
-                            gistSetStatus('');
 
                             // Validar claves permitidas
                             const allowedRootKeys = ['registros', 'diasHabiles', 'horasDiarias', 'fecha', 'version', 'hash', 'timestamp', '_hashNoCoincide'];
@@ -9601,7 +9600,6 @@ Generado por Sistema Lushibosca
                             if (data._hashNoCoincide) {
                                 const continuar = await confirmarModal('El hash de integridad no coincide. El Gist puede haber sido modificado o corrompido. ¿Restaurar de todas formas?', 'Restaurar', '#icon-upload');
                                 if (!continuar) {
-                                    gistSetStatus('Cancelado', '');
                                     if (btn) btn.disabled = false;
                                     return;
                                 }
@@ -9692,7 +9690,6 @@ Generado por Sistema Lushibosca
                             }
                         } catch (e) {
                             console.error('Gist bajar error:', e);
-                            gistSetStatus(`Error: ${e.message}`, 'error');
                             mostrarToast('Error al bajar', 'error');
                         } finally {
                             if (btn) btn.disabled = false;
@@ -10715,9 +10712,13 @@ Generado por Sistema Lushibosca
                         const emoji = tipoConfig ? tipoConfig.emoji : '';
                         const label = tipoConfig ? tipoConfig.label : reg.entrada;
                         infoHtml = `<span class="cal-popup-badge" style="background:var(--c-${tipoConfig?.color || 'purple'})">${emoji} ${label}</span>`;
-                    } else if (reg.entrada && (!reg.salida || reg.entrada === reg.salida)) {
-                        infoHtml = `<div class="cal-popup-info" style="color:var(--c-blue)">En curso</div>
-                    <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${reg.entrada}</div>`;
+                    } else if (reg.entrada && !reg.salida) {
+                        const esHoy = reg.fecha === obtenerFechaHoy();
+                        infoHtml = esHoy
+                            ? `<div class="cal-popup-info" style="color:var(--c-blue)">En curso</div>
+                               <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${reg.entrada}</div>`
+                            : `<div class="cal-popup-info" style="color:var(--c-gold)">Incompleto</div>
+                               <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${reg.entrada}</div>`;
                     } else {
                         const totalHoras = reg.total || 0;
                         const h = Math.floor(totalHoras);
@@ -11139,11 +11140,13 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.34
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.36
     // ====================================================================
     
      - CAMBIOS:
-    1) cambios de presentacion en la vista de lista del historico
+    1) Se mejora el click en overlay, ahora en vez de cerrar todos los modales, 
+    cierra y abre el modal padre
+    2) 
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
