@@ -1961,7 +1961,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_246</span>
+                    <span class="version-text">LUSHIBOSCA build_247</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2050,6 +2050,15 @@
                                     <use href="#icon-save" />
                                 </svg>
                                 <span>Recordar estado</span>
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label>Tarjeta Hoy</label>
+                            <button id="btn-toggle-ciclo-stats" onclick="UILogic.toggleCicloStats()">
+                                <svg class="icon">
+                                    <use href="#icon-replace-swap" />
+                                </svg>
+                                <span>Ciclar entrada/salida</span>
                             </button>
                         </div>
                     </div>
@@ -6720,6 +6729,7 @@
                 function _iniciarCicloStats() {
                     _detenerCicloStats();
                     if (!_cicloStatsEntrada) return; // sin entrada no hay ciclo
+                    if (localStorage.getItem('cicloStats') === 'false') return; // desactivado por usuario
 
                     _cicloStatsInterval = setInterval(() => {
                         const el = $('stats-semana');
@@ -7091,6 +7101,25 @@
 
                 function actualizarEstadoBotonPersistir() {
                     _setBtnActivo('btn-toggle-persistir-tarjetas', localStorage.getItem('persistirTarjetas') !== 'false');
+                }
+
+                function toggleCicloStats() {
+                    const actual = localStorage.getItem('cicloStats') !== 'false';
+                    const nuevo = !actual;
+                    try { localStorage.setItem('cicloStats', nuevo); } catch (e) { }
+                    actualizarEstadoBotonCicloStats();
+                    if (nuevo) {
+                        _iniciarCicloStats();
+                    } else {
+                        _detenerCicloStats();
+                        const el = $('stats-semana');
+                        if (el) el.textContent = _cicloStatsValorHoras;
+                    }
+                    mostrarToast(nuevo ? 'Ciclo entrada/salida activado' : 'Ciclo entrada/salida desactivado', 'info');
+                }
+
+                function actualizarEstadoBotonCicloStats() {
+                    _setBtnActivo('btn-toggle-ciclo-stats', localStorage.getItem('cicloStats') !== 'false');
                 }
 
                 function toggleVisibilidadCard(cual) {
@@ -9606,6 +9635,7 @@ Generado por Sistema Lushibosca
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards,
                         _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup,
                         cambiarLimiteSync, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, _onclickCalendarioDia,
+                        toggleCicloStats, actualizarEstadoBotonCicloStats,
                         actualizarHintGrupo, irHoyCalendario, detenerCambioLimite, iniciarCambioLimite,
                         obtenerNombrePerfilSafe, descargarJSON,
                     };
@@ -9794,6 +9824,7 @@ Generado por Sistema Lushibosca
                     UILogic.actualizarEstadoBotonIgnorarTF();
                     UILogic.poblarSelectoresTipos();
                     UILogic.actualizarEstadoBotonHoverPopup();
+                    UILogic.actualizarEstadoBotonCicloStats();
                     UILogic.aplicarVisibilidadCards();
                     UILogic.aplicarOrdenCards(UILogic.obtenerOrdenCards());
                     UILogic.iniciarDragOrdenCards();
@@ -9935,12 +9966,7 @@ Generado por Sistema Lushibosca
                         }
                     }
 
-                    // Sincronizar al :00 exacto del minuto y luego cada 60s
-                    const _msHastaProximoMinuto = 60000 - (Date.now() % 60000);
-                    setTimeout(() => {
-                        actualizarUI(null, true);
-                        setInterval(() => actualizarUI(null, true), 60000);
-                    }, _msHastaProximoMinuto);
+                    setInterval(() => actualizarUI(null, true), 60000);
                     console.log('Sistema iniciado correctamente');
 
                     // Escape cierra el modal abierto simulando su botón cerrar/volver
@@ -11004,7 +11030,7 @@ Generado por Sistema Lushibosca
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, actualizarHintGrupo,
                     _popupCalendario, _popupCalendarioHover, _onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario,
-                    obtenerNombrePerfilSafe, descargarJSON,
+                    obtenerNombrePerfilSafe, descargarJSON, toggleCicloStats, actualizarEstadoBotonCicloStats,
 
                 };
 
@@ -11038,12 +11064,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 246
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 247
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agregar ciclo en renderstats para mostrar la entrada y salida
-    2) Se cambia la forma de establecer las versiones
+    1) Se agrega opcion en el menu de ajustes para activar o desactivar el ciclo de la tarjeta de estado
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
