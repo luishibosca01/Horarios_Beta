@@ -6724,6 +6724,7 @@
 
                 // --- Ciclo stats / entrada / salida ---
                 let _cicloStatsInterval = null;
+                let _cicloStatsSessionId = 0; // se incrementa en cada inicio, invalida ticks viejos
                 let _cicloStatsValorHoras = '';
                 let _cicloStatsEntrada = '';
                 let _cicloStatsSalida = '';
@@ -6748,13 +6749,17 @@
                     if (!_cicloStatsEntrada) return; // sin entrada no hay ciclo
                     if (localStorage.getItem('cicloStats') === 'false') return; // desactivado por defecto
 
+                    const sessionId = ++_cicloStatsSessionId; // ID único para este ciclo
+
                     const _cicloTick = () => {
+                        if (sessionId !== _cicloStatsSessionId) return; // tick zombie, ignorar
                         const el = $('stats-semana');
                         if (!el) { _detenerCicloStats(); return; }
 
                         el.classList.add('ciclo-fade-out');
 
                         setTimeout(() => {
+                            if (sessionId !== _cicloStatsSessionId) return; // doble check tras el delay
                             _cicloStatsPhase = _cicloStatsNextPhase();
 
                             el.classList.remove('ciclo-fade-out');
@@ -6898,7 +6903,7 @@
                     ].filter(Boolean);
 
                     if (_cicloStatsInterval) {
-                        clearInterval(_cicloStatsInterval);
+                        clearTimeout(_cicloStatsInterval);
                         _cicloStatsInterval = null;
                     }
 
