@@ -9,12 +9,13 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; 
                  script-src 'self' 'unsafe-inline'; 
                  style-src 'self' 'unsafe-inline'; 
-                 img-src 'self' data: https:; 
+                 img-src 'self' data: blob:; 
                  font-src 'self' data:; 
                  connect-src 'self' https://api.github.com; 
                  object-src 'none'; 
-                 base-uri 'self'; 
-                 form-action 'self'; 
+                 base-uri 'none'; 
+                 form-action 'none'; 
+                 frame-ancestors 'none';
                  upgrade-insecure-requests;">
     <meta name="referrer" content="no-referrer">
     <meta name="mobile-web-app-capable" content="yes">
@@ -2933,7 +2934,10 @@
                     try {
                         const storedPerfiles = localStorage.getItem('perfiles');
 
-                        perfiles = storedPerfiles ? JSON.parse(storedPerfiles) : {};
+                        perfiles = storedPerfiles ? JSON.parse(storedPerfiles, (key, value) => {
+                            if (['__proto__', 'constructor', 'prototype'].includes(key)) return undefined;
+                            return value;
+                        }) : {};
 
                         if (!perfiles['default']) {
                             perfiles['default'] = {
@@ -3263,7 +3267,10 @@
                         const stored = localStorage.getItem(storageKey);
 
                         if (stored) {
-                            const historyData = JSON.parse(stored);
+                            const historyData = JSON.parse(stored, (key, value) => {
+                                if (['__proto__', 'constructor', 'prototype'].includes(key)) return undefined;
+                                return value;
+                            });
 
                             // Verificar que el historial no tenga más de 24 horas
                             const ahora = Date.now();
@@ -10659,6 +10666,12 @@ Generado por Sistema Lushibosca
                     const reg = D.registros().find(r => r.id === registroId);
                     if (!reg) return;
 
+                    // Helper para escapar datos de usuario antes de insertarlos en innerHTML
+                    const _esc = s => s == null ? '' : String(s)
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+
                     // Detectar si pertenece a un grupo reutilizando la lógica existente
                     const claveMes = reg.fecha.substring(0, 7);
                     const registrosDelMes = D.registros().filter(r => r.fecha.substring(0, 7) === claveMes);
@@ -10676,15 +10689,15 @@ Generado por Sistema Lushibosca
                     if (esEspecial) {
                         const tipoConfig = TiposRegistro.obtenerTipoPorCodigo(reg.entrada, reg.salida);
                         const emoji = tipoConfig ? tipoConfig.emoji : '';
-                        const label = tipoConfig ? tipoConfig.label : reg.entrada;
+                        const label = tipoConfig ? tipoConfig.label : _esc(reg.entrada);
                         infoHtml = `<span class="cal-popup-badge" style="background:var(--c-${tipoConfig?.color || 'purple'})">${emoji} ${label}</span>`;
                     } else if (reg.entrada && !reg.salida) {
                         const esHoy = reg.fecha === obtenerFechaHoy();
                         infoHtml = esHoy
                             ? `<div class="cal-popup-info" style="color:var(--c-blue)">En curso</div>
-                               <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${reg.entrada}</div>`
+                               <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${_esc(reg.entrada)}</div>`
                             : `<div class="cal-popup-info" style="color:var(--c-gold)">Incompleto</div>
-                               <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${reg.entrada}</div>`;
+                               <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${_esc(reg.entrada)}</div>`;
                     } else {
                         const totalHoras = reg.total || 0;
                         const h = Math.floor(totalHoras);
@@ -10696,8 +10709,8 @@ Generado por Sistema Lushibosca
                             tfStr = tfH > 0 ? `${tfH}h${tfM > 0 ? ' ' + tfM + 'm' : ''} fuera` : `${tfM}m fuera`;
                         }
                         infoHtml = `<div class="cal-popup-info">${totalStr}</div>
-                    <div style="font-size:0.82rem;color:var(--text-muted)">${reg.entrada} – ${reg.salida}</div>
-                    ${tfStr ? `<div style="font-size:0.82rem;color:var(--text-muted)">${tfStr}</div>` : ''}`;
+                    <div style="font-size:0.82rem;color:var(--text-muted)">${_esc(reg.entrada)} – ${_esc(reg.salida)}</div>
+                    ${tfStr ? `<div style="font-size:0.82rem;color:var(--text-muted)">${_esc(tfStr)}</div>` : ''}`;
                     }
 
                     // Botón editar grupo (solo si pertenece a uno)
@@ -11107,11 +11120,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 248
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 250
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega animacion en la tarjeta de estados, al hacer undo, redo, y editar registro
+    1) Mejoras de seguridad recomendadas
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
