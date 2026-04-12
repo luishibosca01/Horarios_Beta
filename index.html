@@ -1647,7 +1647,8 @@
                         <div class="progress-fill" id="progress-bar" style="width: 0%"></div>
                     </div>
                     <div id="stats-mensaje" class="card-anim">Faltan 0 horas 0 minutos</div>
-                    <div id="stats-buffer" class="card-anim" style="font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2rem;"></div>
+                    <div id="stats-buffer" class="card-anim"
+                        style="font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2rem;"></div>
                     <span class="toggle-hint card-anim" id="toggle-hint">Toca para ver la Semana</span>
                 </div>
             </div>
@@ -6739,16 +6740,18 @@
                     return _cicloStatsPhase >= maxPhase ? 0 : _cicloStatsPhase + 1;
                 }
 
+                // Duración de cada fase en ms (cuánto tiempo se muestra antes de cambiar)
+                const _CICLO_DURACION = { 0: 5000, 1: 2500, 2: 2500 };
+
                 function _iniciarCicloStats() {
                     _detenerCicloStats();
                     if (!_cicloStatsEntrada) return; // sin entrada no hay ciclo
                     if (localStorage.getItem('cicloStats') === 'false') return; // desactivado por defecto
 
-                    _cicloStatsInterval = setInterval(() => {
+                    const _cicloTick = () => {
                         const el = $('stats-semana');
                         if (!el) { _detenerCicloStats(); return; }
 
-                        // Fade out
                         el.classList.add('ciclo-fade-out');
 
                         setTimeout(() => {
@@ -6758,16 +6761,21 @@
                             el.classList.add('ciclo-fade-in');
                             el.textContent = _cicloStatsGetTexto(_cicloStatsPhase);
 
-                            // Reflow para activar la transición de fade-in
                             void el.offsetWidth;
                             el.classList.remove('ciclo-fade-in');
+
+                            // Programar el siguiente tick según la duración de la fase actual
+                            _cicloStatsInterval = setTimeout(_cicloTick, _CICLO_DURACION[_cicloStatsPhase] ?? 5000);
                         }, 350);
-                    }, 5000);
+                    };
+
+                    // Arrancar tras la duración de la fase 0 (horas)
+                    _cicloStatsInterval = setTimeout(_cicloTick, _CICLO_DURACION[0]);
                 }
 
                 function _detenerCicloStats() {
                     if (_cicloStatsInterval) {
-                        clearInterval(_cicloStatsInterval);
+                        clearTimeout(_cicloStatsInterval);
                         _cicloStatsInterval = null;
                     }
                     _cicloStatsPhase = 0;
@@ -6783,15 +6791,15 @@
                     const regHoy = D.registros().find(r => r.fecha === hoy) ?? null;
                     const esEspecial = regHoy && TiposRegistro.esRegistroEspecial(regHoy.entrada, regHoy.salida);
                     const entradaHoy = (esDiaria && regHoy && regHoy.entrada && !esEspecial) ? regHoy.entrada : '';
-                    const salidaHoy  = (esDiaria && regHoy && regHoy.salida  && !esEspecial) ? regHoy.salida  : '';
+                    const salidaHoy = (esDiaria && regHoy && regHoy.salida && !esEspecial) ? regHoy.salida : '';
 
-                    const mismasHoras   = _cicloStatsValorHoras === vista.stats;
-                    const mismaEntrada  = _cicloStatsEntrada === entradaHoy;
-                    const mismaSalida   = _cicloStatsSalida  === salidaHoy;
+                    const mismasHoras = _cicloStatsValorHoras === vista.stats;
+                    const mismaEntrada = _cicloStatsEntrada === entradaHoy;
+                    const mismaSalida = _cicloStatsSalida === salidaHoy;
 
                     _cicloStatsValorHoras = vista.stats;
-                    _cicloStatsEntrada    = entradaHoy;
-                    _cicloStatsSalida     = salidaHoy;
+                    _cicloStatsEntrada = entradaHoy;
+                    _cicloStatsSalida = salidaHoy;
 
                     // Siempre mostrar las horas como posición inicial
                     _cicloStatsPhase = 0;
@@ -10016,7 +10024,12 @@ Generado por Sistema Lushibosca
                         }
                     }
 
-                    setInterval(() => actualizarUI(null, true), 60000);
+                    // Sincronizar al :00 exacto del minuto y luego cada 60s
+                    const _msHastaProximoMinuto = 60000 - (Date.now() % 60000);
+                    setTimeout(() => {
+                        actualizarUI(null, true);
+                        setInterval(() => actualizarUI(null, true), 60000);
+                    }, _msHastaProximoMinuto);
                     console.log('Sistema iniciado correctamente');
 
                     // Escape cierra el modal abierto simulando su botón cerrar/volver
