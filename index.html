@@ -437,12 +437,18 @@
             transition: opacity 0.35s ease, transform 0.35s ease;
         }
 
-        .stats-number.ciclo-fade-out {
+        .card-anim {
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+
+        .stats-number.ciclo-fade-out,
+        .card-anim.ciclo-fade-out {
             opacity: 0;
             transform: translateY(-6px);
         }
 
-        .stats-number.ciclo-fade-in {
+        .stats-number.ciclo-fade-in,
+        .card-anim.ciclo-fade-in {
             opacity: 0;
             transform: translateY(6px);
         }
@@ -1639,9 +1645,9 @@
                     <div class="progress-bar">
                         <div class="progress-fill" id="progress-bar" style="width: 0%"></div>
                     </div>
-                    <div id="stats-mensaje">Faltan 0 horas 0 minutos</div>
-                    <div id="stats-buffer" style="font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2rem;"></div>
-                    <span class="toggle-hint" id="toggle-hint">Toca para ver la Semana</span>
+                    <div id="stats-mensaje" class="card-anim">Faltan 0 horas 0 minutos</div>
+                    <div id="stats-buffer" class="card-anim" style="font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2rem;"></div>
+                    <span class="toggle-hint card-anim" id="toggle-hint">Toca para ver la Semana</span>
                 </div>
             </div>
             <div class="card animated-card" id="card-registrar">
@@ -1961,7 +1967,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_247</span>
+                    <span class="version-text">LUSHIBOSCA build_248</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -3802,7 +3808,7 @@
                 }
 
 
-                async function guardarYActualizar(idNuevo = null) {
+                async function guardarYActualizar(idNuevo = null, animarCard = false) {
                     let saveSuccessful = false;
 
                     try {
@@ -3817,7 +3823,7 @@
                     }
 
                     if (saveSuccessful) {
-                        UILogic.actualizarUI(idNuevo);
+                        UILogic.actualizarUI(idNuevo, false, animarCard);
                     } else {
                         UILogic.mostrarToast('Error al guardar. Almacenamiento lleno o bloqueado.', 'error');
                     }
@@ -4382,7 +4388,7 @@
 
                     HistoryManager.saveState(registros);
 
-                    const saved = await guardarYActualizar();
+                    const saved = await guardarYActualizar(null, true);
 
                     if (saved) {
                         // Mensaje personalizado si se aplicó compensación
@@ -5072,7 +5078,7 @@
                                     if (t) { r.horas = t.horas; r.minutos = t.minutos; r.total = t.total; }
                                 }
                             });
-                            guardarYActualizar();
+                            guardarYActualizar(null, true);
                             UILogic.mostrarToast('Deshecho', 'info');
 
                             // Solo actualizar si estamos en modo lote
@@ -5102,7 +5108,7 @@
                                     if (t) { r.horas = t.horas; r.minutos = t.minutos; r.total = t.total; }
                                 }
                             });
-                            guardarYActualizar();
+                            guardarYActualizar(null, true);
                             UILogic.mostrarToast('Rehecho', 'info');
 
                             // Solo actualizar si estamos en modo lote
@@ -6729,7 +6735,7 @@
                 function _iniciarCicloStats() {
                     _detenerCicloStats();
                     if (!_cicloStatsEntrada) return; // sin entrada no hay ciclo
-                    if (localStorage.getItem('cicloStats') === 'false') return; // desactivado por usuario
+                    if (localStorage.getItem('cicloStats') === 'false') return; // desactivado por defecto
 
                     _cicloStatsInterval = setInterval(() => {
                         const el = $('stats-semana');
@@ -6868,7 +6874,34 @@
                 // =========================================================
                 // actualizarUI — orquestador
                 // =========================================================
-                function actualizarUI(idNuevo = null, soloReloj = false) {
+                function _animarCambioCard(renderFn) {
+                    const els = [
+                        $('stats-semana'),
+                        $('stats-mensaje'),
+                        $('stats-buffer'),
+                        $('toggle-hint'),
+                    ].filter(Boolean);
+
+                    if (_cicloStatsInterval) {
+                        clearInterval(_cicloStatsInterval);
+                        _cicloStatsInterval = null;
+                    }
+
+                    els.forEach(el => el.classList.add('ciclo-fade-out'));
+
+                    setTimeout(() => {
+                        renderFn();
+                        els.forEach(el => {
+                            el.classList.remove('ciclo-fade-out');
+                            el.classList.add('ciclo-fade-in');
+                            void el.offsetWidth;
+                            el.classList.remove('ciclo-fade-in');
+                        });
+                        _iniciarCicloStats();
+                    }, 350);
+                }
+
+                function actualizarUI(idNuevo = null, soloReloj = false, animarCard = false) {
                     if (!soloReloj) {
                         actualizarListaRegistros(D.registros(), idNuevo);
                     }
@@ -6879,16 +6912,26 @@
                         : derivarVistaHoy(est);
 
                     _renderTitulo(vista);
-                    _renderStats(vista);
-                    _renderBarra(vista);
-                    _renderMensaje(vista);
                     _renderCard(vista);
-                    _renderHint(vista);
-                    _renderBuffer(est);
+                    _renderBarra(vista);
                     _renderSelectorStats();
-
                     actualizarEstadoBotonTimerMain();
                     if (_vistaHistoricoCalendario) _renderizarCalendario(idNuevo);
+
+                    const debeAnimar = animarCard || (idNuevo !== null && !soloReloj);
+                    if (debeAnimar) {
+                        _animarCambioCard(() => {
+                            _renderStats(vista);
+                            _renderMensaje(vista);
+                            _renderHint(vista);
+                            _renderBuffer(est);
+                        });
+                    } else {
+                        _renderStats(vista);
+                        _renderMensaje(vista);
+                        _renderHint(vista);
+                        _renderBuffer(est);
+                    }
                 }
 
                 function alternarTema() {
@@ -11064,11 +11107,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 247
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 248
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega opcion en el menu de ajustes para activar o desactivar el ciclo de la tarjeta de estado
+    1) Se agrega animacion en la tarjeta de estados, al hacer undo, redo, y editar registro
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
