@@ -434,6 +434,17 @@
             font-size: 1.8rem;
             font-weight: bold;
             margin: 0.5rem 0;
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+
+        .stats-number.ciclo-fade-out {
+            opacity: 0;
+            transform: translateY(-6px);
+        }
+
+        .stats-number.ciclo-fade-in {
+            opacity: 0;
+            transform: translateY(6px);
         }
 
         /* Animación de contenido interno de stats-card */
@@ -1950,7 +1961,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA-8.36</span>
+                    <span class="version-text">LUSHIBOSCA build_246</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -4428,6 +4439,39 @@
                     }
                 }
 
+                // ----------------------------------------------------------------
+                // HELPER COMPARTIDO: filtra, sanitiza y recalcula una lista de
+                // registros crudos (usada por importarDatos y gistBajar).
+                // calcularHorasFn: función calcularHoras del scope correcto.
+                // ----------------------------------------------------------------
+                function normalizarRegistrosImportados(rawList, calcularHorasFn) {
+                    const validarHora = (h) => h && S.REGEX_PATTERNS.HORA.test(h) ? S.sanitizeString(h, 5) : null;
+
+                    const normalizados = rawList
+                        .filter(r => S.validarRegistroSeguro(r))
+                        .map(r => ({
+                            id: (r.id && S.REGEX_PATTERNS.ID.test(r.id)) ? r.id : S.generarIDSeguro(),
+                            fecha: S.sanitizeString(r.fecha, 10),
+                            entrada: validarHora(r.entrada),
+                            salida: validarHora(r.salida),
+                            tiempoFuera: validarHora(r.tiempoFuera),
+                            horas: Math.max(0, Math.min(24, parseFloat(r.horas) || 0)),
+                            minutos: Math.max(0, Math.min(59, parseFloat(r.minutos) || 0)),
+                            total: Math.max(0, Math.min(24, parseFloat(r.total) || 0)),
+                            credito: validarHora(r.credito),
+                        }));
+
+                    // Recalcular totales para asegurar consistencia interna
+                    normalizados.forEach(r => {
+                        const t = calcularHorasFn(r.entrada, r.salida, r.tiempoFuera || null, r.credito || null);
+                        r.horas = t?.horas || 0;
+                        r.minutos = t?.minutos || 0;
+                        r.total = t?.total || 0;
+                    });
+
+                    return normalizados;
+                }
+
                 async function exportarJSON() {
                     const data = {
                         registros,
@@ -4440,25 +4484,9 @@
                     };
 
                     try {
-                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-
-                        // Obtener y limpiar nombre del perfil
-                        let nombrePerfil = 'Backup';
-                        if (window.PerfilManager) {
-                            nombrePerfil = window.PerfilManager.obtenerDatosPerfil().nombre;
-                        }
-                        const nombreSafe = nombrePerfil.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ'\-_ ]/g, '').trim().replace(/\s+/g, '_');
-
+                        const nombreSafe = UILogic.obtenerNombrePerfilSafe();
                         const fechaHoy = S.fechaLocalISO().slice(0, 10);
-                        a.download = `Horarios_${nombreSafe}_${fechaHoy}.json`;
-
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
+                        UILogic.descargarJSON(data, `Horarios_${nombreSafe}_${fechaHoy}.json`);
                         UILogic.mostrarToast('Datos exportados', 'success');
                         ModalManager.cerrarTodos();
                     } catch (e) {
@@ -4594,37 +4622,13 @@
                                 return;
                             }
 
-                            // Filtrar y normalizar datos
-                            const registrosImportados = data.registros
-                                .filter(r => S.validarRegistroSeguro(r))
-                                .map(r => {
-                                    const validarHora = (h) => h && S.REGEX_PATTERNS.HORA.test(h) ? S.sanitizeString(h, 5) : null;
-
-                                    return {
-                                        id: (r.id && S.REGEX_PATTERNS.ID.test(r.id)) ? r.id : S.generarIDSeguro(),
-                                        fecha: S.sanitizeString(r.fecha, 10),
-                                        entrada: validarHora(r.entrada),
-                                        salida: validarHora(r.salida),
-                                        tiempoFuera: validarHora(r.tiempoFuera),
-                                        horas: Math.max(0, Math.min(24, parseFloat(r.horas) || 0)),
-                                        minutos: Math.max(0, Math.min(59, parseFloat(r.minutos) || 0)),
-                                        total: Math.max(0, Math.min(24, parseFloat(r.total) || 0)),
-                                        credito: validarHora(r.credito),
-                                    };
-                                });
+                            // Filtrar, normalizar y recalcular datos
+                            const registrosImportados = normalizarRegistrosImportados(data.registros, calcularHoras);
 
                             if (registrosImportados.length === 0) {
                                 UILogic.mostrarToast('No se encontraron registros válidos', 'warning');
                                 return;
                             }
-
-                            // Recalcular horas para asegurar consistencia
-                            registrosImportados.forEach(r => {
-                                const t = calcularHoras(r.entrada, r.salida, r.tiempoFuera || null, r.credito || null);
-                                r.horas = t?.horas || 0;
-                                r.minutos = t?.minutos || 0;
-                                r.total = t?.total || 0;
-                            });
 
                             // --- MODO REEMPLAZAR ---
                             if (modo === 'replace') {
@@ -5028,6 +5032,7 @@
                     cargarConfiguracion,
                     calcularHoras,
                     calcularHorasFeriadoEnRango,
+                    normalizarRegistrosImportados,
                     guardarYActualizar,
                     agregarRegistro,
                     eliminarRegistroActual,
@@ -5124,6 +5129,13 @@
                     return id && GIST_ID_REGEX.test(id.trim());
                 }
 
+                // Helper privado: ejecuta fn(perfil) y guarda si PerfilManager está disponible
+                function _conPerfil(fn) {
+                    if (!window.PerfilManager) return;
+                    const perfil = PerfilManager.obtenerDatosPerfil();
+                    if (perfil) { fn(perfil); PerfilManager.guardarPerfiles(); }
+                }
+
                 // Token: global del dispositivo
                 function getToken() { return localStorage.getItem(KEY_TOKEN) || ''; }
 
@@ -5145,13 +5157,7 @@
                 }
 
                 function setMergeBehavior(valor) {
-                    if (window.PerfilManager) {
-                        const perfil = PerfilManager.obtenerDatosPerfil();
-                        if (perfil) {
-                            perfil.gistMergeBehavior = valor;
-                            PerfilManager.guardarPerfiles();
-                        }
-                    }
+                    _conPerfil(perfil => { perfil.gistMergeBehavior = valor; });
                 }
 
                 function getAutoSync() {
@@ -5164,13 +5170,7 @@
                 }
 
                 function setAutoSync(valor) {
-                    if (window.PerfilManager) {
-                        const perfil = PerfilManager.obtenerDatosPerfil();
-                        if (perfil) {
-                            perfil.gistAutoSync = valor;
-                            PerfilManager.guardarPerfiles();
-                        }
-                    }
+                    _conPerfil(perfil => { perfil.gistAutoSync = valor; });
                 }
 
                 function getRangoHorario() {
@@ -5182,14 +5182,7 @@
                 }
 
                 function setRangoHorario(desde, hasta) {
-                    if (window.PerfilManager) {
-                        const perfil = PerfilManager.obtenerDatosPerfil();
-                        if (perfil) {
-                            perfil.gistRangoDesde = desde;
-                            perfil.gistRangoHasta = hasta;
-                            PerfilManager.guardarPerfiles();
-                        }
-                    }
+                    _conPerfil(perfil => { perfil.gistRangoDesde = desde; perfil.gistRangoHasta = hasta; });
                 }
 
                 function _claveHoraActual() {
@@ -5208,18 +5201,14 @@
 
                 function marcarSync(tipo) {
                     if (getSyncLimite(tipo) === 0) return; // modo siempre: no acumular
-                    if (window.PerfilManager) {
-                        const perfil = PerfilManager.obtenerDatosPerfil();
-                        if (perfil) {
-                            const key = `gistSyncCount_${tipo}`;
-                            const keyFecha = `gistSyncFecha_${tipo}`;
-                            const clave = _claveHoraActual();
-                            const esNuevaHora = perfil[keyFecha] !== clave;
-                            perfil[keyFecha] = clave;
-                            perfil[key] = esNuevaHora ? 1 : (perfil[key] || 0) + 1;
-                            PerfilManager.guardarPerfiles();
-                        }
-                    }
+                    _conPerfil(perfil => {
+                        const key = `gistSyncCount_${tipo}`;
+                        const keyFecha = `gistSyncFecha_${tipo}`;
+                        const clave = _claveHoraActual();
+                        const esNuevaHora = perfil[keyFecha] !== clave;
+                        perfil[keyFecha] = clave;
+                        perfil[key] = esNuevaHora ? 1 : (perfil[key] || 0) + 1;
+                    });
                 }
 
                 function getSyncLimite(tipo) {
@@ -5455,6 +5444,28 @@
                     const error = $(errorId);
                     if (input) input.classList.remove('error');
                     if (error) error.style.display = 'none';
+                }
+
+                // ----------------------------------------------------------------
+                // HELPERS COMPARTIDOS DE EXPORTACIÓN
+                // ----------------------------------------------------------------
+
+                // Devuelve el nombre del perfil activo sanitizado para usar en nombres de archivo
+                function obtenerNombrePerfilSafe() {
+                    let nombre = 'Backup';
+                    if (window.PerfilManager) nombre = window.PerfilManager.obtenerDatosPerfil().nombre;
+                    return nombre.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ'\-_ ]/g, '').trim().replace(/\s+/g, '_');
+                }
+
+                // Descarga un objeto JS como archivo .json con el nombre indicado
+                function descargarJSON(data, nombreArchivo) {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = Object.assign(document.createElement('a'), { href: url, download: nombreArchivo });
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                 }
 
                 function mostrarToast(mensaje, tipo = 'info') {
@@ -6395,562 +6406,479 @@
                     }
                 }
 
-                function actualizarUI(idNuevo = null, soloReloj = false) {
-                    const registros = D.registros();
-                    const horasSemanales = D.horasSemanales();
-                    const horasDiarias = D.horasDiarias();
-                    const diasHabilesConfig = D.diasHabiles();
-                    const vistaActual = D.vistaActual();
-
-                    if (!soloReloj) {
-                        actualizarListaRegistros(registros, idNuevo);
-                    }
-
-                    const { inicio: ini, fin: fn } = obtenerSemanaActual();
+                // =========================================================
+                // CAPA 1: calcularEstadoCard()
+                // Lee datos, no toca el DOM ni toma decisiones visuales.
+                // =========================================================
+                function calcularEstadoCard() {
                     const hoy = obtenerFechaHoy();
+                    const { inicio: ini, fin: fn } = obtenerSemanaActual();
+                    const registros = D.registros();
+                    const horasDiarias = D.horasDiarias();
+                    const horasSemanales = D.horasSemanales();
+                    const diasHabiles = D.diasHabiles();
 
-                    // --- DETECCIÓN DE DÍAS HÁBILES (COMPATIBLE CON ARRAY v6.63) ---
-                    const diaObj = new Date();
-                    const diaSemanaHoy = diaObj.getDay(); // 0=Dom, 1=Lun...
-
-                    // Verificamos si es array (versiones nuevas) o número (fallback)
-                    let esDiaHabilHoy = true;
-                    if (Array.isArray(diasHabilesConfig)) {
-                        esDiaHabilHoy = diasHabilesConfig.includes(diaSemanaHoy);
+                    // --- Día hábil hoy (compatible array v6.63 y fallback numérico) ---
+                    const diaSemanaHoy = new Date().getDay();
+                    let esDiaHabil = true;
+                    if (Array.isArray(diasHabiles)) {
+                        esDiaHabil = diasHabiles.includes(diaSemanaHoy);
                     } else {
-                        if (diaSemanaHoy === 0) esDiaHabilHoy = (diasHabilesConfig === 7);
-                        else esDiaHabilHoy = (diaSemanaHoy <= diasHabilesConfig);
+                        esDiaHabil = diaSemanaHoy === 0 ? (diasHabiles === 7) : (diaSemanaHoy <= diasHabiles);
                     }
-                    const esDiaDeDescanso = !esDiaHabilHoy;
 
-                    // --- LÓGICA DE SEMANA ABIERTA/CERRADA  ---
-                    // Mapa para ordenar Lun(1) a Dom(7) y facilitar cálculo de "futuro"
+                    // --- Semana abierta ---
                     const mapDia = d => d === 0 ? 7 : d;
                     const hoyIndex = mapDia(diaSemanaHoy);
-
-                    // Detectar si quedan días laborales en el FUTURO (Mañana en adelante)
                     let quedanDiasFuturos = false;
-                    // Solo si es array iteramos (v6.63), sino usamos lógica simple
-                    if (Array.isArray(diasHabilesConfig)) {
+                    if (Array.isArray(diasHabiles)) {
                         for (let d = hoyIndex + 1; d <= 7; d++) {
-                            const diaReal = d === 7 ? 0 : d;
-                            if (diasHabilesConfig.includes(diaReal)) {
-                                quedanDiasFuturos = true;
-                                break;
-                            }
+                            if (diasHabiles.includes(d === 7 ? 0 : d)) { quedanDiasFuturos = true; break; }
                         }
                     } else {
-                        // Fallback simple
-                        quedanDiasFuturos = hoyIndex < diasHabilesConfig;
+                        quedanDiasFuturos = hoyIndex < diasHabiles;
                     }
+                    const regHoy = registros.find(r => r.fecha === hoy) ?? null;
+                    const semanaAbierta = quedanDiasFuturos || (esDiaHabil && !(regHoy && regHoy.salida));
 
-                    const registroHoy = registros.find(r => r.fecha === hoy);
-                    const hoyCerrado = registroHoy && registroHoy.salida;
-                    const semanaAbierta = quedanDiasFuturos || (esDiaHabilHoy && !hoyCerrado);
-
+                    // --- Buffer semanal ---
                     const bufferSemanal = D.calcularBufferSemanal(ini, hoy);
 
-                    const statsEl = $('stats-semana');
-                    const progressEl = $('progress-bar');
-                    const mensajeEl = $('stats-mensaje');
-                    const tituloEl = $('stats-titulo');
-                    const hintEl = $('toggle-hint');
-                    const bufferEl = $('stats-buffer');
+                    // --- Total semana ---
+                    const fechaLimite = hoy < fn ? hoy : fn;
+                    const registrosSemana = registros.filter(r => r.fecha >= ini && r.fecha <= fechaLimite);
+                    let totalSemana = 0;
+                    registrosSemana.forEach(r => {
+                        const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                        if (tipo && tipo.id === 'remoto') totalSemana += horasDiarias;
+                        else if (!tipo) totalSemana += r.total;
+                    });
 
-                    // --- MOSTRAR BUFFER (SOLO SI SEMANA ABIERTA) ---
-                    if (bufferEl) {
-                        bufferEl.innerHTML = '';
-                        // Solo mostrar buffer si hay horas configuradas, hay diferencia y la semana no terminó
-                        if (horasDiarias > 0 && Math.abs(bufferSemanal) > 0.01 && semanaAbierta) {
-                            const esPositivo = bufferSemanal > 0;
-                            const bufferColor = esPositivo ? 'var(--c-green)' : 'var(--c-red)';
-                            const bufferTextoHoras = horasATexto(Math.abs(bufferSemanal));
-                            const bufferLabel = esPositivo ? 'extras' : 'faltantes';
+                    // --- Objetivo ajustado ---
+                    const horasDescontar = D.calcularHorasFeriadoEnRango(ini, fn);
+                    const objetivoSemana = Math.max(0, horasSemanales - horasDescontar);
 
-                            // Crear punto como elemento DOM
-                            const punto = document.createElement('span');
-                            punto.style.display = 'inline-block';
-                            punto.style.width = '10px';
-                            punto.style.height = '10px';
-                            punto.style.borderRadius = '50%';
-                            punto.style.backgroundColor = bufferColor;
-                            punto.style.marginRight = '6px';
-
-                            const span = document.createElement('span');
-                            span.style.color = bufferColor;
-                            span.style.fontWeight = '500';
-                            span.textContent = `${bufferTextoHoras} ${bufferLabel} esta semana`;
-
-                            // Insertar punto + texto
-                            span.insertBefore(punto, span.firstChild);
-                            bufferEl.appendChild(span);
+                    // --- Todos los días laborables cubiertos por especiales ---
+                    let todosEspeciales = false;
+                    if (Array.isArray(diasHabiles) && diasHabiles.length > 0 && horasDiarias > 0) {
+                        const fechasLaborables = [];
+                        const [yI, mI, dI] = ini.split('-').map(Number);
+                        const [yF, mF, dF] = fn.split('-').map(Number);
+                        let cur = new Date(yI, mI - 1, dI);
+                        const fin = new Date(yF, mF - 1, dF);
+                        while (cur <= fin) {
+                            if (diasHabiles.includes(cur.getDay())) {
+                                const y = cur.getFullYear();
+                                const m = String(cur.getMonth() + 1).padStart(2, '0');
+                                const d = String(cur.getDate()).padStart(2, '0');
+                                fechasLaborables.push(`${y}-${m}-${d}`);
+                            }
+                            cur = new Date(cur);
+                            cur.setDate(cur.getDate() + 1);
+                        }
+                        if (fechasLaborables.length > 0) {
+                            const especiales = fechasLaborables.filter(fecha => {
+                                const r = registros.find(x => x.fecha === fecha);
+                                if (!r) return false;
+                                const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                                return tipo && tipo.id !== 'remoto';
+                            });
+                            todosEspeciales = (especiales.length === fechasLaborables.length);
                         }
                     }
 
-                    // =========================================================
-                    // VISTA SEMANAL
-                    // =========================================================
-                    if (vistaActual === 'semana') {
-                        tituloEl.innerHTML = `<svg class="icon"><use href="#icon-calendar-simple" /></svg> Esta Semana`;
+                    // --- Tipo especial hoy (FIX: solo si entrada === salida) ---
+                    const tipoEspecialHoy = (regHoy && regHoy.salida && regHoy.entrada === regHoy.salida)
+                        ? TiposRegistro.obtenerTipoPorCodigo(regHoy.entrada, regHoy.salida)
+                        : null;
 
-                        // Solo contar hasta HOY
-                        const fechaLimiteCalculo = hoy < fn ? hoy : fn;
-
-                        // Filtrar todos los registros de la semana hasta hoy
-                        const registrosSemana = registros.filter(r =>
-                            r.fecha >= ini && r.fecha <= fechaLimiteCalculo
-                        );
-
-                        // =========================================================
-                        // DETECCIÓN: ¿Todos los días laborables están ocupados?
-                        // =========================================================
-                        let todosLosDiasLaborablesTienenEspecial = false;
-
-                        if (Array.isArray(diasHabilesConfig) && diasHabilesConfig.length > 0 && horasDiarias > 0) {
-                            // Generar todas las fechas de días laborables de la semana actual
-                            const fechasLaborablesConfig = [];
-
-                            // Parsear fechas de inicio y fin de semana
-                            const [yIni, mIni, dIni] = ini.split('-').map(Number);
-                            const [yFin, mFin, dFin] = fn.split('-').map(Number);
-
-                            const inicioSemana = new Date(yIni, mIni - 1, dIni);
-                            const finSemana = new Date(yFin, mFin - 1, dFin);
-
-                            // Iterar cada día de la semana
-                            let fechaActual = new Date(inicioSemana);
-                            while (fechaActual <= finSemana) {
-                                const diaSemana = fechaActual.getDay();
-
-                                // Si este día está en la configuración de laborables
-                                if (diasHabilesConfig.includes(diaSemana)) {
-                                    const y = fechaActual.getFullYear();
-                                    const m = String(fechaActual.getMonth() + 1).padStart(2, '0');
-                                    const d = String(fechaActual.getDate()).padStart(2, '0');
-                                    const fechaStr = `${y}-${m}-${d}`;
-                                    fechasLaborablesConfig.push(fechaStr);
-                                }
-
-                                // Avanzar al siguiente día (crear nueva instancia)
-                                fechaActual = new Date(fechaActual);
-                                fechaActual.setDate(fechaActual.getDate() + 1);
-                            }
-
-                            // Verificar si TODOS los días laborables tienen registros especiales
-                            if (fechasLaborablesConfig.length > 0) {
-                                let contadorEspeciales = 0;
-
-                                fechasLaborablesConfig.forEach(fecha => {
-                                    const reg = registros.find(r => r.fecha === fecha);
-                                    if (reg) {
-                                        const tipo = TiposRegistro.obtenerTipoPorCodigo(reg.entrada, reg.salida);
-                                        // Es especial si tiene tipo Y no es remoto
-                                        if (tipo && tipo.id !== 'remoto') {
-                                            contadorEspeciales++;
-                                        }
-                                    }
-                                });
-
-                                // Solo si TODOS tienen especiales
-                                todosLosDiasLaborablesTienenEspecial = (contadorEspeciales === fechasLaborablesConfig.length);
-                            }
+                    // --- Tiempo transcurrido hoy ---
+                    let tiempoHoy = 0;
+                    if (regHoy && regHoy.entrada && !tipoEspecialHoy) {
+                        if (regHoy.salida) {
+                            tiempoHoy = regHoy.total;
+                        } else {
+                            const ahora = new Date();
+                            const horaActual = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+                            const t = D.calcularHoras(regHoy.entrada, horaActual, regHoy.tiempoFuera || null, null, true);
+                            tiempoHoy = t ? t.total : 0;
                         }
+                    }
 
-                        // Calcular total sumando:
-                        // 1. Horas reales de registros normales
-                        // 2. Objetivo diario por cada día remoto
-                        let tot = 0;
-                        registrosSemana.forEach(r => {
-                            const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                    return {
+                        hoy, ini, fn,
+                        registros, regHoy,
+                        horasDiarias, horasSemanales,
+                        diasHabiles, esDiaHabil,
+                        semanaAbierta, bufferSemanal,
+                        totalSemana, objetivoSemana,
+                        tipoEspecialHoy, tiempoHoy,
+                        todosEspeciales,
+                    };
+                }
 
-                            if (tipoEspecial && tipoEspecial.id === 'remoto') {
-                                // Si es remoto, sumar el objetivo diario
-                                tot += horasDiarias;
-                            } else if (!tipoEspecial) {
-                                // Si es un registro normal, sumar las horas reales
-                                tot += r.total;
-                            }
-                            // Los demás tipos especiales no suman
-                        });
+                // =========================================================
+                // CAPA 2A: derivarVistaSemana(est)
+                // Devuelve decisiones visuales para vista "semana". Sin DOM.
+                // =========================================================
+                function derivarVistaSemana(est) {
+                    const { totalSemana: tot, objetivoSemana, semanaAbierta, horasDiarias, todosEspeciales } = est;
 
-                        const horasDescontar = D.calcularHorasFeriadoEnRango(ini, fn);
-                        const objetivoAjustado = Math.max(0, horasSemanales - horasDescontar);
-                        const prog = objetivoAjustado > 0 ? Math.min((tot / objetivoAjustado) * 100, 100) : 100;
+                    const prog = objetivoSemana > 0 ? Math.min((tot / objetivoSemana) * 100, 100) : 100;
 
-                        if (statsEl) {
-                            // Si todos los días laborables tienen registros especiales, mostrar mensaje alternativo
-                            if (todosLosDiasLaborablesTienenEspecial) {
-                                statsEl.textContent = "🌞";
+                    let colorBarra, colorBorde, estadoFondo, mensaje, mostrarMensaje;
 
-                            } else {
-                                statsEl.textContent = horasATexto(tot);
-                            }
-                        }
-
-                        if (progressEl) {
-                            progressEl.style.width = prog + '%';
-
-                            let colorBarra = 'blue'; // Default para semana en curso
-
-                            if (horasDiarias === 0) {
-                                // Sin objetivo configurado
-                                colorBarra = 'blue';
-                            } else if (tot >= objetivoAjustado) {
-                                // Objetivo cumplido
-                                colorBarra = 'green';
-                            } else if (semanaAbierta) {
-                                // Semana aún en curso (quedan días por delante)
-                                colorBarra = 'blue';
-                            } else {
-                                // Semana cerrada y NO se cumplió el objetivo
-                                colorBarra = 'red';
-                            }
-
-                            setProgressBarColor(progressEl, colorBarra);
-                        }
-
-                        const card = document.getElementById('stats-card');
-                        if (card) {
-                            // Limpiar clases previas
-                            card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-orange', 'border-transparent');
-
-                            if (horasDiarias === 0) {
-                                // Sin objetivo configurado
-                                card.classList.add('border-transparent');
-                                actualizarFondoCard('esperando');
-                            } else if (tot >= objetivoAjustado) {
-                                // Objetivo cumplido
-                                card.classList.add('border-green');
-                                actualizarFondoCard('finalizado_ok');
-                            } else if (semanaAbierta) {
-                                // Semana aún abierta (quedan días laborales por delante)
-                                card.classList.add('border-blue');
-                                actualizarFondoCard('en_curso');
-                            } else {
-                                // Semana cerrada y NO se cumplió el objetivo
-                                card.classList.add('border-red');
-                                actualizarFondoCard('finalizado_fail');
-                            }
-                        }
-
-                        if (mensajeEl) {
-                            // Si todos los días laborables están ocupados por registros especiales
-                            if (todosLosDiasLaborablesTienenEspecial) {
-                                mensajeEl.textContent = 'Semana sin días laborables';
-                                mensajeEl.style.display = 'block';
-                            } else if (horasDiarias === 0) {
-                                mensajeEl.textContent = `Total registrado: ${horasATexto(tot)}`;
-                                mensajeEl.style.display = 'none';
-                            } else {
-                                mensajeEl.style.display = 'block';
-                                if (objetivoAjustado === 0) {
-                                    mensajeEl.textContent = `${horasATexto(tot)} (Sin objetivo)`;
-                                } else {
-                                    if (tot >= objetivoAjustado) {
-                                        mensajeEl.textContent = `Hiciste ${horasATexto(tot - objetivoAjustado)} de más`;
-                                    } else {
-                                        const verbo = semanaAbierta ? "Faltan" : "Faltaron";
-                                        mensajeEl.textContent = `${verbo} ${horasATexto(objetivoAjustado - tot)}`;
-                                    }
-                                }
-                            }
-                        }
-                        if (hintEl) hintEl.textContent = 'Toca para ver Hoy';
-
-                        // =========================================================
-                        // VISTA DIARIA (HOY)
-                        // =========================================================
+                    if (horasDiarias === 0) {
+                        colorBarra = 'blue'; colorBorde = 'transparent';
+                        estadoFondo = 'esperando';
+                        mensaje = `Total registrado: ${horasATexto(tot)}`;
+                        mostrarMensaje = false;
+                    } else if (todosEspeciales) {
+                        colorBarra = 'blue'; colorBorde = 'transparent';
+                        estadoFondo = 'esperando';
+                        mensaje = 'Semana sin días laborables';
+                        mostrarMensaje = true;
+                    } else if (tot >= objetivoSemana) {
+                        colorBarra = 'green'; colorBorde = 'green';
+                        estadoFondo = 'finalizado_ok';
+                        mensaje = `Hiciste ${horasATexto(tot - objetivoSemana)} de más`;
+                        mostrarMensaje = true;
+                    } else if (semanaAbierta) {
+                        colorBarra = 'blue'; colorBorde = 'blue';
+                        estadoFondo = 'en_curso';
+                        mensaje = objetivoSemana === 0
+                            ? `${horasATexto(tot)} (Sin objetivo)`
+                            : `Faltan ${horasATexto(objetivoSemana - tot)}`;
+                        mostrarMensaje = true;
                     } else {
-                        tituloEl.innerHTML = `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`;
-                        const regHoy = registros.find(r => r.fecha === hoy);
-                        if (!regHoy || !regHoy.entrada) actualizarFondoCard('esperando');
-                        let tiempoTranscurrido = 0;
-                        let objetivoDiario = horasDiarias;
+                        colorBarra = 'red'; colorBorde = 'red';
+                        estadoFondo = 'finalizado_fail';
+                        mensaje = `Faltaron ${horasATexto(objetivoSemana - tot)}`;
+                        mostrarMensaje = true;
+                    }
 
-                        if (regHoy && regHoy.entrada) {
-                            //  FIX: Solo detectar tipo especial si entrada Y salida existen y coinciden
-                            const tipoEspecialHoy = (regHoy.salida && regHoy.entrada === regHoy.salida)
-                                ? TiposRegistro.obtenerTipoPorCodigo(regHoy.entrada, regHoy.salida)
-                                : null;
+                    return {
+                        titulo: `<svg class="icon"><use href="#icon-calendar-simple" /></svg> Esta Semana`,
+                        stats: todosEspeciales ? '🌞' : horasATexto(tot),
+                        mensaje, mostrarMensaje,
+                        colorBarra, anchoBarra: prog,
+                        colorBorde, estadoFondo,
+                        hint: 'Toca para ver Hoy',
+                        hintEsHTML: false,
+                    };
+                }
 
-                            if (tipoEspecialHoy) {
-                                // Día especial (feriado, licencia, etc.)
-                                if (statsEl) statsEl.textContent = `${tipoEspecialHoy.emoji} ${tipoEspecialHoy.label}`;
-                                if (progressEl) {
-                                    progressEl.style.width = '100%';
-                                    setProgressBarColor(progressEl, tipoEspecialHoy.color);
-                                }
-                                if (mensajeEl) {
-                                    mensajeEl.textContent = `¡${tipoEspecialHoy.descripcion}!`;
-                                    mensajeEl.style.display = 'block';
-                                }
+                // =========================================================
+                // CAPA 2B: derivarVistaHoy(est)
+                // Devuelve decisiones visuales para vista "hoy". Sin DOM.
+                // =========================================================
+                function derivarVistaHoy(est) {
+                    const { regHoy, tiempoHoy, horasDiarias, esDiaHabil, tipoEspecialHoy, bufferSemanal, diasHabiles } = est;
+                    const objetivoDiario = horasDiarias;
 
-                                const card = document.getElementById('stats-card');
-                                if (card) {
-                                    card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-gold', 'border-orange', 'border-transparent');
-                                    card.classList.add(`border-${tipoEspecialHoy.color}`);
-                                }
-                                actualizarFondoCard('especial', tipoEspecialHoy.color);
+                    // SIN REGISTRO
+                    if (!regHoy || !regHoy.entrada) {
+                        return {
+                            titulo: `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`,
+                            stats: esDiaHabil ? '🎒' : '🌞',
+                            mensaje: esDiaHabil
+                                ? (horasDiarias === 0 ? '' : 'Esperando registro...')
+                                : (horasDiarias === 0 ? '' : 'Día libre'),
+                            mostrarMensaje: horasDiarias > 0,
+                            colorBarra: 'blue', anchoBarra: 0,
+                            colorBorde: 'transparent', estadoFondo: 'esperando',
+                            hint: 'Toca para ver la Semana', hintEsHTML: false,
+                        };
+                    }
+
+                    // DÍA ESPECIAL
+                    if (tipoEspecialHoy) {
+                        return {
+                            titulo: `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`,
+                            stats: `${tipoEspecialHoy.emoji} ${tipoEspecialHoy.label}`,
+                            mensaje: `¡${tipoEspecialHoy.descripcion}!`,
+                            mostrarMensaje: true,
+                            colorBarra: tipoEspecialHoy.color, anchoBarra: 100,
+                            colorBorde: tipoEspecialHoy.color,
+                            estadoFondo: 'especial', estadoFondoColor: tipoEspecialHoy.color,
+                            hint: 'Toca para ver la Semana', hintEsHTML: false,
+                        };
+                    }
+
+                    // DÍA NORMAL
+                    const dayClosed = !!regHoy.salida;
+                    const prog = objetivoDiario > 0 ? Math.min((tiempoHoy / objetivoDiario) * 100, 100) : 100;
+                    const cumplido = objetivoDiario === 0 || tiempoHoy >= objetivoDiario;
+
+                    let colorBarra, colorBorde, estadoFondo, mensaje, mostrarMensaje;
+
+                    if (objetivoDiario === 0) {
+                        colorBarra = 'blue'; colorBorde = 'transparent';
+                        estadoFondo = dayClosed ? 'finalizado_ok' : 'en_curso';
+                        mensaje = ''; mostrarMensaje = false;
+                    } else if (dayClosed) {
+                        colorBarra = cumplido ? 'green' : 'red';
+                        colorBorde = cumplido ? 'green' : 'red';
+                        estadoFondo = cumplido ? 'finalizado_ok' : 'finalizado_fail';
+                        const dif = tiempoHoy - objetivoDiario;
+                        mensaje = dif >= 0 ? `${horasATexto(dif)} extras` : `Faltaron ${horasATexto(Math.abs(dif))}`;
+                        mostrarMensaje = true;
+                    } else {
+                        // Día abierto con objetivo
+                        colorBarra = cumplido ? 'green' : 'blue';
+                        colorBorde = cumplido ? 'green' : 'blue';
+                        estadoFondo = 'en_curso';
+                        mostrarMensaje = true;
+                        if (cumplido) {
+                            const extra = tiempoHoy - objetivoDiario;
+                            if (bufferSemanal < 0 && Math.abs(bufferSemanal) > extra) {
+                                mensaje = 'Te podes ir, pero debés tiempo';
                             } else {
-                                // --- DÍA NORMAL CON REGISTRO ---
-                                if (regHoy.salida) {
-                                    tiempoTranscurrido = regHoy.total;
-                                } else {
-                                    const ahora = new Date();
-                                    const horaActual = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
-                                    const t = D.calcularHoras(regHoy.entrada, horaActual, regHoy.tiempoFuera || null, null, true);
-                                    tiempoTranscurrido = t ? t.total : 0;
-                                    actualizarFondoCard('en_curso');
-                                }
-
-                                const prog = objetivoDiario > 0 ? Math.min((tiempoTranscurrido / objetivoDiario) * 100, 100) : 100;
-                                if (regHoy.salida) {
-                                    const cumplido = objetivoDiario === 0 || tiempoTranscurrido >= objetivoDiario;
-                                    actualizarFondoCard(cumplido ? 'finalizado_ok' : 'finalizado_fail');
-                                }
-
-                                if (statsEl) statsEl.textContent = horasATexto(tiempoTranscurrido);
-                                if (progressEl) {
-                                    progressEl.style.width = prog + '%';
-                                }
-
-                                if (regHoy.salida) {
-                                    // -------------------------------------------------
-                                    // CASO 1: DÍA CERRADO (Ya marcaste salida)
-                                    // -------------------------------------------------
-                                    if (objetivoDiario === 0) {
-                                        setProgressBarColor(progressEl, 'blue');
-                                        if (mensajeEl) mensajeEl.style.display = 'none';
-
-                                        //  Borde transparente
-                                        const card = document.getElementById('stats-card');
-                                        if (card) {
-                                            card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-orange');
-                                            card.classList.add('border-transparent');
-                                        }
-                                    } else {
-                                        if (mensajeEl) mensajeEl.style.display = 'block';
-                                        setProgressBarColor(progressEl, tiempoTranscurrido >= objetivoDiario ? 'green' : 'red');
-
-                                        // Borde verde o rojo
-                                        const card = document.getElementById('stats-card');
-                                        if (card) {
-                                            card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-orange', 'border-transparent');
-                                            card.classList.add(tiempoTranscurrido >= objetivoDiario ? 'border-green' : 'border-red');
-                                        }
-
-                                        const dif = tiempoTranscurrido - objetivoDiario;
-                                        if (mensajeEl) mensajeEl.textContent = dif >= 0 ? `${horasATexto(dif)} extras` : `Faltaron ${horasATexto(Math.abs(dif))}`;
-                                    }
-                                } else {
-                                    // -------------------------------------------------
-                                    // CASO 2: DÍA ABIERTO (Estás trabajando ahora)
-                                    // -------------------------------------------------
-                                    if (objetivoDiario === 0) {
-                                        setProgressBarColor(progressEl, 'blue');
-                                        if (mensajeEl) mensajeEl.style.display = 'none';
-
-                                        // Borde transparente
-                                        const card = document.getElementById('stats-card');
-                                        if (card) {
-                                            card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-orange');
-                                            card.classList.add('border-transparent');
-                                        }
-                                    } else {
-                                        if (mensajeEl) mensajeEl.style.display = 'block';
-
-                                        // 1. ¿Objetivo Cumplido HOY?
-                                        const objetivoCumplido = tiempoTranscurrido >= objetivoDiario;
-
-                                        // Barra: Verde si cumpliste, Azul si falta
-                                        setProgressBarColor(progressEl, objetivoCumplido ? 'green' : 'blue');
-
-                                        // Borde verde o azul
-                                        const card = document.getElementById('stats-card');
-                                        if (card) {
-                                            card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-orange', 'border-transparent');
-                                            card.classList.add(objetivoCumplido ? 'border-green' : 'border-blue');
-                                        }
-
-                                        const faltante = Math.max(0, objetivoDiario - tiempoTranscurrido);
-
-                                        if (mensajeEl) {
-                                            if (objetivoCumplido) {
-                                                // --- A) YA CUMPLISTE LAS HORAS DE HOY ---
-                                                const extra = tiempoTranscurrido - objetivoDiario;
-
-                                                if (bufferSemanal < 0 && Math.abs(bufferSemanal) > extra) {
-                                                    mensajeEl.textContent = `Te podes ir, pero debés tiempo`;
-                                                } else {
-                                                    if (extra > 0) {
-                                                        mensajeEl.textContent = `Te podes ir (+${horasATexto(extra)})`;
-                                                    } else {
-                                                        mensajeEl.textContent = `Te podes ir`;
-                                                    }
-                                                }
-                                            } else {
-                                                // --- B) FALTA PARA EL OBJETIVO DE HOY ---
-                                                const faltanteTexto = `Faltan ${horasATexto(faltante)}`;
-
-                                                if (bufferSemanal >= faltante) {
-                                                    mensajeEl.textContent = `${faltanteTexto}, pero te podés ir`;
-                                                } else {
-                                                    mensajeEl.textContent = faltanteTexto;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                mensaje = extra > 0 ? `Te podes ir (+${horasATexto(extra)})` : 'Te podes ir';
                             }
                         } else {
-                            // SIN REGISTRO HOY
-                            if (progressEl) {
-                                progressEl.style.width = '0%';
-                                setProgressBarColor(progressEl, 'blue');
-                            }
-
-                            //  Borde transparente si no hay registro
-                            const card = document.getElementById('stats-card');
-                            if (card) {
-                                card.classList.remove('border-blue', 'border-green', 'border-red', 'border-purple', 'border-orange');
-                                card.classList.add('border-transparent');
-                            }
-
-                            if (esDiaDeDescanso) {
-                                if (statsEl) statsEl.textContent = "🌞";
-                                if (mensajeEl) {
-                                    // Solo ocultar si NO hay objetivo de horas
-                                    if (horasDiarias === 0) {
-                                        mensajeEl.style.display = 'none';
-                                    } else {
-                                        mensajeEl.textContent = 'Día libre';
-                                        mensajeEl.style.display = 'block';
-                                    }
-                                }
-                            } else {
-                                if (statsEl) statsEl.textContent = "🎒";
-                                if (mensajeEl) {
-                                    if (horasDiarias === 0) mensajeEl.style.display = 'none';
-                                    else { mensajeEl.textContent = 'Esperando registro...'; mensajeEl.style.display = 'block'; }
-                                }
-                            }
-                        }
-
-                        // --- LÓGICA DE SALIDA ESTIMADA ---
-                        if (hintEl) {
-                            let mostrarEstimacion = false;
-                            let horaSalida = '';
-                            let minutosTotal = 0;
-
-                            if (regHoy && regHoy.entrada && !regHoy.salida && objetivoDiario > 0) {
-                                const esEspecial = TiposRegistro.esRegistroEspecial(regHoy.entrada, regHoy.salida);
-
-                                if (!esEspecial) {
-                                    const [hE, mE] = regHoy.entrada.split(':').map(Number);
-                                    minutosTotal = (hE * 60) + mE + (objetivoDiario * 60);
-
-                                    if (regHoy.tiempoFuera && !D.getIgnorarTiempoFuera()) {
-                                        const [hF, mF] = regHoy.tiempoFuera.split(':').map(Number);
-                                        minutosTotal += (hF * 60) + mF;
-                                    }
-
-                                    const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-                                    const storageKey = `breakStartTime_${perfilId}`;
-                                    const inicioBreak = localStorage.getItem(storageKey);
-
-                                    if (inicioBreak && !D.getIgnorarTiempoFuera()) {
-                                        const ahora = Date.now();
-                                        const minutosEnCurso = Math.floor((ahora - parseInt(inicioBreak)) / 60000);
-                                        if (minutosEnCurso > 0) minutosTotal += minutosEnCurso;
-                                    }
-
-                                    let hS = Math.floor(minutosTotal / 60);
-                                    const mS = Math.round(minutosTotal % 60);
-                                    if (hS >= 24) hS = hS % 24;
-
-                                    horaSalida = `${String(hS).padStart(2, '0')}:${String(mS).padStart(2, '0')}`;
-                                    mostrarEstimacion = true;
-                                }
-                            }
-
-                            if (mostrarEstimacion) {
-                                // ===================================================
-                                //         VERIFICAR SI HOY ES DÍA LABORAL
-                                // ===================================================
-                                const diaActual = new Date().getDay(); // 0=Domingo, 1=Lunes...
-                                const esLaborable = diasHabilesConfig.includes(diaActual);
-
-                                // Solo mostrar buffer si:
-                                // 1) Hay diferencia significativa
-                                // 2) El día actual ES laboral
-                                const mostrarConBuffer = Math.abs(bufferSemanal) > 0.01 && esLaborable;
-
-                                let textoFinal = `Salida estimada: <strong>${horaSalida}</strong>`;
-
-                                if (mostrarConBuffer) {
-                                    // Calcular salida considerando el buffer
-                                    const minutosBuffer = bufferSemanal * 60;
-                                    const minutosConBuffer = minutosTotal - minutosBuffer;
-
-                                    let hSB = Math.floor(minutosConBuffer / 60);
-                                    const mSB = Math.round(minutosConBuffer % 60);
-                                    if (hSB >= 24) hSB = hSB % 24;
-
-                                    const horaSalidaBuffer = `${String(hSB).padStart(2, '0')}:${String(mSB).padStart(2, '0')}`;
-
-                                    // Color según el buffer
-                                    const colorBuffer = bufferSemanal > 0 ? 'var(--c-green)' :
-                                        bufferSemanal < 0 ? 'var(--c-red)' :
-                                            'var(--text-main)';
-
-                                    textoFinal = `Salida estimada: <strong>${horaSalida}</strong> <span style="color: ${colorBuffer};">(<strong>${horaSalidaBuffer}</strong>)</span>`;
-                                }
-
-                                hintEl.innerHTML = textoFinal;
-                            } else {
-                                hintEl.textContent = 'Toca para ver la Semana';
-                            }
+                            const faltante = objetivoDiario - tiempoHoy;
+                            const faltanteTexto = `Faltan ${horasATexto(faltante)}`;
+                            mensaje = bufferSemanal >= faltante ? `${faltanteTexto}, pero te podés ir` : faltanteTexto;
                         }
                     }
 
+                    // --- Hint: salida estimada ---
+                    let hint = 'Toca para ver la Semana';
+                    let hintEsHTML = false;
+                    if (regHoy.entrada && !dayClosed && objetivoDiario > 0 && !TiposRegistro.esRegistroEspecial(regHoy.entrada, regHoy.salida)) {
+                        const [hE, mE] = regHoy.entrada.split(':').map(Number);
+                        let minutosTotal = (hE * 60) + mE + (objetivoDiario * 60);
+                        if (regHoy.tiempoFuera && !D.getIgnorarTiempoFuera()) {
+                            const [hF, mF] = regHoy.tiempoFuera.split(':').map(Number);
+                            minutosTotal += (hF * 60) + mF;
+                        }
+                        const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
+                        const inicioBreak = localStorage.getItem(`breakStartTime_${perfilId}`);
+                        if (inicioBreak && !D.getIgnorarTiempoFuera()) {
+                            const mins = Math.floor((Date.now() - parseInt(inicioBreak)) / 60000);
+                            if (mins > 0) minutosTotal += mins;
+                        }
+                        let hS = Math.floor(minutosTotal / 60) % 24;
+                        const mS = Math.round(minutosTotal % 60);
+                        const horaSalida = `${String(hS).padStart(2, '0')}:${String(mS).padStart(2, '0')}`;
+
+                        const esLaborable = Array.isArray(diasHabiles) && diasHabiles.includes(new Date().getDay());
+                        const mostrarBuffer = Math.abs(bufferSemanal) > 0.01 && esLaborable;
+
+                        if (mostrarBuffer) {
+                            const minutosConBuffer = minutosTotal - (bufferSemanal * 60);
+                            let hSB = Math.floor(minutosConBuffer / 60) % 24;
+                            const mSB = Math.round(minutosConBuffer % 60);
+                            const horaBuf = `${String(hSB).padStart(2, '0')}:${String(mSB).padStart(2, '0')}`;
+                            const colorBuffer = bufferSemanal > 0 ? 'var(--c-green)' : bufferSemanal < 0 ? 'var(--c-red)' : 'var(--text-main)';
+                            hint = `Salida estimada: <strong>${horaSalida}</strong> <span style="color: ${colorBuffer};">(<strong>${horaBuf}</strong>)</span>`;
+                        } else {
+                            hint = `Salida estimada: <strong>${horaSalida}</strong>`;
+                        }
+                        hintEsHTML = true;
+                    }
+
+                    return {
+                        titulo: `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`,
+                        stats: horasATexto(tiempoHoy),
+                        mensaje, mostrarMensaje,
+                        colorBarra, anchoBarra: prog,
+                        colorBorde, estadoFondo, estadoFondoColor: null,
+                        hint, hintEsHTML,
+                    };
+                }
+
+                // =========================================================
+                // CAPA 3: Renderers — cada uno escribe solo su parte del DOM
+                // =========================================================
+                const _COLORES_BORDE = ['blue', 'green', 'red', 'purple', 'orange', 'gold', 'transparent'];
+
+                function _renderTitulo(vista) {
+                    const el = $('stats-titulo');
+                    if (el) el.innerHTML = vista.titulo;
+                }
+
+                // --- Ciclo stats / entrada / salida ---
+                let _cicloStatsInterval = null;
+                let _cicloStatsValorHoras = '';
+                let _cicloStatsEntrada = '';
+                let _cicloStatsSalida = '';
+                let _cicloStatsPhase = 0; // 0 = horas, 1 = entrada, 2 = salida (si existe)
+
+                function _cicloStatsGetTexto(phase) {
+                    if (phase === 1) return `Entrada ${_cicloStatsEntrada}`;
+                    if (phase === 2) return `Salida ${_cicloStatsSalida}`;
+                    return _cicloStatsValorHoras;
+                }
+
+                function _cicloStatsNextPhase() {
+                    const maxPhase = _cicloStatsSalida ? 2 : 1;
+                    return _cicloStatsPhase >= maxPhase ? 0 : _cicloStatsPhase + 1;
+                }
+
+                function _iniciarCicloStats() {
+                    _detenerCicloStats();
+                    if (!_cicloStatsEntrada) return; // sin entrada no hay ciclo
+
+                    _cicloStatsInterval = setInterval(() => {
+                        const el = $('stats-semana');
+                        if (!el) { _detenerCicloStats(); return; }
+
+                        // Fade out
+                        el.classList.add('ciclo-fade-out');
+
+                        setTimeout(() => {
+                            _cicloStatsPhase = _cicloStatsNextPhase();
+
+                            el.classList.remove('ciclo-fade-out');
+                            el.classList.add('ciclo-fade-in');
+                            el.textContent = _cicloStatsGetTexto(_cicloStatsPhase);
+
+                            // Reflow para activar la transición de fade-in
+                            void el.offsetWidth;
+                            el.classList.remove('ciclo-fade-in');
+                        }, 350);
+                    }, 5000);
+                }
+
+                function _detenerCicloStats() {
+                    if (_cicloStatsInterval) {
+                        clearInterval(_cicloStatsInterval);
+                        _cicloStatsInterval = null;
+                    }
+                    _cicloStatsPhase = 0;
+                }
+
+                function _renderStats(vista) {
+                    const el = $('stats-semana');
+                    if (!el) return;
+
+                    // Obtener entrada y salida del día de hoy si estamos en vista diaria
+                    const esDiaria = D.vistaActual() !== 'semana';
+                    const hoy = new Date().toISOString().split('T')[0];
+                    const regHoy = D.registros().find(r => r.fecha === hoy) ?? null;
+                    const esEspecial = regHoy && TiposRegistro.esRegistroEspecial(regHoy.entrada, regHoy.salida);
+                    const entradaHoy = (esDiaria && regHoy && regHoy.entrada && !esEspecial) ? regHoy.entrada : '';
+                    const salidaHoy  = (esDiaria && regHoy && regHoy.salida  && !esEspecial) ? regHoy.salida  : '';
+
+                    const mismasHoras   = _cicloStatsValorHoras === vista.stats;
+                    const mismaEntrada  = _cicloStatsEntrada === entradaHoy;
+                    const mismaSalida   = _cicloStatsSalida  === salidaHoy;
+
+                    _cicloStatsValorHoras = vista.stats;
+                    _cicloStatsEntrada    = entradaHoy;
+                    _cicloStatsSalida     = salidaHoy;
+
+                    // Siempre mostrar las horas como posición inicial
+                    _cicloStatsPhase = 0;
+                    el.textContent = vista.stats;
+
+                    // Reiniciar ciclo si cambió algo o no está corriendo
+                    if (!mismasHoras || !mismaEntrada || !mismaSalida || !_cicloStatsInterval) {
+                        _iniciarCicloStats();
+                    }
+                }
+
+                function _renderBarra(vista) {
+                    const el = $('progress-bar');
+                    if (!el) return;
+                    el.style.width = `${vista.anchoBarra}%`;
+                    setProgressBarColor(el, vista.colorBarra);
+                }
+
+                function _renderMensaje(vista) {
+                    const el = $('stats-mensaje');
+                    if (!el) return;
+                    el.textContent = vista.mensaje;
+                    el.style.display = vista.mostrarMensaje ? 'block' : 'none';
+                }
+
+                function _renderCard(vista) {
+                    const card = $('stats-card');
+                    if (!card) return;
+                    card.classList.remove(..._COLORES_BORDE.map(c => `border-${c}`));
+                    card.classList.add(`border-${vista.colorBorde}`);
+                    actualizarFondoCard(vista.estadoFondo, vista.estadoFondoColor ?? null);
+                }
+
+                function _renderHint(vista) {
+                    const el = $('toggle-hint');
+                    if (!el) return;
+                    if (vista.hintEsHTML) el.innerHTML = vista.hint;
+                    else el.textContent = vista.hint;
+                }
+
+                function _renderBuffer(est) {
+                    const el = $('stats-buffer');
+                    if (!el) return;
+                    el.innerHTML = '';
+                    const { bufferSemanal, horasDiarias, semanaAbierta } = est;
+                    if (horasDiarias > 0 && Math.abs(bufferSemanal) > 0.01 && semanaAbierta) {
+                        const esPositivo = bufferSemanal > 0;
+                        const color = esPositivo ? 'var(--c-green)' : 'var(--c-red)';
+                        const punto = document.createElement('span');
+                        punto.style.cssText = `display:inline-block;width:10px;height:10px;border-radius:50%;background-color:${color};margin-right:6px;`;
+                        const span = document.createElement('span');
+                        span.style.color = color;
+                        span.style.fontWeight = '500';
+                        span.textContent = `${horasATexto(Math.abs(bufferSemanal))} ${esPositivo ? 'extras' : 'faltantes'} esta semana`;
+                        span.insertBefore(punto, span.firstChild);
+                        el.appendChild(span);
+                    }
+                }
+
+                function _renderSelectorStats() {
+                    const anioEl = $('select-anio-stats');
+                    const mesEl = $('select-mes-stats');
+                    const semEl = $('select-semana-stats');
+                    const labelEl = $('label-periodo-toggle');
                     if (modoEstadisticas === 'anual') {
-                        const selectAnioEl = $('select-anio-stats');
-                        const selectMesEl = $('select-mes-stats');
-                        const selectSemEl = $('select-semana-stats');
-                        if (selectAnioEl) selectAnioEl.style.display = '';
-                        if (selectMesEl) selectMesEl.style.display = 'none';
-                        if (selectSemEl) selectSemEl.style.display = 'none';
-                        const labelEl = $('label-periodo-toggle');
+                        if (anioEl) anioEl.style.display = '';
+                        if (mesEl) mesEl.style.display = 'none';
+                        if (semEl) semEl.style.display = 'none';
                         if (labelEl) labelEl.textContent = 'Anual';
                         poblarSelectorAnios();
                     } else if (modoEstadisticas === 'semanal') {
-                        const selectAnioEl = $('select-anio-stats');
-                        const selectMesEl = $('select-mes-stats');
-                        const selectSemEl = $('select-semana-stats');
-                        if (selectAnioEl) selectAnioEl.style.display = 'none';
-                        if (selectMesEl) selectMesEl.style.display = 'none';
-                        if (selectSemEl) selectSemEl.style.display = '';
-                        const labelEl = $('label-periodo-toggle');
+                        if (anioEl) anioEl.style.display = 'none';
+                        if (mesEl) mesEl.style.display = 'none';
+                        if (semEl) semEl.style.display = '';
                         if (labelEl) labelEl.textContent = 'Semanal';
                         poblarSelectorSemanas();
-                        actualizarEstadisticasSemana($('select-semana-stats')?.value);
+                        actualizarEstadisticasSemana(semEl?.value);
                     } else {
-                        // --- NUEVO MANEJO EXPLICITO PARA MENSUAL ---
-                        const selectAnioEl = $('select-anio-stats');
-                        const selectMesEl = $('select-mes-stats');
-                        const selectSemEl = $('select-semana-stats');
-                        if (selectAnioEl) selectAnioEl.style.display = 'none';
-                        if (selectMesEl) selectMesEl.style.display = '';
-                        if (selectSemEl) selectSemEl.style.display = 'none';
-                        const labelEl = $('label-periodo-toggle');
+                        if (anioEl) anioEl.style.display = 'none';
+                        if (mesEl) mesEl.style.display = '';
+                        if (semEl) semEl.style.display = 'none';
                         if (labelEl) labelEl.textContent = 'Mensual';
                         poblarSelectorMeses();
                     }
-                    actualizarEstadoBotonTimerMain();
-                    // Actualizar calendario si está abierto
-                    if (_vistaHistoricoCalendario) {
-                        _renderizarCalendario(idNuevo);
+                }
+
+                // =========================================================
+                // actualizarUI — orquestador
+                // =========================================================
+                function actualizarUI(idNuevo = null, soloReloj = false) {
+                    if (!soloReloj) {
+                        actualizarListaRegistros(D.registros(), idNuevo);
                     }
+
+                    const est = calcularEstadoCard();
+                    const vista = D.vistaActual() === 'semana'
+                        ? derivarVistaSemana(est)
+                        : derivarVistaHoy(est);
+
+                    _renderTitulo(vista);
+                    _renderStats(vista);
+                    _renderBarra(vista);
+                    _renderMensaje(vista);
+                    _renderCard(vista);
+                    _renderHint(vista);
+                    _renderBuffer(est);
+                    _renderSelectorStats();
+
+                    actualizarEstadoBotonTimerMain();
+                    if (_vistaHistoricoCalendario) _renderizarCalendario(idNuevo);
                 }
 
                 function alternarTema() {
@@ -9123,26 +9051,10 @@ Generado por Sistema Lushibosca
                     }
 
                     try {
-                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-
-                        // Nombre del archivo
-                        let nombrePerfil = 'Backup';
-                        if (window.PerfilManager) {
-                            nombrePerfil = window.PerfilManager.obtenerDatosPerfil().nombre;
-                        }
-                        const nombreSafe = nombrePerfil.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ'\-_ ]/g, '').trim().replace(/\s+/g, '_');
+                        const nombreSafe = obtenerNombrePerfilSafe();
                         const fechaHoy = `${año}-${mes}-${dia}`;
-
                         const sufijo = esMes ? `_${desde}` : `_${desde}_${hasta}`;
-                        a.download = `Horarios_${nombreSafe}${sufijo}_${fechaHoy}.json`;
-
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
+                        descargarJSON(data, `Horarios_${nombreSafe}${sufijo}_${fechaHoy}.json`);
 
                         const mensaje = esMes
                             ? `Exportados ${registrosFiltrados.length} registros del mes`
@@ -9546,7 +9458,7 @@ Generado por Sistema Lushibosca
                         if (_timeoutLimite) { clearTimeout(_timeoutLimite); _timeoutLimite = null; }
                         if (_intervaloLimite) { clearInterval(_intervaloLimite); _intervaloLimite = null; }
                     }
-                    
+
 
                     async function gistSubir() {
                         _gistGuardarCredencialesSiModalAbierto();
@@ -9610,32 +9522,11 @@ Generado por Sistema Lushibosca
                                 mostrarToast(`Gist de versión más nueva (v${data.version}). Algunos datos pueden no importarse correctamente.`, 'warning');
                             }
 
-                            // Filtrar, normalizar y recalcular registros (igual que importarDatos)
-                            const validarHora = (h) => h && S.REGEX_PATTERNS.HORA.test(h) ? S.sanitizeString(h, 5) : null;
-                            const registrosNormalizados = data.registros
-                                .filter(r => S.validarRegistroSeguro(r))
-                                .map(r => ({
-                                    id: (r.id && S.REGEX_PATTERNS.ID.test(r.id)) ? r.id : S.generarIDSeguro(),
-                                    fecha: S.sanitizeString(r.fecha, 10),
-                                    entrada: validarHora(r.entrada),
-                                    salida: validarHora(r.salida),
-                                    tiempoFuera: validarHora(r.tiempoFuera),
-                                    horas: Math.max(0, Math.min(24, parseFloat(r.horas) || 0)),
-                                    minutos: Math.max(0, Math.min(59, parseFloat(r.minutos) || 0)),
-                                    total: Math.max(0, Math.min(24, parseFloat(r.total) || 0)),
-                                    credito: validarHora(r.credito),
-                                }));
+                            // Filtrar, normalizar y recalcular registros (mismo helper que importarDatos)
+                            const registrosNormalizados = D.normalizarRegistrosImportados(data.registros, D.calcularHoras);
 
                             if (registrosNormalizados.length === 0) throw new Error('No se encontraron registros válidos');
                             if (registrosNormalizados.length > S.SECURITY_LIMITS.MAX_REGISTROS) throw new Error(`Máximo ${S.SECURITY_LIMITS.MAX_REGISTROS} registros permitidos`);
-
-                            // Recalcular horas para consistencia
-                            registrosNormalizados.forEach(r => {
-                                const t = D.calcularHoras(r.entrada, r.salida, r.tiempoFuera || null, r.credito || null);
-                                r.horas = t?.horas || 0;
-                                r.minutos = t?.minutos || 0;
-                                r.total = t?.total || 0;
-                            });
 
                             // Análisis: comparar Gist vs local
                             const fechasLocales = new Set(D.registros().map(r => r.fecha));
@@ -9715,7 +9606,8 @@ Generado por Sistema Lushibosca
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards,
                         _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup,
                         cambiarLimiteSync, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, _onclickCalendarioDia,
-                        actualizarHintGrupo, irHoyCalendario, detenerCambioLimite, iniciarCambioLimite
+                        actualizarHintGrupo, irHoyCalendario, detenerCambioLimite, iniciarCambioLimite,
+                        obtenerNombrePerfilSafe, descargarJSON,
                     };
 
                     // === LISTENERS E INTERACTIVIDAD ===
@@ -10043,7 +9935,12 @@ Generado por Sistema Lushibosca
                         }
                     }
 
-                    setInterval(() => actualizarUI(null, true), 60000);
+                    // Sincronizar al :00 exacto del minuto y luego cada 60s
+                    const _msHastaProximoMinuto = 60000 - (Date.now() % 60000);
+                    setTimeout(() => {
+                        actualizarUI(null, true);
+                        setInterval(() => actualizarUI(null, true), 60000);
+                    }, _msHastaProximoMinuto);
                     console.log('Sistema iniciado correctamente');
 
                     // Escape cierra el modal abierto simulando su botón cerrar/volver
@@ -11107,6 +11004,7 @@ Generado por Sistema Lushibosca
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, actualizarHintGrupo,
                     _popupCalendario, _popupCalendarioHover, _onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario,
+                    obtenerNombrePerfilSafe, descargarJSON,
 
                 };
 
@@ -11140,13 +11038,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 8.36
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 246
     // ====================================================================
     
      - CAMBIOS:
-    1) Se mejora el click en overlay, ahora en vez de cerrar todos los modales, 
-    cierra y abre el modal padre
-    2) 
+    1) Se agregar ciclo en renderstats para mostrar la entrada y salida
+    2) Se cambia la forma de establecer las versiones
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
