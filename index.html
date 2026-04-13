@@ -6742,7 +6742,7 @@
                 }
 
                 // Duración de cada fase en ms (cuánto tiempo se muestra antes de cambiar)
-                const _CICLO_DURACION = { 0: 5000, 1: 2000, 2: 2000 };
+                const _CICLO_DURACION = { 0: 6000, 1: 2000, 2: 2000 };
 
                 function _iniciarCicloStats() {
                     _detenerCicloStats();
@@ -6814,6 +6814,10 @@
                         if (_cicloStatsPhase === 0) el.textContent = vista.stats;
                         return;
                     }
+
+                    // Si el ciclo ya corre y está en fase 1 o 2, no interrumpir —
+                    // usará los valores actualizados cuando vuelva a fase 0
+                    if (_cicloStatsInterval && _cicloStatsPhase !== 0) return;
 
                     // Datos nuevos o ciclo detenido: reiniciar desde fase 0
                     _cicloStatsPhase = 0;
@@ -10043,6 +10047,12 @@ Generado por Sistema Lushibosca
                     }, _msHastaProximoMinuto);
                     console.log('Sistema iniciado correctamente');
 
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') {
+                            actualizarUI(null, true);
+                        }
+                    });
+
                     // Escape cierra el modal abierto simulando su botón cerrar/volver
                     document.addEventListener('keydown', (e) => {
                         if (e.key !== 'Escape') return;
@@ -11149,6 +11159,7 @@ Generado por Sistema Lushibosca
     
      - CAMBIOS:
     1) Prevencion de varios timeouts para el ciclo
+    2) 
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
