@@ -6815,10 +6815,6 @@
                         return;
                     }
 
-                    // Si el ciclo ya corre y está en fase 1 o 2, no interrumpir —
-                    // usará los valores actualizados cuando vuelva a fase 0
-                    if (_cicloStatsInterval && _cicloStatsPhase !== 0) return;
-
                     // Datos nuevos o ciclo detenido: reiniciar desde fase 0
                     _cicloStatsPhase = 0;
                     el.textContent = vista.stats;
@@ -10040,18 +10036,25 @@ Generado por Sistema Lushibosca
                     }
 
                     // Sincronizar al :00 exacto del minuto y luego cada 60s
-                    const _msHastaProximoMinuto = 60000 - (Date.now() % 60000);
-                    setTimeout(() => {
-                        actualizarUI(null, true);
-                        setInterval(() => actualizarUI(null, true), 60000);
-                    }, _msHastaProximoMinuto);
-                    console.log('Sistema iniciado correctamente');
+                    // Se reprograma al volver de background para evitar timers congelados
+                    let _uiInterval = null;
+                    function _arrancarTimerMinuto() {
+                        if (_uiInterval) { clearInterval(_uiInterval); _uiInterval = null; }
+                        const ms = 60000 - (Date.now() % 60000);
+                        setTimeout(() => {
+                            actualizarUI(null, true);
+                            _uiInterval = setInterval(() => actualizarUI(null, true), 60000);
+                        }, ms);
+                    }
+                    _arrancarTimerMinuto();
 
                     document.addEventListener('visibilitychange', () => {
                         if (document.visibilityState === 'visible') {
+                            _arrancarTimerMinuto();
                             actualizarUI(null, true);
                         }
                     });
+                    console.log('Sistema iniciado correctamente');
 
                     // Escape cierra el modal abierto simulando su botón cerrar/volver
                     document.addEventListener('keydown', (e) => {
