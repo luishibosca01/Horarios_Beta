@@ -1969,7 +1969,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_252</span>
+                    <span class="version-text">LUSHIBOSCA build_251</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2060,15 +2060,7 @@
                                 <span>Recordar estado</span>
                             </button>
                         </div>
-                        <div class="form-group">
-                            <label>Tarjeta Hoy</label>
-                            <button id="btn-toggle-ciclo-stats" onclick="UILogic.toggleCicloStats()">
-                                <svg class="icon">
-                                    <use href="#icon-replace-swap" />
-                                </svg>
-                                <span>Ciclar entrada/salida</span>
-                            </button>
-                        </div>
+
                     </div>
 
                     <!-- COLUMNA DERECHA -->
@@ -6724,11 +6716,12 @@
 
                 // --- Ciclo stats / entrada / salida ---
                 let _cicloStatsInterval = null;
-                let _cicloStatsSessionId = 0; // se incrementa en cada inicio, invalida ticks viejos
                 let _cicloStatsValorHoras = '';
                 let _cicloStatsEntrada = '';
                 let _cicloStatsSalida = '';
                 let _cicloStatsPhase = 0; // 0 = horas, 1 = entrada, 2 = salida (si existe)
+                let _cicloStatsVueltas = 0;
+                const _CICLO_MAX_VUELTAS = 1;
 
                 function _cicloStatsGetTexto(phase) {
                     if (phase === 1) return `Entrada ${_cicloStatsEntrada}`;
@@ -6742,25 +6735,35 @@
                 }
 
                 // Duración de cada fase en ms (cuánto tiempo se muestra antes de cambiar)
-                const _CICLO_DURACION = { 0: 6000, 1: 2000, 2: 2000 };
+                const _CICLO_DURACION = { 0: 4000, 1: 2500, 2: 2500 };
 
                 function _iniciarCicloStats() {
+                    if (_cicloStatsVueltas >= _CICLO_MAX_VUELTAS) return; // ya completó las vueltas
                     _detenerCicloStats();
                     if (!_cicloStatsEntrada) return; // sin entrada no hay ciclo
-                    if (localStorage.getItem('cicloStats') === 'false') return; // desactivado por defecto
-
-                    const sessionId = ++_cicloStatsSessionId; // ID único para este ciclo
 
                     const _cicloTick = () => {
-                        if (sessionId !== _cicloStatsSessionId) return; // tick zombie, ignorar
                         const el = $('stats-semana');
                         if (!el) { _detenerCicloStats(); return; }
 
                         el.classList.add('ciclo-fade-out');
 
                         setTimeout(() => {
-                            if (sessionId !== _cicloStatsSessionId) return; // doble check tras el delay
                             _cicloStatsPhase = _cicloStatsNextPhase();
+
+                            // Si volvió a fase 0, completó una vuelta
+                            if (_cicloStatsPhase === 0) {
+                                _cicloStatsVueltas++;
+                                if (_cicloStatsVueltas >= _CICLO_MAX_VUELTAS) {
+                                    el.classList.remove('ciclo-fade-out');
+                                    el.classList.add('ciclo-fade-in');
+                                    el.textContent = _cicloStatsValorHoras;
+                                    void el.offsetWidth;
+                                    el.classList.remove('ciclo-fade-in');
+                                    _detenerCicloStats();
+                                    return;
+                                }
+                            }
 
                             el.classList.remove('ciclo-fade-out');
                             el.classList.add('ciclo-fade-in');
@@ -6801,24 +6804,14 @@
                     const mismasHoras = _cicloStatsValorHoras === vista.stats;
                     const mismaEntrada = _cicloStatsEntrada === entradaHoy;
                     const mismaSalida = _cicloStatsSalida === salidaHoy;
-                    const datosIguales = mismasHoras && mismaEntrada && mismaSalida;
 
-                    // Actualizar valores internos siempre (el ciclo los lee en cada tick)
                     _cicloStatsValorHoras = vista.stats;
                     _cicloStatsEntrada = entradaHoy;
                     _cicloStatsSalida = salidaHoy;
 
-                    if (datosIguales && _cicloStatsInterval) {
-                        // Nada cambió y el ciclo ya corre: actualizar solo si se está
-                        // mostrando la fase 0 para reflejar el minuto nuevo
-                        if (_cicloStatsPhase === 0) el.textContent = vista.stats;
-                        return;
-                    }
-
-                    // Datos nuevos o ciclo detenido: reiniciar desde fase 0
+                    // Siempre mostrar las horas como posición inicial
                     _cicloStatsPhase = 0;
                     el.textContent = vista.stats;
-                    _iniciarCicloStats();
                 }
 
                 function _renderBarra(vista) {
@@ -6908,7 +6901,7 @@
                     ].filter(Boolean);
 
                     if (_cicloStatsInterval) {
-                        clearTimeout(_cicloStatsInterval);
+                        clearInterval(_cicloStatsInterval);
                         _cicloStatsInterval = null;
                     }
 
@@ -6922,7 +6915,6 @@
                             void el.offsetWidth;
                             el.classList.remove('ciclo-fade-in');
                         });
-                        _iniciarCicloStats();
                     }, 350);
                 }
 
@@ -7169,25 +7161,6 @@
 
                 function actualizarEstadoBotonPersistir() {
                     _setBtnActivo('btn-toggle-persistir-tarjetas', localStorage.getItem('persistirTarjetas') !== 'false');
-                }
-
-                function toggleCicloStats() {
-                    const actual = localStorage.getItem('cicloStats') !== 'false';
-                    const nuevo = !actual;
-                    try { localStorage.setItem('cicloStats', nuevo); } catch (e) { }
-                    actualizarEstadoBotonCicloStats();
-                    if (nuevo) {
-                        _iniciarCicloStats();
-                    } else {
-                        _detenerCicloStats();
-                        const el = $('stats-semana');
-                        if (el) el.textContent = _cicloStatsValorHoras;
-                    }
-                    mostrarToast(nuevo ? 'Ciclo entrada/salida activado' : 'Ciclo entrada/salida desactivado', 'info');
-                }
-
-                function actualizarEstadoBotonCicloStats() {
-                    _setBtnActivo('btn-toggle-ciclo-stats', localStorage.getItem('cicloStats') !== 'false');
                 }
 
                 function toggleVisibilidadCard(cual) {
@@ -8585,7 +8558,6 @@ Generado por Sistema Lushibosca
                             mostrarToast('Error al guardar: almacenamiento lleno', 'error');
                             return;
                         }
-                        ModalManager.cerrarTodos();
                         mostrarToast('Perfil eliminado. Recargando...', 'success');
                         setTimeout(() => location.reload(), 1000);
                     } else {
@@ -9704,7 +9676,7 @@ Generado por Sistema Lushibosca
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards,
                         _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup,
                         cambiarLimiteSync, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, _onclickCalendarioDia,
-                        toggleCicloStats, actualizarEstadoBotonCicloStats,
+
                         actualizarHintGrupo, irHoyCalendario, detenerCambioLimite, iniciarCambioLimite,
                         obtenerNombrePerfilSafe, descargarJSON,
                     };
@@ -9893,7 +9865,6 @@ Generado por Sistema Lushibosca
                     UILogic.actualizarEstadoBotonIgnorarTF();
                     UILogic.poblarSelectoresTipos();
                     UILogic.actualizarEstadoBotonHoverPopup();
-                    UILogic.actualizarEstadoBotonCicloStats();
                     UILogic.aplicarVisibilidadCards();
                     UILogic.aplicarOrdenCards(UILogic.obtenerOrdenCards());
                     UILogic.iniciarDragOrdenCards();
@@ -10010,6 +9981,7 @@ Generado por Sistema Lushibosca
                     PWAInstaller.init();
 
                     actualizarUI();
+                    _iniciarCicloStats();
                     actualizarBotonesHistorico();
 
                     // Auto-sync al iniciar
@@ -10035,25 +10007,7 @@ Generado por Sistema Lushibosca
                         }
                     }
 
-                    // Sincronizar al :00 exacto del minuto y luego cada 60s
-                    // Se reprograma al volver de background para evitar timers congelados
-                    let _uiInterval = null;
-                    function _arrancarTimerMinuto() {
-                        if (_uiInterval) { clearInterval(_uiInterval); _uiInterval = null; }
-                        const ms = 60000 - (Date.now() % 60000);
-                        setTimeout(() => {
-                            actualizarUI(null, true);
-                            _uiInterval = setInterval(() => actualizarUI(null, true), 60000);
-                        }, ms);
-                    }
-                    _arrancarTimerMinuto();
-
-                    document.addEventListener('visibilitychange', () => {
-                        if (document.visibilityState === 'visible') {
-                            _arrancarTimerMinuto();
-                            actualizarUI(null, true);
-                        }
-                    });
+                    setInterval(() => actualizarUI(null, true), 60000);
                     console.log('Sistema iniciado correctamente');
 
                     // Escape cierra el modal abierto simulando su botón cerrar/volver
@@ -11123,7 +11077,7 @@ Generado por Sistema Lushibosca
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, actualizarHintGrupo,
                     _popupCalendario, _popupCalendarioHover, _onclickCalendarioDia, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario,
-                    obtenerNombrePerfilSafe, descargarJSON, toggleCicloStats, actualizarEstadoBotonCicloStats,
+
 
                 };
 
@@ -11157,12 +11111,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 252
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 251
     // ====================================================================
     
      - CAMBIOS:
-    1) Prevencion de varios timeouts para el ciclo
-    2) 
+    1) Mejoras de seguridad recomendadas
+    2) Se simplifica el ciclo de la tarjeta de estado a solo 1 o 2 al recargar la pagina por defecto
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
