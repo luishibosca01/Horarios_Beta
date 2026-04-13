@@ -1969,7 +1969,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_251</span>
+                    <span class="version-text">LUSHIBOSCA build_252</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -8585,6 +8585,7 @@ Generado por Sistema Lushibosca
                             mostrarToast('Error al guardar: almacenamiento lleno', 'error');
                             return;
                         }
+                        ModalManager.cerrarTodos();
                         mostrarToast('Perfil eliminado. Recargando...', 'success');
                         setTimeout(() => location.reload(), 1000);
                     } else {
@@ -11143,7 +11144,7 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 251
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 252
     // ====================================================================
     
      - CAMBIOS:
