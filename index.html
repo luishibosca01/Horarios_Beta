@@ -1969,7 +1969,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_250</span>
+                    <span class="version-text">LUSHIBOSCA build_251</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -6792,7 +6792,7 @@
 
                     // Obtener entrada y salida del día de hoy si estamos en vista diaria
                     const esDiaria = D.vistaActual() !== 'semana';
-                    const hoy = new Date().toISOString().split('T')[0];
+                    const hoy = S.formatearFechaLocal(new Date());
                     const regHoy = D.registros().find(r => r.fecha === hoy) ?? null;
                     const esEspecial = regHoy && TiposRegistro.esRegistroEspecial(regHoy.entrada, regHoy.salida);
                     const entradaHoy = (esDiaria && regHoy && regHoy.entrada && !esEspecial) ? regHoy.entrada : '';
@@ -6801,19 +6801,24 @@
                     const mismasHoras = _cicloStatsValorHoras === vista.stats;
                     const mismaEntrada = _cicloStatsEntrada === entradaHoy;
                     const mismaSalida = _cicloStatsSalida === salidaHoy;
+                    const datosIguales = mismasHoras && mismaEntrada && mismaSalida;
 
+                    // Actualizar valores internos siempre (el ciclo los lee en cada tick)
                     _cicloStatsValorHoras = vista.stats;
                     _cicloStatsEntrada = entradaHoy;
                     _cicloStatsSalida = salidaHoy;
 
-                    // Siempre mostrar las horas como posición inicial
+                    if (datosIguales && _cicloStatsInterval) {
+                        // Nada cambió y el ciclo ya corre: actualizar solo si se está
+                        // mostrando la fase 0 para reflejar el minuto nuevo
+                        if (_cicloStatsPhase === 0) el.textContent = vista.stats;
+                        return;
+                    }
+
+                    // Datos nuevos o ciclo detenido: reiniciar desde fase 0
                     _cicloStatsPhase = 0;
                     el.textContent = vista.stats;
-
-                    // Reiniciar ciclo si cambió algo o no está corriendo
-                    if (!mismasHoras || !mismaEntrada || !mismaSalida || !_cicloStatsInterval) {
-                        _iniciarCicloStats();
-                    }
+                    _iniciarCicloStats();
                 }
 
                 function _renderBarra(vista) {
@@ -11138,11 +11143,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 250
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 251
     // ====================================================================
     
      - CAMBIOS:
-    1) Mejoras de seguridad recomendadas
+    1) Prevencion de varios timeouts para el ciclo
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
