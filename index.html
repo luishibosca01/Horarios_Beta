@@ -1969,7 +1969,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_251</span>
+                    <span class="version-text">LUSHIBOSCA build_252</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2066,7 +2066,7 @@
                     <!-- COLUMNA DERECHA -->
                     <div>
                         <div class="form-group">
-                            <label>Tarjetas</label>
+                            <label>Tarjetas y posición</label>
                             <div style="display:flex;flex-direction:column;gap:0.4rem;" id="lista-orden-cards">
                                 <div class="orden-card-item" id="orden-item-registrar">
                                     <button id="btn-toggle-card-registrar" class="drag-handle" data-card="registrar"
@@ -3082,7 +3082,15 @@
                 }
 
                 // Función para manejar clics fuera del modal
+                // Solo cierra si el mousedown también ocurrió en el overlay (no en un drag desde adentro)
+                let _mousedownEnOverlay = false;
+
+                function _handleOverlayMousedown(event) {
+                    _mousedownEnOverlay = event.target.classList.contains('modal') && event.target.classList.contains('show');
+                }
+
                 function handleOutsideClick(event) {
+                    if (!_mousedownEnOverlay) return;
                     if (event.target.classList.contains('modal') && event.target.classList.contains('show')) {
                         const modalId = event.target.id;
 
@@ -3107,6 +3115,7 @@
                     document.body.classList.add('modal-open');
 
                     setTimeout(() => {
+                        modal.addEventListener('mousedown', _handleOverlayMousedown);
                         modal.addEventListener('click', handleOutsideClick);
                     }, 100);
 
@@ -3122,6 +3131,7 @@
 
                     modal.classList.remove('show');
                     document.body.classList.remove('modal-open');
+                    modal.removeEventListener('mousedown', _handleOverlayMousedown);
                     modal.removeEventListener('click', handleOutsideClick);
 
                     // Limpiar relación padre si existía
@@ -3142,7 +3152,8 @@
                 function cerrarTodos() {
                     document.querySelectorAll('.modal.show').forEach(modal => {
                         modal.classList.remove('show');
-                        modal.removeEventListener('click', handleOutsideClick);
+                        modal.removeEventListener('mousedown', _handleOverlayMousedown);
+                    modal.removeEventListener('click', handleOutsideClick);
                     });
                     // Limpiar todas las relaciones
                     Object.keys(_padres).forEach(k => delete _padres[k]);
@@ -8048,7 +8059,7 @@ Generado por Sistema Lushibosca
                         btn.disabled = false;
                         btn.style.opacity = '1';
                         btn.style.cursor = 'pointer';
-                        btn.title = isRunning ? "Detener descanso" : "Iniciar descanso";
+                        btn.title = isRunning ? "Detener tiempo fuera" : "Iniciar tiempo fuera";
                     }
 
                     if (isRunning) {
@@ -8977,6 +8988,7 @@ Generado por Sistema Lushibosca
 
                     btn.dataset.activo = estaActivo ? "false" : "true";
                     _setBtnActivo('btn-toggle-credito', !estaActivo);
+                    mostrarToast(!estaActivo ? 'Compensación/Asueto activado' : 'Compensación/Asueto desactivado', 'info');
                 }
 
                 function mostrarExportar(desdeLista = false) {
@@ -11111,12 +11123,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 251
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 252
     // ====================================================================
     
      - CAMBIOS:
-    1) Mejoras de seguridad recomendadas
-    2) Se simplifica el ciclo de la tarjeta de estado a solo 1 o 2 al recargar la pagina por defecto
+    1) Se mejora el click en el overlay para que no se cierre si el click comienza dentro del modal
+
 
      - BUGS CONOCIDOS:
     1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
