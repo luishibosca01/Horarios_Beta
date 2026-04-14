@@ -716,16 +716,17 @@
 
         .toast {
             position: fixed;
-            top: 5rem;
-            right: 2rem;
+            bottom: 2rem;
+            left: 50%;
+            justify-content: center;
+            transform: translateX(-50%) translateY(80px);
+            transition: opacity 0.3s, transform 0.3s;
             background: #1f2937;
             color: white;
             padding: 1rem 1.5rem;
             border-radius: var(--radius);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             opacity: 0;
-            transform: translateX(100px);
-            transition: opacity 0.3s, transform 0.3s;
             z-index: 1000;
             display: flex;
             align-items: center;
@@ -733,11 +734,13 @@
             white-space: pre-line;
             pointer-events: none;
             backdrop-filter: blur(3px);
+            width: calc(100% - 4rem);
+            max-width: 400px;
         }
 
         .toast.show {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(-50%) translateY(0);
             pointer-events: auto;
         }
 
@@ -4510,10 +4513,10 @@
                     };
 
                     try {
-                        const nombreSafe = UILogic.obtenerNombrePerfilSafe();
+                        const nombreSafe = window.UILogic.obtenerNombrePerfilSafe();
                         const fechaHoy = S.fechaLocalISO().slice(0, 10);
-                        UILogic.descargarJSON(data, `Horarios_${nombreSafe}_${fechaHoy}.json`);
-                        UILogic.mostrarToast('Datos exportados', 'success');
+                        window.UILogic.descargarJSON(data, `Horarios_${nombreSafe}_${fechaHoy}.json`);
+                        window.UILogic.mostrarToast('Datos exportados', 'success');
                         ModalManager.cerrarTodos();
                     } catch (e) {
                         console.error(e);
@@ -5523,7 +5526,7 @@
                             toastTimeout = null;
                             // Esperar a que termine la animación de salida antes del siguiente
                             setTimeout(() => _procesarToastQueue(), 350);
-                        }, 2000);
+                        }, 3000);
                     }, 10);
                 }
 
@@ -11128,6 +11131,8 @@ Generado por Sistema Lushibosca
     
      - CAMBIOS:
     1) Se mejora el click en el overlay para que no se cierre si el click comienza dentro del modal
+    2) se corrige bug al exportar
+    3) se cambia el toast de posicion
 
 
      - BUGS CONOCIDOS:
