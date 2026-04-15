@@ -1972,7 +1972,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_252</span>
+                    <span class="version-text">LUSHIBOSCA build_254</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -6733,28 +6733,27 @@
                 let _cicloStatsValorHoras = '';
                 let _cicloStatsEntrada = '';
                 let _cicloStatsSalida = '';
-                let _cicloStatsPhase = 0; // 0 = horas, 1 = entrada, 2 = salida (si existe)
-                let _cicloStatsVueltas = 0;
-                const _CICLO_MAX_VUELTAS = 1;
 
-                function _cicloStatsGetTexto(phase) {
-                    if (phase === 1) return `Entrada ${_cicloStatsEntrada}`;
-                    if (phase === 2) return `Salida ${_cicloStatsSalida}`;
-                    return _cicloStatsValorHoras;
+                const _CICLO_DURACION_MS = 2500;
+
+                function _detenerCicloStats() {
+                    clearTimeout(_cicloStatsInterval);
+                    _cicloStatsInterval = null;
+                    const el = $('stats-semana');
+                    if (el) el.classList.remove('ciclo-fade-out', 'ciclo-fade-in');
                 }
-
-                function _cicloStatsNextPhase() {
-                    const maxPhase = _cicloStatsSalida ? 2 : 1;
-                    return _cicloStatsPhase >= maxPhase ? 0 : _cicloStatsPhase + 1;
-                }
-
-                // Duración de cada fase en ms (cuánto tiempo se muestra antes de cambiar)
-                const _CICLO_DURACION = { 0: 4000, 1: 2500, 2: 2500 };
 
                 function _iniciarCicloStats() {
-                    if (_cicloStatsVueltas >= _CICLO_MAX_VUELTAS) return; // ya completó las vueltas
                     _detenerCicloStats();
                     if (!_cicloStatsEntrada) return; // sin entrada no hay ciclo
+
+                    const fases = [
+                        _cicloStatsValorHoras,
+                        `Entrada ${_cicloStatsEntrada}`,
+                        _cicloStatsSalida ? `Salida ${_cicloStatsSalida}` : null,
+                    ].filter(Boolean);
+
+                    let idx = 0;
 
                     const _cicloTick = () => {
                         const el = $('stats-semana');
@@ -6763,44 +6762,28 @@
                         el.classList.add('ciclo-fade-out');
 
                         setTimeout(() => {
-                            _cicloStatsPhase = _cicloStatsNextPhase();
-
-                            // Si volvió a fase 0, completó una vuelta
-                            if (_cicloStatsPhase === 0) {
-                                _cicloStatsVueltas++;
-                                if (_cicloStatsVueltas >= _CICLO_MAX_VUELTAS) {
-                                    el.classList.remove('ciclo-fade-out');
-                                    el.classList.add('ciclo-fade-in');
-                                    el.textContent = _cicloStatsValorHoras;
-                                    void el.offsetWidth;
-                                    el.classList.remove('ciclo-fade-in');
-                                    _detenerCicloStats();
-                                    return;
-                                }
+                            idx++;
+                            if (idx >= fases.length) { // ciclo completo, volver a horas y terminar
+                                el.classList.remove('ciclo-fade-out');
+                                el.classList.add('ciclo-fade-in');
+                                el.textContent = _cicloStatsValorHoras;
+                                void el.offsetWidth;
+                                el.classList.remove('ciclo-fade-in');
+                                _detenerCicloStats();
+                                return;
                             }
 
                             el.classList.remove('ciclo-fade-out');
                             el.classList.add('ciclo-fade-in');
-                            el.textContent = _cicloStatsGetTexto(_cicloStatsPhase);
-
+                            el.textContent = fases[idx];
                             void el.offsetWidth;
                             el.classList.remove('ciclo-fade-in');
 
-                            // Programar el siguiente tick según la duración de la fase actual
-                            _cicloStatsInterval = setTimeout(_cicloTick, _CICLO_DURACION[_cicloStatsPhase] ?? 5000);
+                            _cicloStatsInterval = setTimeout(_cicloTick, _CICLO_DURACION_MS);
                         }, 350);
                     };
 
-                    // Arrancar tras la duración de la fase 0 (horas)
-                    _cicloStatsInterval = setTimeout(_cicloTick, _CICLO_DURACION[0]);
-                }
-
-                function _detenerCicloStats() {
-                    if (_cicloStatsInterval) {
-                        clearTimeout(_cicloStatsInterval);
-                        _cicloStatsInterval = null;
-                    }
-                    _cicloStatsPhase = 0;
+                    _cicloStatsInterval = setTimeout(_cicloTick, _CICLO_DURACION_MS);
                 }
 
                 function _renderStats(vista) {
@@ -6815,17 +6798,15 @@
                     const entradaHoy = (esDiaria && regHoy && regHoy.entrada && !esEspecial) ? regHoy.entrada : '';
                     const salidaHoy = (esDiaria && regHoy && regHoy.salida && !esEspecial) ? regHoy.salida : '';
 
-                    const mismasHoras = _cicloStatsValorHoras === vista.stats;
-                    const mismaEntrada = _cicloStatsEntrada === entradaHoy;
-                    const mismaSalida = _cicloStatsSalida === salidaHoy;
-
                     _cicloStatsValorHoras = vista.stats;
                     _cicloStatsEntrada = entradaHoy;
                     _cicloStatsSalida = salidaHoy;
 
-                    // Siempre mostrar las horas como posición inicial
-                    _cicloStatsPhase = 0;
-                    el.textContent = vista.stats;
+                    // Solo actualizar el texto si el ciclo no está corriendo,
+                    // para no pisar la fase que se esté mostrando en ese momento
+                    if (!_cicloStatsInterval) {
+                        el.textContent = vista.stats;
+                    }
                 }
 
                 function _renderBarra(vista) {
@@ -6914,10 +6895,7 @@
                         $('toggle-hint'),
                     ].filter(Boolean);
 
-                    if (_cicloStatsInterval) {
-                        clearInterval(_cicloStatsInterval);
-                        _cicloStatsInterval = null;
-                    }
+                    _detenerCicloStats();
 
                     els.forEach(el => el.classList.add('ciclo-fade-out'));
 
@@ -7009,6 +6987,7 @@
                             localStorage.setItem('vistaActual', vistaActual);
                         } catch (e) { }
 
+                        _detenerCicloStats(); // El ciclo es exclusivo de la vista diaria
                         actualizarUI(); // Se actualizan los textos (mientras está invisible)
 
                         // 3. Removemos fade-out para que vuelva a aparecer
@@ -11126,7 +11105,7 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 252
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 254
     // ====================================================================
     
      - CAMBIOS:
