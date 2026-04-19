@@ -1972,7 +1972,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_254</span>
+                    <span class="version-text">LUSHIBOSCA build_255</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -9978,6 +9978,16 @@ Generado por Sistema Lushibosca
                     _iniciarCicloStats();
                     actualizarBotonesHistorico();
 
+                    // Auto-transición: si la página carga en vista semanal,
+                    // cambiar a "Hoy" luego de 2,5 segundos e iniciar cicloStats
+                    if (D.vistaActual() === 'semana') {
+                        setTimeout(() => {
+                            alternarVista();
+                            // alternarVista detiene el ciclo; lo relanzamos tras el delay de su animación
+                            setTimeout(() => { _iniciarCicloStats(); }, 350);
+                        }, 2500);
+                    }
+
                     // Auto-sync al iniciar
                     const _autoSyncEstado = GistSync.getAutoSync();
                     const _tieneCredenciales = GistSync.getToken() && GistSync.esGistIdValido(GistSync.getGistId());
@@ -11105,13 +11115,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 254
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 255
     // ====================================================================
     
      - CAMBIOS:
-    1) Se mejora el click en el overlay para que no se cierre si el click comienza dentro del modal
-    2) se corrige bug al exportar
-    3) se cambia el toast de posicion
+    1) Se agrega una condicion para que al cargar la pagina, si esta en la vista semanal,
+    esta se pase a la vista diaria luego de 2,5 segundos
 
 
      - BUGS CONOCIDOS:
