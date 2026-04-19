@@ -933,10 +933,14 @@
             display: flex;
             flex-direction: column;
             gap: 0.4rem;
-            pointer-events: all;
+            pointer-events: none; /* Deshabilitado durante la animación para evitar ciclo hover */
             transform: translateY(24px) scale(0.96);
             opacity: 0;
             animation: calPopupIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .cal-popup.listo {
+            pointer-events: all; /* Habilitado al terminar la animación */
         }
 
         .cal-popup-fecha {
@@ -1972,7 +1976,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_255</span>
+                    <span class="version-text">LUSHIBOSCA build_256</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -10739,7 +10743,9 @@ Generado por Sistema Lushibosca
         ${btnGrupoHtml}
     `;
 
-                    // DESPUÉS:
+                    // Ocultar visualmente mientras se calcula la posición real post-layout
+                    popup.style.visibility = 'hidden';
+
                     document.body.appendChild(popup);
                     _popupCalendarioEl = popup;
 
@@ -10759,31 +10765,18 @@ Generado por Sistema Lushibosca
                         }
                     });
 
-                    // Posicionar cerca del elemento tocado
-                    const el = event.currentTarget || event.target;
-                    const rect = el.getBoundingClientRect();
-                    const pw = popup.offsetWidth || 180;
-                    const ph = popup.offsetHeight || 130;
-                    const margin = 8;
-
-                    let top = rect.bottom + 6;
-                    let left = rect.left + (rect.width / 2) - (pw / 2);
-
-                    if (left + pw > window.innerWidth - margin) left = window.innerWidth - pw - margin;
-                    if (left < margin) left = margin;
-                    if (top + ph > window.innerHeight - margin) {
-                        top = rect.top - ph - 6;
-                    }
-
-                    popup.style.top = top + 'px';
-                    popup.style.left = left + 'px';
-
-                    // Cerrar al tocar fuera
+                    // Cerrar al tocar fuera — definidos acá para que cerrarPopup pueda referenciar cerrarPorScroll
+                    const cerrarPorScroll = () => {
+                        popup.remove();
+                        _popupCalendarioEl = null;
+                        document.removeEventListener('click', cerrar, true);
+                        document.removeEventListener('scroll', cerrarPorScroll, true);
+                    };
                     const cerrarPopup = () => {
                         popup.remove();
                         _popupCalendarioEl = null;
                         document.removeEventListener('click', cerrar, true);
-                        document.removeEventListener('scroll', cerrarPopup, true);
+                        document.removeEventListener('scroll', cerrarPorScroll, true);
                     };
                     const cerrar = (e) => {
                         const diaClickeado = e.target.closest('.calendario-dia');
@@ -10792,15 +10785,36 @@ Generado por Sistema Lushibosca
                     };
                     setTimeout(() => {
                         document.addEventListener('click', cerrar, true);
-                        document.addEventListener('scroll', cerrarPopup, true);
+                        document.addEventListener('scroll', cerrarPorScroll, true);
                     }, 10);
-                    const cerrarPorScroll = () => {
-                        popup.remove();
-                        _popupCalendarioEl = null;
-                        document.removeEventListener('click', cerrar, true);
-                        document.removeEventListener('scroll', cerrarPorScroll, true);
-                    };
-                    setTimeout(() => document.addEventListener('scroll', cerrarPorScroll, true), 10);
+
+                    // Posicionar cerca del elemento tocado usando dimensiones reales post-layout (fix parpadeo)
+                    const el = event.currentTarget || event.target;
+                    const rect = el.getBoundingClientRect();
+                    const margin = 8;
+
+                    requestAnimationFrame(() => {
+                        const pw = popup.offsetWidth;
+                        const ph = popup.offsetHeight;
+
+                        let top = rect.bottom + 12;
+                        let left = rect.left + (rect.width / 2) - (pw / 2);
+
+                        if (left + pw > window.innerWidth - margin) left = window.innerWidth - pw - margin;
+                        if (left < margin) left = margin;
+                        if (top + ph > window.innerHeight - margin) {
+                            top = rect.top - ph - 12;
+                        }
+                        // Evitar que se salga por arriba de la pantalla
+                        if (top < margin) top = margin;
+
+                        popup.style.top = top + 'px';
+                        popup.style.left = left + 'px';
+                        popup.style.visibility = ''; // mostrar recién cuando la posición es correcta
+
+                        // Habilitar pointer-events al terminar la animación (fix ciclo hover)
+                        setTimeout(() => popup.classList.add('listo'), 350);
+                    });
                 }
 
                 let _popupCalendarioEsHover = false;
@@ -10813,6 +10827,8 @@ Generado por Sistema Lushibosca
                     const stored = localStorage.getItem('hoverPopupCalendario');
                     const esHover = window.matchMedia('(hover: hover)').matches;
                     if (stored === null ? !esHover : stored !== 'true') return;
+                    if (_popupCalendarioEl && _popupCalendarioEl.dataset.registroId === registroId) return;
+
                     clearTimeout(_popupCalendarioHoverTimer);
                     _popupCalendarioHoverTimer = setTimeout(() => {
                         _popupCalendarioEsHover = true;
@@ -11115,16 +11131,23 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 255
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 256
     // ====================================================================
     
      - CAMBIOS:
-    1) Se agrega una condicion para que al cargar la pagina, si esta en la vista semanal,
-    esta se pase a la vista diaria luego de 2,5 segundos
+    1) [v256] Fix parpadeo del popup de calendario en hover (bug documentado v255/v256):
+       - Se usa requestAnimationFrame para medir dimensiones reales del popup post-layout,
+         eliminando el salto de posicion causado por usar offsetWidth/offsetHeight antes del render.
+       - El popup se oculta con visibility:hidden mientras se calcula la posicion y se
+         muestra recien cuando esta es correcta.
+       - Se aumento el gap entre el dia y el popup de 6px a 12px para reducir falsos mouseleave.
+       - pointer-events:none durante la animacion (0.35s), habilitado via clase .listo al terminar,
+         cortando el ciclo mouseenter/mouseleave que causaba el parpadeo.
+       - Se unificaron los dos listeners de scroll duplicados en uno solo, eliminando un
+         memory leak donde un listener quedaba huerfano tras cerrar el popup.
 
 
      - BUGS CONOCIDOS:
-    1) el popup parpadea constantemente al aparecer por encima del ares del dia, (cuando no tiene
-    espacio para mostrarse por debajo), y el cursor estar cerca del popup
+    1)
 
     -->
