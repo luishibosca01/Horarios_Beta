@@ -255,17 +255,18 @@
             align-items: center;
         }
 
-        .contenedor-fechas {
+        .contenedor-fechas,
+        .contenedor-horas {
             display: block;
-            flex-direction: column;
+        }
+
+        .contenedor-fechas .form-group,
+        .contenedor-horas .form-group {
+            flex-grow: 1;
         }
 
         .input-number-group input {
             text-align: center;
-        }
-
-        .contenedor-fechas .form-group {
-            flex-grow: 1;
         }
 
         /* --- Botones --- */
@@ -396,7 +397,13 @@
 
         /* --- Stats & Progreso --- */
         /* Fondo abstracto stats-card */
+
         .stats-card {
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-left: 4px solid transparent;
+            transition: transform 0.15s ease-out, opacity 0.15s ease-out, box-shadow 0.3s, border-color 0.3s;
+            min-height: 14rem;
             position: relative;
             overflow: hidden;
         }
@@ -417,14 +424,6 @@
         .stats-card-content {
             position: relative;
             z-index: 1;
-        }
-
-        .stats-card {
-            cursor: pointer;
-            border: 1px solid transparent;
-            border-left: 4px solid transparent;
-            transition: transform 0.15s ease-out, opacity 0.15s ease-out, box-shadow 0.3s, border-color 0.3s;
-            min-height: 14rem;
         }
 
         #stats-card.timer-running {
@@ -744,6 +743,39 @@
             pointer-events: auto;
         }
 
+        /* --- Selector de Meses Calendario --- */
+
+        #calendario-selector-meses {
+            display: none;
+            grid-template-columns: repeat(3, 1fr);
+            align-content: start;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            overflow-y: auto;
+        }
+
+        .btn-mes-calendario {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--input-bg);
+            color: var(--text-main);
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s, border-color 0.2s;
+            height: 70px;
+            font-size: 0.9rem;
+        }
+
+        .btn-mes-calendario.activo {
+            border-color: var(--c-green);
+            background: rgba(96, 172, 148, 0.1);
+            color: var(--c-green);
+        }
+
         /* --- Animaciones y Textos --- */
         @keyframes slideDownFade {
             from {
@@ -933,14 +965,16 @@
             display: flex;
             flex-direction: column;
             gap: 0.4rem;
-            pointer-events: none; /* Deshabilitado durante la animación para evitar ciclo hover */
+            pointer-events: none;
+            /* Deshabilitado durante la animación para evitar ciclo hover */
             transform: translateY(24px) scale(0.96);
             opacity: 0;
             animation: calPopupIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
 
         .cal-popup.listo {
-            pointer-events: all; /* Habilitado al terminar la animación */
+            pointer-events: all;
+            /* Habilitado al terminar la animación */
         }
 
         .cal-popup-fecha {
@@ -989,6 +1023,7 @@
             align-items: center;
             justify-content: space-between;
             margin-top: 0.5rem;
+            min-height: 50px;
         }
 
         .calendario-nav button {
@@ -1011,8 +1046,11 @@
             font-weight: 600;
             color: var(--text-main);
             text-transform: capitalize;
-            flex: 1;
             padding-left: 1rem;
+            cursor: pointer;
+            transition: filter 0.3s;
+            display: inline-flex;
+            align-items: center;
         }
 
         .form-collapsible {
@@ -1122,7 +1160,7 @@
             cursor: pointer;
             transition: border-color 0.5s;
             width: auto;
-            max-width: 160px;
+            max-width: 180px;
         }
 
 
@@ -1222,7 +1260,8 @@
         #form-stats,
         #calendario-grid,
         #lista-registros,
-        #vista-calendario-historico {
+        #vista-calendario-historico,
+        #calendario-selector-meses {
             transition: max-height 0.3s ease-out, opacity 0.3s ease-out, transform 0.3s ease;
         }
 
@@ -1336,13 +1375,6 @@
             color: var(--text-muted)
         }
 
-        /* moviles */
-        @media (min-width: 500px) {
-            .header-profile-btn {
-                max-width: 300px;
-            }
-        }
-
         /* --- Hovers de botones --- */
         @media (hover: hover) and (pointer: fine) {
 
@@ -1367,7 +1399,9 @@
             .btn-perfil-select:hover,
             .day-checkbox:hover span,
             .btn-perfil-edit:hover,
-            .registro-mes-header:hover {
+            .registro-mes-header:hover,
+            .btn-mes-calendario:hover,
+            .calendario-titulo:hover {
                 filter: var(--hover);
             }
 
@@ -1435,6 +1469,17 @@
             #modal-config .modal-config-footer .btn-delete {
                 width: 50%;
                 margin: 0 auto;
+            }
+
+            .contenedor-fechas,
+            .contenedor-horas {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.75rem;
+            }
+
+            .header-profile-btn {
+                max-width: 300px;
             }
         }
     </style>
@@ -1618,6 +1663,18 @@
             <polyline points="16 17 21 12 16 7"></polyline>
             <line x1="21" y1="12" x2="9" y2="12"></line>
         </symbol>
+        <symbol id="icon-arrow-left" viewBox="0 0 24 24">
+            <line x1="19" y1="12" x2="5" y2="12" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"></line>
+            <polyline points="12 19 5 12 12 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round"></polyline>
+        </symbol>
+        <symbol id="icon-arrow-right" viewBox="0 0 24 24">
+            <line x1="5" y1="12" x2="19" y2="12" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"></line>
+            <polyline points="12 5 19 12 12 19" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"></polyline>
+        </symbol>
     </svg>
     <div class="header">
         <h1>Horarios</h1>
@@ -1689,35 +1746,39 @@
                                 <button class="time-btn" onclick="UILogic.toggleModoLote()"
                                     title="Ir al modo lote/especial" style="flex-shrink: 0;">
                                     <svg class="icon">
-                                        <use href="#icon-calendar-simple" />
+                                        <use href="#icon-arrow-right" />
                                     </svg>
                                 </button>
                             </div>
                             <span class="input-error" id="error-fecha">Fecha inválida</span>
                         </div>
-                        <div class="form-group">
-                            <label>Entrada</label>
-                            <div class="input-with-btn">
-                                <input type="text" id="entrada" inputmode="numeric" placeholder="Hora" maxlength="5" />
-                                <button class="time-btn" onclick="UILogic.pegarHoraActual('entrada')">
-                                    <svg class="icon">
-                                        <use href="#icon-clock" />
-                                    </svg>
-                                </button>
+                        <div class="contenedor-horas">
+                            <div class="form-group">
+                                <label>Entrada</label>
+                                <div class="input-with-btn">
+                                    <input type="text" id="entrada" inputmode="numeric" placeholder="Hora"
+                                        maxlength="5" />
+                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('entrada')">
+                                        <svg class="icon">
+                                            <use href="#icon-clock" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <span class="input-error" id="error-entrada">Formato inválido (HH:MM)</span>
                             </div>
-                            <span class="input-error" id="error-entrada">Formato inválido (HH:MM)</span>
-                        </div>
-                        <div class="form-group">
-                            <label>Salida</label>
-                            <div class="input-with-btn">
-                                <input type="text" id="salida" inputmode="numeric" placeholder="hora" maxlength="5" />
-                                <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')">
-                                    <svg class="icon">
-                                        <use href="#icon-clock" />
-                                    </svg>
-                                </button>
+                            <div class="form-group">
+                                <label>Salida</label>
+                                <div class="input-with-btn">
+                                    <input type="text" id="salida" inputmode="numeric" placeholder="hora"
+                                        maxlength="5" />
+                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')">
+                                        <svg class="icon">
+                                            <use href="#icon-clock" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <span class="input-error" id="error-salida">Formato inválido (HH:MM)</span>
                             </div>
-                            <span class="input-error" id="error-salida">Formato inválido (HH:MM)</span>
                         </div>
                     </div>
 
@@ -1732,7 +1793,7 @@
                                 <button class="time-btn" onclick="UILogic.toggleModoLote()" title="Ir al modo normal"
                                     style="flex-shrink: 0;">
                                     <svg class="icon">
-                                        <use href="#icon-undo" />
+                                        <use href="#icon-arrow-left" />
                                     </svg>
                                 </button>
                             </div>
@@ -1945,23 +2006,29 @@
                     </div>
                 </div>
                 <div id="lista-registros" class="custom-scroll"></div>
-                <div id="vista-calendario-historico" style="display:none; padding: 0 0.5rem 0.5rem;">
+                <div id="vista-calendario-historico" style="display:none">
                     <div class="calendario-nav">
-                        <span class="calendario-titulo" id="calendario-titulo-mes"></span>
-                        <button onclick="UILogic.irHoyCalendario()"
-                            style="width:auto; padding: 4px 10px; font-size:0.8rem; font-weight:600;">Hoy</button>
-                        <button onclick="UILogic.navegarCalendario(-1)">
-                            <svg class="icon" style="transform:rotate(90deg);">
-                                <use href="#icon-chevron-down" />
-                            </svg>
-                        </button>
-                        <button onclick="UILogic.navegarCalendario(1)">
-                            <svg class="icon" style="transform:rotate(-90deg);">
-                                <use href="#icon-chevron-down" />
-                            </svg>
-                        </button>
+                        <span class="calendario-titulo" id="calendario-titulo-mes"
+                            onclick="UILogic.abrirSelectorMesesCalendario()" title="Seleccionar mes"></span>
+                        <div id="calendario-nav-botones" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button onclick="UILogic.irHoyCalendario()"
+                                style="width:auto; padding: 4px 10px; font-size:0.8rem; font-weight:600;">Hoy</button>
+                            <button onclick="UILogic.navegarCalendario(-1)">
+                                <svg class="icon" style="transform:rotate(90deg);">
+                                    <use href="#icon-chevron-down" />
+                                </svg>
+                            </button>
+                            <button onclick="UILogic.navegarCalendario(1)">
+                                <svg class="icon" style="transform:rotate(-90deg);">
+                                    <use href="#icon-chevron-down" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="calendario-grid" id="calendario-grid"></div>
+                    <div id="calendario-selector-meses" class="custom-scroll"
+                        onclick="UILogic.abrirSelectorMesesCalendario()">
+                    </div>
                 </div>
             </div>
         </div>
@@ -1976,7 +2043,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_256</span>
+                    <span class="version-text">LUSHIBOSCA build_261</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -3160,7 +3227,7 @@
                     document.querySelectorAll('.modal.show').forEach(modal => {
                         modal.classList.remove('show');
                         modal.removeEventListener('mousedown', _handleOverlayMousedown);
-                    modal.removeEventListener('click', handleOutsideClick);
+                        modal.removeEventListener('click', handleOutsideClick);
                     });
                     // Limpiar todas las relaciones
                     Object.keys(_padres).forEach(k => delete _padres[k]);
@@ -6929,7 +6996,15 @@
                     _renderBarra(vista);
                     _renderSelectorStats();
                     actualizarEstadoBotonTimerMain();
-                    if (_vistaHistoricoCalendario) _renderizarCalendario(idNuevo);
+                    if (_vistaHistoricoCalendario) {
+                        const selector = document.getElementById('calendario-selector-meses');
+                        if (selector && selector.style.display !== 'none') {
+                            // Cerrar selector con animación y volver al grid
+                            abrirSelectorMesesCalendario();
+                        } else {
+                            _renderizarCalendario(idNuevo);
+                        }
+                    }
 
                     const debeAnimar = animarCard || (idNuevo !== null && !soloReloj);
                     if (debeAnimar) {
@@ -8280,6 +8355,97 @@ Generado por Sistema Lushibosca
                     });
                 }
 
+                function abrirSelectorMesesCalendario() {
+                    const grid = document.getElementById('calendario-grid');
+                    const selector = document.getElementById('calendario-selector-meses');
+                    const navBotones = document.getElementById('calendario-nav-botones');
+                    const titulo = document.getElementById('calendario-titulo-mes');
+
+                    if (selector.style.display !== 'none') {
+                        // Cerrar selector → mostrar grid
+                        selector.classList.add('fade-out');
+                        setTimeout(() => {
+                            selector.classList.remove('fade-out');
+                            selector.style.display = 'none';
+                            navBotones.style.display = 'flex';
+                            grid.style.display = '';
+                            grid.classList.add('fade-out');
+                            grid.offsetHeight; // reflow
+                            _renderizarCalendario();
+                            grid.classList.remove('fade-out');
+                        }, 300);
+                        return;
+                    }
+
+                    // Poblar selector antes de medir
+                    const registros = D.registros();
+                    const mesesUnicos = new Set();
+                    registros.forEach(r => mesesUnicos.add(r.fecha.substring(0, 7)));
+                    const mesesOrdenados = Array.from(mesesUnicos).sort().reverse();
+
+                    selector.innerHTML = '';
+                    if (mesesOrdenados.length === 0) {
+                        selector.innerHTML = '<div class="empty-state" style="grid-column: span 3;">No hay registros</div>';
+                    } else {
+                        const hoy = new Date();
+                        const anioActual = _calendarioMes ? _calendarioMes.anio : hoy.getFullYear();
+                        const mesActual = _calendarioMes ? _calendarioMes.mes : hoy.getMonth();
+
+                        mesesOrdenados.forEach(mesAnio => {
+                            const [anioStr, mesStr] = mesAnio.split('-');
+                            const anio = parseInt(anioStr);
+                            const mes = parseInt(mesStr) - 1;
+
+                            const btn = document.createElement('button');
+                            btn.className = 'btn-mes-calendario';
+
+                            const fecha = new Date(anio, mes, 1);
+                            let nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long' });
+                            nombreMes = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1).replace('.', '');
+                            btn.innerHTML = `${nombreMes}<br><span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">${anio}</span>`;
+
+                            if (anio === anioActual && mes === mesActual) {
+                                btn.classList.add('activo');
+                            }
+
+                            btn.onclick = (e) => {
+                                e.stopPropagation();
+                                _calendarioMes = { anio, mes };
+                                // Cerrar selector → mostrar grid con animación
+                                selector.classList.add('fade-out');
+                                setTimeout(() => {
+                                    selector.classList.remove('fade-out');
+                                    selector.style.display = 'none';
+                                    navBotones.style.display = 'flex';
+                                    grid.style.display = '';
+                                    grid.classList.add('fade-out');
+                                    grid.offsetHeight;
+                                    _renderizarCalendario();
+                                    grid.classList.remove('fade-out');
+                                }, 300);
+                            };
+
+                            selector.appendChild(btn);
+                        });
+                    }
+
+                    // Abrir selector → fade-out grid
+                    const alturaCalendario = grid.offsetHeight;
+                    selector.style.height = alturaCalendario + 'px';
+
+                    grid.classList.add('fade-out');
+                    setTimeout(() => {
+                        grid.classList.remove('fade-out');
+                        grid.style.display = 'none';
+                        navBotones.style.display = 'none';
+                        titulo.innerHTML = 'Mes';
+                        selector.style.display = 'grid';
+                        selector.classList.add('fade-out');
+                        selector.offsetHeight; // reflow
+                        selector.classList.remove('fade-out');
+                    }, 300);
+                }
+
                 function abrirSelectorPerfiles() {
                     ModalManager.abrir('modal-selector-perfiles', () => {
                         const inputNuevo = document.getElementById('nombre-nuevo-perfil-selector');
@@ -8719,6 +8885,7 @@ Generado por Sistema Lushibosca
                         try {
                             await DataManagement.registrarDiaEspecial(desde, tipo);
                             // Solo limpiar si fue exitoso
+                            aplicarFeedbackLote(true, false);
                             document.getElementById('lote-fecha-desde').value = '';
                             document.getElementById('lote-fecha-hasta').value = '';
                         } catch (error) {
@@ -8775,6 +8942,7 @@ Generado por Sistema Lushibosca
                         }
 
                         // Solo limpiar campos si la operación fue exitosa
+                        aplicarFeedbackLote(true, true);
                         document.getElementById('lote-fecha-desde').value = '';
                         document.getElementById('lote-fecha-hasta').value = '';
                     } catch (error) {
@@ -9658,7 +9826,7 @@ Generado por Sistema Lushibosca
                     window.UILogic = {
                         alternarTema, cerrarConfig, pegarHoraActual, alternarVista, poblarSelectoresTipos,
                         cerrarEdicion, mostrarImportar, cerrarImportar, actualizarUI, mostrarToast,
-                        mostrarError, limpiarError, resetearBoton, restaurarBotonGuardarEdicion,
+                        mostrarError, limpiarError, resetearBoton, restaurarBotonGuardarEdicion, abrirSelectorMesesCalendario,
                         limpiarCampo, obtenerFechaHoy, mostrarFiltros, poblarSelectorMeses, actualizarBotonLote,
                         cerrarFiltros, registrarLoteDesdeCard, cambiarMesStats, generarReporte, toggleHistorico, toggleStats,
                         sumarMinutosAHora, toggleTimerBreakMain, actualizarEstadoBotonTimerMain, toggleBloqueoEdicion, setBloqueoEdicion,
@@ -9674,7 +9842,6 @@ Generado por Sistema Lushibosca
                         gistMergeAplicar, gistMergeCancelar, actualizarBotonesHistorico, toggleGistBackup, toggleModoLote, toggleVisibilidadCard, aplicarVisibilidadCards,
                         _popupCalendario, _popupCalendarioHover, _cerrarPopupCalendarioHover, toggleHoverPopupCalendario, actualizarEstadoBotonHoverPopup,
                         cambiarLimiteSync, obtenerOrdenCards, aplicarOrdenCards, iniciarDragOrdenCards, _onclickCalendarioDia,
-
                         actualizarHintGrupo, irHoyCalendario, detenerCambioLimite, iniciarCambioLimite,
                         obtenerNombrePerfilSafe, descargarJSON,
                     };
@@ -10650,6 +10817,16 @@ Generado por Sistema Lushibosca
                             if (btnFiltro) { btnFiltro.disabled = false; btnFiltro.style.opacity = ''; }
                         }
                     }, 300);
+
+                    // RESETEAR SELECTOR SI ESTÁ ABIERTO AL CAMBIAR DE VISTA
+                    const selector = document.getElementById('calendario-selector-meses');
+                    const grid = document.getElementById('calendario-grid');
+                    const navBotones = document.getElementById('calendario-nav-botones');
+                    if (selector && selector.style.display !== 'none') {
+                        selector.style.display = 'none';
+                        if (grid) grid.style.display = '';
+                        if (navBotones) navBotones.style.display = 'flex';
+                    }
                 }
 
                 let _popupCalendarioEl = null;
@@ -11080,8 +11257,52 @@ Generado por Sistema Lushibosca
                     }, 2000);
                 }
 
+                function aplicarFeedbackLote(mostrarDesde, mostrarHasta) {
+                    const inputDesde = document.getElementById('lote-fecha-desde');
+                    const inputHasta = document.getElementById('lote-fecha-hasta');
+
+                    const labelDesde = inputDesde?.closest('.form-group')?.querySelector('label');
+                    const labelHasta = inputHasta?.closest('.form-group')?.querySelector('label');
+
+                    const textoOriginalDesde = labelDesde ? labelDesde.textContent : 'Desde';
+                    const textoOriginalHasta = labelHasta ? labelHasta.textContent : 'Hasta';
+
+                    const cambiarTextoSuave = (label, nuevoTexto, color) => {
+                        if (!label) return;
+                        label.style.opacity = '0';
+                        label.style.transform = 'translateY(-3px)';
+                        setTimeout(() => {
+                            label.textContent = nuevoTexto;
+                            label.style.color = color;
+                            label.style.opacity = '1';
+                            label.style.transform = 'translateY(0)';
+                        }, 150);
+                    };
+
+                    if (mostrarDesde && inputDesde) {
+                        inputDesde.classList.add('input-agregado-animacion');
+                        cambiarTextoSuave(labelDesde, '✓ Agregado', 'var(--c-green)');
+                    }
+
+                    if (mostrarHasta && inputHasta) {
+                        inputHasta.classList.add('input-agregado-animacion');
+                        cambiarTextoSuave(labelHasta, '✓ Agregado', 'var(--c-green)');
+                    }
+
+                    setTimeout(() => {
+                        if (mostrarDesde && inputDesde) {
+                            inputDesde.classList.remove('input-agregado-animacion');
+                            cambiarTextoSuave(labelDesde, textoOriginalDesde, '');
+                        }
+                        if (mostrarHasta && inputHasta) {
+                            inputHasta.classList.remove('input-agregado-animacion');
+                            cambiarTextoSuave(labelHasta, textoOriginalHasta, '');
+                        }
+                    }, 2000);
+                }
+
                 return {
-                    init, obtenerFechaHoy, pegarHoraActual, alternarTema, alternarVista, cerrarConfig,
+                    init, obtenerFechaHoy, pegarHoraActual, alternarTema, alternarVista, cerrarConfig, abrirSelectorMesesCalendario,
                     cerrarEdicion, mostrarImportar, cerrarImportar, actualizarUI, mostrarToast, mostrarError,
                     limpiarError, resetearBoton, restaurarBotonGuardarEdicion, toggleFormulario, aplicarOrdenCards, iniciarDragOrdenCards,
                     limpiarCampo, mostrarFiltros, cerrarFiltros, registrarLoteDesdeCard, irHoyCalendario, obtenerOrdenCards,
@@ -11092,7 +11313,7 @@ Generado por Sistema Lushibosca
                     eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                     iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo, poblarSelectoresTipos,
-                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
+                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro, aplicarFeedbackLote,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, actualizarHintGrupo,
@@ -11131,21 +11352,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 256
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 261
     // ====================================================================
     
-     - CAMBIOS:
-    1) [v256] Fix parpadeo del popup de calendario en hover (bug documentado v255/v256):
-       - Se usa requestAnimationFrame para medir dimensiones reales del popup post-layout,
-         eliminando el salto de posicion causado por usar offsetWidth/offsetHeight antes del render.
-       - El popup se oculta con visibility:hidden mientras se calcula la posicion y se
-         muestra recien cuando esta es correcta.
-       - Se aumento el gap entre el dia y el popup de 6px a 12px para reducir falsos mouseleave.
-       - pointer-events:none durante la animacion (0.35s), habilitado via clase .listo al terminar,
-         cortando el ciclo mouseenter/mouseleave que causaba el parpadeo.
-       - Se unificaron los dos listeners de scroll duplicados en uno solo, eliminando un
-         memory leak donde un listener quedaba huerfano tras cerrar el popup.
-
+      - CAMBIOS:
+    1) Vista calendario: animación fade al hacer toggle entre el grid y el
+       selector de meses, usando el mismo patrón de navegarCalendario.
 
      - BUGS CONOCIDOS:
     1)
