@@ -751,7 +751,6 @@
             align-content: start;
             gap: 0.5rem;
             margin-top: 1rem;
-            overflow-y: auto;
         }
 
         .btn-mes-calendario {
@@ -764,6 +763,7 @@
             background: var(--input-bg);
             color: var(--text-main);
             font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
             transition: transform 0.2s, background 0.2s, border-color 0.2s;
             height: 70px;
@@ -1728,7 +1728,7 @@
                     <button onclick="UILogic.ejecutarAccionRegistro()" id="btn-agregar" class="btn-register">
                         <svg class="icon">
                             <use href="#icon-save" />
-                        </svg> <span id="btn-registrar-texto">Registrar</span>
+                        </svg> <span id="btn-registrar-texto">Fichar</span>
                     </button>
                     <svg class="icon chevron" id="icon-indicator-form" onclick="UILogic.toggleFormulario()"
                         style="position: absolute; right: 0; cursor: pointer;">
@@ -1954,7 +1954,7 @@
                 <span style="display: flex; align-items: center; gap: 0.5rem;">
                     <svg class="icon">
                         <use href="#icon-list" />
-                    </svg> Histórico
+                    </svg> Registros
                 </span>
                 <svg class="icon chevron" id="icon-indicator-historico">
                     <use href="#icon-chevron-down" />
@@ -2043,7 +2043,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_261</span>
+                    <span class="version-text">LUSHIBOSCA build_263</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2148,7 +2148,7 @@
                                         <svg class="icon">
                                             <use href="#icon-save" />
                                         </svg>
-                                        <span>Registrar</span>
+                                        <span>Fichar</span>
                                     </button>
                                 </div>
                                 <div class="orden-card-item" id="orden-item-estadisticas">
@@ -2167,7 +2167,7 @@
                                         <svg class="icon">
                                             <use href="#icon-list" />
                                         </svg>
-                                        <span>Histórico</span>
+                                        <span>Registros</span>
                                     </button>
                                 </div>
                             </div>
@@ -2546,7 +2546,7 @@
                     <svg class="icon">
                         <use href="#icon-filter" />
                     </svg>
-                    Filtrar Histórico
+                    Filtrar Registros
                 </span>
             </h3>
             <div class="form-group">
@@ -3886,7 +3886,7 @@
                     const saved = await guardarYActualizar(nuevoId);
 
                     if (saved) {
-                        UILogic.mostrarToast(`Registrado como ${tipoTexto}`, 'success');
+                        UILogic.mostrarToast(`Fichado como ${tipoTexto}`, 'success');
                     } else {
                         throw new Error('Error al guardar');
                     }
@@ -4086,7 +4086,7 @@
                     if (!e && s) {
                         if (!registroExistente) {
                             UILogic.resetearBoton(btn);
-                            UILogic.mostrarToast('Debes registrar una entrada primero', 'error');
+                            UILogic.mostrarToast('Debes fichar una entrada primero', 'error');
                             return;
                         }
 
@@ -4098,7 +4098,7 @@
 
                         if (!registroExistente.entrada) {
                             UILogic.resetearBoton(btn);
-                            UILogic.mostrarToast('Debes registrar una entrada primero', 'error');
+                            UILogic.mostrarToast('Debes fichar una entrada primero', 'error');
                             return;
                         }
                     }
@@ -4391,7 +4391,7 @@
 
                     if (!e && s) {
                         UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                        UILogic.mostrarToast('Debes registrar una entrada', 'error');
+                        UILogic.mostrarToast('Debes fichar una entrada', 'error');
                         return;
                     }
 
@@ -5061,8 +5061,8 @@
 
                     if (saved) {
                         const mensaje = nuevosRegistros.length === 1
-                            ? '1 día registrado'
-                            : `${nuevosRegistros.length} días registrados`;
+                            ? '1 día fichado'
+                            : `${nuevosRegistros.length} días Fichados`;
                         UILogic.mostrarToast(mensaje, 'success');
                         if (UILogic.actualizarBotonLote) {
                             UILogic.actualizarBotonLote();
@@ -5603,7 +5603,7 @@
 
                 function resetearBoton(btn) {
                     btn.disabled = false;
-                    btn.innerHTML = '<svg class="icon"><use href="#icon-save"/></svg> <span id="btn-registrar-texto">Registrar</span>';
+                    btn.innerHTML = '<svg class="icon"><use href="#icon-save"/></svg> <span id="btn-registrar-texto">Fichar</span>';
                 }
 
                 function restaurarBotonGuardarEdicion(btnGuardar) {
@@ -6631,7 +6631,7 @@
                     if (horasDiarias === 0) {
                         colorBarra = 'blue'; colorBorde = 'transparent';
                         estadoFondo = 'esperando';
-                        mensaje = `Total registrado: ${horasATexto(tot)}`;
+                        mensaje = `Total fichado: ${horasATexto(tot)}`;
                         mostrarMensaje = false;
                     } else if (todosEspeciales) {
                         colorBarra = 'blue'; colorBorde = 'transparent';
@@ -6999,8 +6999,7 @@
                     if (_vistaHistoricoCalendario) {
                         const selector = document.getElementById('calendario-selector-meses');
                         if (selector && selector.style.display !== 'none') {
-                            // Cerrar selector con animación y volver al grid
-                            abrirSelectorMesesCalendario();
+                            _cerrarSelectorMeses(idNuevo);
                         } else {
                             _renderizarCalendario(idNuevo);
                         }
@@ -8115,7 +8114,7 @@ Generado por Sistema Lushibosca
                         btn.disabled = true;
                         btn.style.opacity = '0.5';
                         btn.style.cursor = 'not-allowed';
-                        btn.title = diaCerrado ? "Día finalizado" : "Debes registrar entrada primero";
+                        btn.title = diaCerrado ? "Día finalizado" : "Debes fichar entrada primero";
                     } else {
                         btn.disabled = false;
                         btn.style.opacity = '1';
@@ -8355,6 +8354,23 @@ Generado por Sistema Lushibosca
                     });
                 }
 
+                function _cerrarSelectorMeses(idResaltar = null) {
+                    const grid = document.getElementById('calendario-grid');
+                    const selector = document.getElementById('calendario-selector-meses');
+                    const navBotones = document.getElementById('calendario-nav-botones');
+                    selector.classList.add('fade-out');
+                    setTimeout(() => {
+                        selector.classList.remove('fade-out');
+                        selector.style.display = 'none';
+                        navBotones.style.display = 'flex';
+                        grid.style.display = 'grid';
+                        grid.classList.add('fade-out');
+                        grid.offsetHeight;
+                        _renderizarCalendario(idResaltar);
+                        grid.classList.remove('fade-out');
+                    }, 300);
+                }
+
                 function abrirSelectorMesesCalendario() {
                     const grid = document.getElementById('calendario-grid');
                     const selector = document.getElementById('calendario-selector-meses');
@@ -8362,22 +8378,11 @@ Generado por Sistema Lushibosca
                     const titulo = document.getElementById('calendario-titulo-mes');
 
                     if (selector.style.display !== 'none') {
-                        // Cerrar selector → mostrar grid
-                        selector.classList.add('fade-out');
-                        setTimeout(() => {
-                            selector.classList.remove('fade-out');
-                            selector.style.display = 'none';
-                            navBotones.style.display = 'flex';
-                            grid.style.display = '';
-                            grid.classList.add('fade-out');
-                            grid.offsetHeight; // reflow
-                            _renderizarCalendario();
-                            grid.classList.remove('fade-out');
-                        }, 300);
+                        _cerrarSelectorMeses();
                         return;
                     }
 
-                    // Poblar selector antes de medir
+                    // Poblar selector antes de medir altura
                     const registros = D.registros();
                     const mesesUnicos = new Set();
                     registros.forEach(r => mesesUnicos.add(r.fecha.substring(0, 7)));
@@ -8411,25 +8416,14 @@ Generado por Sistema Lushibosca
                             btn.onclick = (e) => {
                                 e.stopPropagation();
                                 _calendarioMes = { anio, mes };
-                                // Cerrar selector → mostrar grid con animación
-                                selector.classList.add('fade-out');
-                                setTimeout(() => {
-                                    selector.classList.remove('fade-out');
-                                    selector.style.display = 'none';
-                                    navBotones.style.display = 'flex';
-                                    grid.style.display = '';
-                                    grid.classList.add('fade-out');
-                                    grid.offsetHeight;
-                                    _renderizarCalendario();
-                                    grid.classList.remove('fade-out');
-                                }, 300);
+                                _cerrarSelectorMeses();
                             };
 
                             selector.appendChild(btn);
                         });
                     }
 
-                    // Abrir selector → fade-out grid
+                    // Abrir: medir altura real del grid antes de ocultarlo
                     const alturaCalendario = grid.offsetHeight;
                     selector.style.height = alturaCalendario + 'px';
 
@@ -8438,7 +8432,7 @@ Generado por Sistema Lushibosca
                         grid.classList.remove('fade-out');
                         grid.style.display = 'none';
                         navBotones.style.display = 'none';
-                        titulo.innerHTML = 'Mes';
+                        titulo.textContent = 'Mes';
                         selector.style.display = 'grid';
                         selector.classList.add('fade-out');
                         selector.offsetHeight; // reflow
@@ -8761,7 +8755,7 @@ Generado por Sistema Lushibosca
                             document.getElementById('lote-fecha-desde').value = '';
                             document.getElementById('lote-fecha-hasta').value = '';
 
-                            btnTexto.textContent = 'Registrar Lote';
+                            btnTexto.textContent = 'Fichar Lote';
                             btn.style.background = '';
                             btn.style.color = '';
 
@@ -8786,13 +8780,7 @@ Generado por Sistema Lushibosca
 
                             modoNormal.classList.remove('fade-out');
 
-                            btnTexto.textContent = 'Registrar';
-                            btn.style.background = '';
-                            btn.style.color = '';
-
-                            setIconoBtn(btn, '#icon-save');
-
-                            btnTimer.disabled = false;
+                            btnTexto.textContent = 'Fichar';
                             btnTimer.style.opacity = '1';
 
                             actualizarEstadoBotonTimerMain();
@@ -9012,9 +9000,9 @@ Generado por Sistema Lushibosca
                     btn.style.background = '';
                     btn.style.color = '';
 
-                    // 2. Si faltan fechas, mostramos "Registrar" estándar y salimos
+                    // 2. Si faltan fechas, mostramos "Fichar" estándar y salimos
                     if (!desde && !hasta) {
-                        btnTexto.textContent = 'Registrar';
+                        btnTexto.textContent = 'Fichar';
                         setIconoBtn(btn, '#icon-save');
                         return;
                     }
@@ -9031,10 +9019,10 @@ Generado por Sistema Lushibosca
                         // Verificar si ya existe
                         const registroExiste = DataManagement.registros().find(r => r.fecha === desde);
                         if (registroExiste) {
-                            btnTexto.textContent = 'Registrado';
+                            btnTexto.textContent = 'Fichado';
                             btn.style.color = 'var(--text-muted)';
                         } else {
-                            btnTexto.textContent = 'Registrar';
+                            btnTexto.textContent = 'Fichar';
                         }
                         setIconoBtn(btn, '#icon-save');
                         return;
@@ -9116,19 +9104,19 @@ Generado por Sistema Lushibosca
                             const sobreescribirOtros = diasOcupados.length - yaRegistrados;
 
                             if (disponibles === 0 && yaRegistrados === diasTotales) {
-                                btnTexto.textContent = `Registrado (${diasTotales})`;
+                                btnTexto.textContent = `Fichado (${diasTotales})`;
                                 btn.style.color = 'var(--text-muted)';
                             } else if (disponibles === diasTotales) {
-                                btnTexto.textContent = `Registrar (${diasTotales})`;
+                                btnTexto.textContent = `Fichar (${diasTotales})`;
                             } else if (sobreescribirOtros > 0) {
-                                btnTexto.textContent = `Registrar (${disponibles} - ${sobreescribirOtros})`;
+                                btnTexto.textContent = `Fichar (${disponibles} - ${sobreescribirOtros})`;
                             } else {
-                                btnTexto.textContent = `Registrar (${disponibles})`;
+                                btnTexto.textContent = `Fichar (${disponibles})`;
                             }
                             setIconoBtn(btn, '#icon-save');
                         } else {
                             registrosDelTipoEnRango = [];
-                            btnTexto.textContent = 'Registrar';
+                            btnTexto.textContent = 'Fichar';
                             setIconoBtn(btn, '#icon-save');
                         }
                     }
@@ -10824,7 +10812,7 @@ Generado por Sistema Lushibosca
                     const navBotones = document.getElementById('calendario-nav-botones');
                     if (selector && selector.style.display !== 'none') {
                         selector.style.display = 'none';
-                        if (grid) grid.style.display = '';
+                        if (grid) grid.style.display = 'grid';
                         if (navBotones) navBotones.style.display = 'flex';
                     }
                 }
@@ -11352,12 +11340,14 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 261
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 263
     // ====================================================================
     
       - CAMBIOS:
-    1) Vista calendario: animación fade al hacer toggle entre el grid y el
-       selector de meses, usando el mismo patrón de navegarCalendario.
+    1) Renombrado "Histórico" → "Registros" (h2, panel filtros, config)
+    2) Renombrado "Registrar" → "Fichar" en botón principal, modo lote y estados dinámicos
+    3) Toasts y mensajes: "Registrado" → "Fichado", "registrar entrada" → "fichar entrada"
+    4) "Total registrado" → "Total fichado", "1 día registrado" → "1 día fichado"
 
      - BUGS CONOCIDOS:
     1)
