@@ -3886,7 +3886,7 @@
                     const saved = await guardarYActualizar(nuevoId);
 
                     if (saved) {
-                        UILogic.mostrarToast(`Fichado como ${tipoTexto}`, 'success');
+                        UILogic.mostrarToast(`Registro agregado como ${tipoTexto}`, 'success');
                     } else {
                         throw new Error('Error al guardar');
                     }
@@ -4135,7 +4135,7 @@
                                 mensaje = `Salida registrada con hora actual \n(entrada: ${registroExistente.entrada})`;
                             } else {
                                 // Caso: Salida manual
-                                mensaje = `Salida ${s} agregada\n(entrada: ${registroExistente.entrada})`;
+                                mensaje = `Salida ${s} agregada \n(entrada: ${registroExistente.entrada})`;
                             }
 
                             UILogic.mostrarToast(mensaje, 'success');
@@ -5061,8 +5061,8 @@
 
                     if (saved) {
                         const mensaje = nuevosRegistros.length === 1
-                            ? '1 día fichado'
-                            : `${nuevosRegistros.length} días Fichados`;
+                            ? '1 día registrado'
+                            : `${nuevosRegistros.length} días registrados`;
                         UILogic.mostrarToast(mensaje, 'success');
                         if (UILogic.actualizarBotonLote) {
                             UILogic.actualizarBotonLote();
