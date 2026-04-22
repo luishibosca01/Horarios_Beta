@@ -424,6 +424,7 @@
         .stats-card-content {
             position: relative;
             z-index: 1;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
         #stats-card.timer-running {
@@ -451,11 +452,6 @@
         .card-anim.ciclo-fade-in {
             opacity: 0;
             transform: translateY(6px);
-        }
-
-        /* Animación de contenido interno de stats-card */
-        .stats-card-content {
-            transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
         /* Estados del borde lateral */
@@ -766,7 +762,7 @@
             font-family: inherit;
             cursor: pointer;
             transition: transform 0.2s, background 0.2s, border-color 0.2s;
-            height: 70px;
+            height: 50px;
             font-size: 0.9rem;
         }
 
@@ -774,6 +770,18 @@
             border-color: var(--c-green);
             background: rgba(96, 172, 148, 0.1);
             color: var(--c-green);
+        }
+
+        .selector-meses-anio-header {
+            grid-column: 1 / -1;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 0.4rem 0.2rem 0.1rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0.1rem;
         }
 
         /* --- Animaciones y Textos --- */
@@ -1481,6 +1489,10 @@
             .header-profile-btn {
                 max-width: 300px;
             }
+
+            #calendario-selector-meses {            
+            grid-template-columns: repeat(4, 1fr);
+            }
         }
     </style>
 </head>
@@ -2043,7 +2055,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_263</span>
+                    <span class="version-text">LUSHIBOSCA build_266</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -7708,23 +7720,38 @@
                         mesASeleccionar = mesesOrdenados[0];
                     }
 
-                    // Crear opciones
+                    // Agrupar meses por año
+                    const mesesPorAnio = new Map();
                     mesesOrdenados.forEach(mesAnio => {
-                        const option = document.createElement('option');
-                        option.value = mesAnio;
+                        const anio = mesAnio.substring(0, 4);
+                        if (!mesesPorAnio.has(anio)) mesesPorAnio.set(anio, []);
+                        mesesPorAnio.get(anio).push(mesAnio);
+                    });
 
-                        // Formatear texto del mes
-                        const [año, mes] = mesAnio.split('-');
-                        const fecha = new Date(año, mes - 1, 1);
-                        const nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-                        option.textContent = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+                    // Crear opciones agrupadas por año
+                    mesesPorAnio.forEach((meses, anio) => {
+                        const grupo = document.createElement('optgroup');
+                        grupo.label = anio;
 
-                        // Seleccionar el mes correcto
-                        if (mesAnio === mesASeleccionar) {
-                            option.selected = true;
-                        }
+                        meses.forEach(mesAnio => {
+                            const option = document.createElement('option');
+                            option.value = mesAnio;
 
-                        selectMes.appendChild(option);
+                            // Formatear solo el nombre del mes (sin el año)
+                            const [a, m] = mesAnio.split('-');
+                            const fecha = new Date(a, m - 1, 1);
+                            const nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long' });
+                            option.textContent = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+
+                            // Seleccionar el mes correcto
+                            if (mesAnio === mesASeleccionar) {
+                                option.selected = true;
+                            }
+
+                            grupo.appendChild(option);
+                        });
+
+                        selectMes.appendChild(grupo);
                     });
 
                     // Actualizar stats con el mes correcto
@@ -8396,30 +8423,46 @@ Generado por Sistema Lushibosca
                         const anioActual = _calendarioMes ? _calendarioMes.anio : hoy.getFullYear();
                         const mesActual = _calendarioMes ? _calendarioMes.mes : hoy.getMonth();
 
+                        // Agrupar meses por año
+                        const mesesPorAnio = new Map();
                         mesesOrdenados.forEach(mesAnio => {
-                            const [anioStr, mesStr] = mesAnio.split('-');
-                            const anio = parseInt(anioStr);
-                            const mes = parseInt(mesStr) - 1;
+                            const anioStr = mesAnio.substring(0, 4);
+                            if (!mesesPorAnio.has(anioStr)) mesesPorAnio.set(anioStr, []);
+                            mesesPorAnio.get(anioStr).push(mesAnio);
+                        });
 
-                            const btn = document.createElement('button');
-                            btn.className = 'btn-mes-calendario';
+                        mesesPorAnio.forEach((meses, anioStr) => {
+                            // Encabezado de año
+                            const separador = document.createElement('div');
+                            separador.className = 'selector-meses-anio-header';
+                            separador.textContent = anioStr;
+                            selector.appendChild(separador);
 
-                            const fecha = new Date(anio, mes, 1);
-                            let nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long' });
-                            nombreMes = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1).replace('.', '');
-                            btn.innerHTML = `${nombreMes}<br><span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">${anio}</span>`;
+                            meses.forEach(mesAnio => {
+                                const [aStr, mesStr] = mesAnio.split('-');
+                                const anio = parseInt(aStr);
+                                const mes = parseInt(mesStr) - 1;
 
-                            if (anio === anioActual && mes === mesActual) {
-                                btn.classList.add('activo');
-                            }
+                                const btn = document.createElement('button');
+                                btn.className = 'btn-mes-calendario';
 
-                            btn.onclick = (e) => {
-                                e.stopPropagation();
-                                _calendarioMes = { anio, mes };
-                                _cerrarSelectorMeses();
-                            };
+                                const fecha = new Date(anio, mes, 1);
+                                let nombreMes = fecha.toLocaleDateString('es-ES', { month: 'long' });
+                                nombreMes = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1).replace('.', '');
+                                btn.textContent = nombreMes;
 
-                            selector.appendChild(btn);
+                                if (anio === anioActual && mes === mesActual) {
+                                    btn.classList.add('activo');
+                                }
+
+                                btn.onclick = (e) => {
+                                    e.stopPropagation();
+                                    _calendarioMes = { anio, mes };
+                                    _cerrarSelectorMeses();
+                                };
+
+                                selector.appendChild(btn);
+                            });
                         });
                     }
 
@@ -8432,7 +8475,7 @@ Generado por Sistema Lushibosca
                         grid.classList.remove('fade-out');
                         grid.style.display = 'none';
                         navBotones.style.display = 'none';
-                        titulo.textContent = 'Mes';
+                        titulo.textContent = 'Selector de mes';
                         selector.style.display = 'grid';
                         selector.classList.add('fade-out');
                         selector.offsetHeight; // reflow
@@ -11340,14 +11383,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 263
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 266
     // ====================================================================
     
       - CAMBIOS:
-    1) Renombrado "Histórico" → "Registros" (h2, panel filtros, config)
-    2) Renombrado "Registrar" → "Fichar" en botón principal, modo lote y estados dinámicos
-    3) Toasts y mensajes: "Registrado" → "Fichado", "registrar entrada" → "fichar entrada"
-    4) "Total registrado" → "Total fichado", "1 día registrado" → "1 día fichado"
+    1) 
 
      - BUGS CONOCIDOS:
     1)
