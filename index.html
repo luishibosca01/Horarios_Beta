@@ -6189,7 +6189,7 @@
                 }
 
                 function calcularRegularidad(desviacionMinutos) {
-                    if (desviacionMinutos === null) return '--';
+                    if (desviacionMinutos === null) return '--:--';
                     const mins = Math.round(desviacionMinutos);
                     const label = mins <= 20 ? 'Alta' : mins <= 40 ? 'Media' : 'Baja';
                     return `±${mins}m | ${label}`;
@@ -6239,10 +6239,10 @@
                     const vacios = {
                         entradaPromedio: '--:--', salidaPromedio: '--:--',
                         diasTrabajados: 0, promedioDiario: '--:--',
-                        tiempoFueraTotal: '--:--', tiempoTotal: '0h 0m',
+                        tiempoFueraTotal: '--:--', tiempoTotal: '--:--',
                         feriados, ausencias, vacaciones, enfermedades,
                         asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios,
-                        regularidadEntrada: '--', regularidadJornada: '--',
+                        regularidadEntrada: '--:--', regularidadJornada: '--:--',
                         bufferPeriodo: null
                     };
                     if (registrosValidos.length === 0) return vacios;
@@ -6367,7 +6367,7 @@
                     const showHide = (id, show, val) => {
                         const el = $(id); if (!el) return;
                         const si = el.closest('.stat-item');
-                        if (si) { if (show) { si.style.display = ''; el.textContent = val || '--'; } else { si.style.display = 'none'; } }
+                        if (si) { if (show) { si.style.display = ''; el.textContent = val || '--:--'; } else { si.style.display = 'none'; } }
                     };
                     showHide('stat-regularidad-entrada', mostrarRegularidad, stats.regularidadEntrada);
                     showHide('stat-regularidad-jornada', mostrarRegularidad, stats.regularidadJornada);
