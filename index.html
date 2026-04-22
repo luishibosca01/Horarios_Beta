@@ -29,6 +29,7 @@
             --bg-body: #ffffff;
             --bg-card: #f0f4f9;
             --bg-header: #ffffff;
+            --bg-toast: #1f2937;
             --text-main: #1f1f1f;
             --text-muted: #444746;
             --text-disabled: #444746a2;
@@ -37,7 +38,9 @@
             --input-focus: #dde3ea;
             --c-blue: rgba(76, 114, 172, 0.8);
             --c-green: rgba(76, 172, 140, 0.8);
+            --c-green-bg: rgba(96, 172, 148, 0.1);
             --c-red: rgba(172, 90, 76, 0.8);
+            --c-red-pulse: rgba(192, 93, 118, 0.4);
             --c-purple: rgba(129, 76, 172, 0.8);
             --c-gold: rgba(172, 155, 76, 0.8);
             --c-orange: rgba(210, 120, 50, 0.8);
@@ -46,6 +49,8 @@
             --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             --radius: 20px;
             --hover: brightness(0.9);
+            --transition-anim: opacity 0.35s ease, transform 0.35s ease;
+            --transition-collapse: max-height 0.3s ease-out, opacity 0.3s ease-out;
         }
 
         body.dark-mode {
@@ -53,6 +58,7 @@
             --bg-body: #131314;
             --bg-card: #1e1f20;
             --bg-header: #131314f6;
+            --bg-toast: #0d1117;
             --text-main: #e3e3e3;
             --text-muted: #b4b4b4;
             --text-disabled: #b4b4b4a2;
@@ -358,7 +364,7 @@
         #gist-limite-sync {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease, opacity 0.3s ease;
+            transition: var(--transition-collapse);
             opacity: 0;
             margin-top: 0.5rem;
         }
@@ -371,11 +377,6 @@
 
         #gist-limite-sync {
             display: block;
-        }
-
-        .header-buttons {
-            display: flex;
-            gap: 0.5rem;
         }
 
         .btn-group {
@@ -424,22 +425,51 @@
         .stats-card-content {
             position: relative;
             z-index: 1;
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: var(--transition-anim);
+        }
+
+        /* Estados del borde lateral — especificidad aumentada para evitar !important */
+        .stats-card.border-blue {
+            border-left-color: var(--c-blue);
+        }
+
+        .stats-card.border-green {
+            border-left-color: var(--c-green);
+        }
+
+        .stats-card.border-red {
+            border-left-color: var(--c-red);
+        }
+
+        .stats-card.border-purple {
+            border-left-color: var(--c-purple);
+        }
+
+        .stats-card.border-gold {
+            border-left-color: var(--c-gold);
+        }
+
+        .stats-card.border-orange {
+            border-left-color: var(--c-orange);
+        }
+
+        .stats-card.border-transparent {
+            border-left-color: transparent;
         }
 
         #stats-card.timer-running {
-            border-left-color: var(--c-red) !important;
+            border-left-color: var(--c-red);
         }
 
         .stats-number {
             font-size: 1.8rem;
             font-weight: bold;
             margin: 0.5rem 0;
-            transition: opacity 0.35s ease, transform 0.35s ease;
+            transition: var(--transition-anim);
         }
 
         .card-anim {
-            transition: opacity 0.35s ease, transform 0.35s ease;
+            transition: var(--transition-anim);
         }
 
         .stats-number.ciclo-fade-out,
@@ -454,33 +484,28 @@
             transform: translateY(6px);
         }
 
-        /* Estados del borde lateral */
-        .stats-card.border-blue {
-            border-left-color: var(--c-blue) !important;
+        .progress-fill.blue {
+            background: var(--c-blue);
         }
 
-        .stats-card.border-green {
-            border-left-color: var(--c-green) !important;
+        .progress-fill.green {
+            background: var(--c-green);
         }
 
-        .stats-card.border-red {
-            border-left-color: var(--c-red) !important;
+        .progress-fill.red {
+            background: var(--c-red);
         }
 
-        .stats-card.border-purple {
-            border-left-color: var(--c-purple) !important;
+        .progress-fill.purple {
+            background: var(--c-purple);
         }
 
-        .stats-card.border-gold {
-            border-left-color: var(--c-gold) !important;
+        .progress-fill.gold {
+            background: var(--c-gold);
         }
 
-        .stats-card.border-orange {
-            border-left-color: var(--c-orange) !important;
-        }
-
-        .stats-card.border-transparent {
-            border-left-color: transparent !important;
+        .progress-fill.orange {
+            background: var(--c-orange);
         }
 
         .progress-bar {
@@ -500,30 +525,6 @@
             overflow: hidden;
         }
 
-        .progress-fill.blue {
-            background: var(--c-blue) !important;
-        }
-
-        .progress-fill.green {
-            background: var(--c-green) !important;
-        }
-
-        .progress-fill.red {
-            background: var(--c-red) !important;
-        }
-
-        .progress-fill.purple {
-            background: var(--c-purple) !important;
-        }
-
-        .progress-fill.gold {
-            background: var(--c-gold) !important;
-        }
-
-        .progress-fill.orange {
-            background: var(--c-orange) !important;
-        }
-
         .progress-fill.shimmer::after {
             content: '';
             position: absolute;
@@ -539,7 +540,7 @@
         .registro-item {
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 0.75rem 0.75rem 0.75rem 0.75rem;
+            padding: 0.75rem;
             margin-bottom: 0.5rem;
             display: flex;
             justify-content: space-between;
@@ -559,7 +560,7 @@
             color: var(--text-main);
             font-size: 0.75rem;
             font-weight: 700;
-            padding: 0.1rem 1rem 0.1rem 1rem;
+            padding: 0.1rem 1rem;
             border-radius: var(--radius);
             letter-spacing: 0.5px;
         }
@@ -586,7 +587,7 @@
             color: var(--c-white);
             display: inline-block;
             border-radius: var(--radius);
-            padding: .1rem 1rem .1rem 1rem;
+            padding: 0.1rem 1rem;
         }
 
         .registro-total.green-text,
@@ -716,7 +717,7 @@
             justify-content: center;
             transform: translateX(-50%) translateY(80px);
             transition: opacity 0.3s, transform 0.3s;
-            background: #1f2937;
+            background: var(--bg-toast);
             color: white;
             padding: 1rem 1.5rem;
             border-radius: var(--radius);
@@ -768,7 +769,7 @@
 
         .btn-mes-calendario.activo {
             border-color: var(--c-green);
-            background: rgba(96, 172, 148, 0.1);
+            background: var(--c-green-bg);
             color: var(--c-green);
         }
 
@@ -855,7 +856,7 @@
 
         @keyframes pulse {
             0% {
-                box-shadow: 0 0 0 0 rgba(192, 93, 118, 0.4);
+                box-shadow: 0 0 0 0 var(--c-red-pulse);
             }
 
             70% {
@@ -1064,7 +1065,7 @@
         .form-collapsible {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            transition: var(--transition-collapse);
             opacity: 0;
         }
 
@@ -1135,7 +1136,7 @@
             overflow: hidden;
             max-height: 0;
             opacity: 0;
-            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            transition: var(--transition-collapse);
         }
 
         .registro-mes-detalle.expanded {
@@ -1171,8 +1172,6 @@
             max-width: 180px;
         }
 
-
-
         .header-profile-btn span {
             white-space: nowrap;
             overflow: hidden;
@@ -1207,12 +1206,12 @@
 
         .btn-perfil-select.activo {
             border-color: var(--c-green);
-            background: rgba(96, 172, 148, 0.1);
+            background: var(--c-green-bg);
             font-weight: bold;
         }
 
         .btn-activo {
-            background: rgba(96, 172, 148, 0.1) !important;
+            background: var(--c-green-bg) !important;
             color: var(--c-green) !important;
             border-color: var(--c-green) !important;
             font-weight: bold !important;
@@ -1270,7 +1269,7 @@
         #lista-registros,
         #vista-calendario-historico,
         #calendario-selector-meses {
-            transition: max-height 0.3s ease-out, opacity 0.3s ease-out, transform 0.3s ease;
+            transition: var(--transition-collapse), transform 0.3s ease;
         }
 
         .fade-out {
@@ -1279,11 +1278,6 @@
         }
 
         #form-stats.fade-out {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        .stats-card-content.fade-out {
             opacity: 0;
             transform: translateY(-10px);
         }
@@ -1335,7 +1329,7 @@
         }
 
         .day-checkbox input:checked~span {
-            background: rgba(96, 172, 148, 0.1);
+            background: var(--c-green-bg);
             color: var(--c-green);
             border: 1px solid var(--c-green);
             font-weight: bold;
@@ -1347,7 +1341,7 @@
             max-height: 0;
             overflow: hidden;
             opacity: 0;
-            transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out, margin 0.3s ease-out;
+            transition: var(--transition-collapse), padding 0.3s ease-out, margin 0.3s ease-out;
             padding-top: 0;
             margin-bottom: 0;
         }
@@ -1381,6 +1375,270 @@
 
         .stat-value {
             color: var(--text-muted)
+        }
+
+        /* --- Clases utilitarias (reemplazo de inline styles) --- */
+
+        /* Ocultar elementos — JS usa classList.add/remove('hidden') */
+        .hidden {
+            display: none !important;
+        }
+
+        /* SVG sprite oculto */
+        .svg-sprite {
+            display: none;
+        }
+
+        /* Header botones contenedor */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Botón install: oculto por defecto, JS lo muestra */
+        #btn-install {
+            display: none;
+        }
+
+        /* progress-bar fill: width se setea por JS, sólo definimos el estado inicial */
+        #progress-bar {
+            width: 0%;
+        }
+
+        /* stats-buffer */
+        #stats-buffer {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            min-height: 1.2rem;
+        }
+
+        /* Card registrar: h2 con botones de timer y chevron */
+        .card-registrar-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Botón timer dentro del header de la card registrar */
+        #btn-timer-main {
+            padding: 0.5rem;
+            position: absolute;
+            left: 0;
+        }
+
+        /* Chevron indicador de formulario */
+        #icon-indicator-form {
+            position: absolute;
+            right: 0;
+            cursor: pointer;
+        }
+
+        /* Modos del formulario */
+        #modo-normal {
+            display: block;
+        }
+
+        #modo-lote {
+            display: none;
+        }
+
+        /* Padding top en primer form-group de cada modo */
+        .form-group-pt {
+            padding-top: 1rem;
+        }
+
+        /* Botones con flex-shrink-0 */
+        .flex-shrink-0 {
+            flex-shrink: 0;
+        }
+
+        /* Spans de cabecera de cards (icon + texto) */
+        .card-section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Div de stats con padding top */
+        .stats-inner {
+            padding-top: 1rem;
+        }
+
+        /* Selector de período de stats */
+        .stats-periodo-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Selects del período con flex:1 */
+        .stats-periodo-row select {
+            flex: 1;
+        }
+
+        /* Icono pequeño del btn periodo */
+        #btn-toggle-periodo .icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* btn-group con margin-top extra */
+        .btn-group-mt {
+            margin-top: 1rem;
+        }
+
+        /* Botones histórico: layout interno */
+        .botones-historico-inner {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            padding: 0 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .botones-historico-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Contenedor nav botones calendario */
+        #calendario-nav-botones {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        /* Botón "Hoy" del calendario */
+        .btn-hoy-calendario {
+            width: auto;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Chevrons del calendario (rotados) */
+        .icon-rotate-90 {
+            transform: rotate(90deg);
+        }
+
+        .icon-rotate-neg90 {
+            transform: rotate(-90deg);
+        }
+
+        /* Modal headers sin margin-bottom */
+        .modal-h3-no-mb {
+            margin-bottom: 0;
+        }
+
+        /* Modal headers con margin-bottom estándar */
+        .modal-h3-mb-1 {
+            margin-bottom: 1rem;
+        }
+
+        .modal-h3-mb-half {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Lista orden cards */
+        #lista-orden-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        /* Fila flex con gap estándar — usada en gist y otros lugares */
+        .flex-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* flex:1 genérico — reemplaza flex-1, flex-1, flex-1 */
+        .flex-1 {
+            flex: 1;
+        }
+
+        /* form-group con margin-top media */
+        .form-group-mt-half {
+            margin-top: 0.5rem;
+        }
+
+        /* form-group con margin-bottom */
+        .form-group-mb-half {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Gist merge resumen */
+        #gist-merge-resumen {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+
+        /* Botón crédito con margin-left */
+        #btn-toggle-credito {
+            margin-left: 5px;
+        }
+
+        /* Hint resumen edición */
+        #edit-hint-resumen,
+        #edit-grupo-hint {
+            text-align: center;
+            margin-top: 0;
+            min-height: 1.2em;
+        }
+
+        /* Input file oculto */
+        #file-import {
+            display: none;
+        }
+
+        /* Nombre archivo seleccionado */
+        #nombre-archivo-seleccionado {
+            text-align: center;
+            margin-top: 0.5rem;
+            color: var(--c-green);
+            display: none;
+        }
+
+        /* HR separador en modal importar */
+        .modal-hr {
+            border: 0;
+            border-top: 1px solid var(--border);
+            margin: 1rem 0;
+        }
+
+        /* Contenedor botones importar */
+        .importar-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        /* Campos rango exportar (colapsable, JS controla) */
+        #campos-rango-exportar {
+            max-height: 0;
+            overflow: hidden;
+            transition: var(--transition-collapse);
+            opacity: 0;
+            display: block;
+        }
+
+        /* Form-group con borde superior (separador en modal perfiles) */
+        .form-group-border-top {
+            margin-top: 1rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+
+        /* Modal confirmar texto */
+        #modal-confirmar-texto {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin: 0.5rem 0;
         }
 
         /* --- Hovers de botones --- */
@@ -1456,7 +1714,7 @@
 
             .card,
             .modal-content {
-                padding: 1.5rem 1rem 1.5rem 1rem;
+                padding: 1.5rem 1rem;
             }
 
             .week-selector {
@@ -1490,8 +1748,8 @@
                 max-width: 300px;
             }
 
-            #calendario-selector-meses {            
-            grid-template-columns: repeat(4, 1fr);
+            #calendario-selector-meses {
+                grid-template-columns: repeat(4, 1fr);
             }
         }
     </style>
@@ -1508,7 +1766,7 @@
             } catch (e) { }
         })();
     </script>
-    <svg style="display: none;">
+    <svg class="svg-sprite">
         <symbol id="icon-moon" viewBox="0 0 24 24">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" class="icon-line" stroke-width="2"
                 stroke="currentColor" fill="none"></path>
@@ -1690,9 +1948,8 @@
     </svg>
     <div class="header">
         <h1>Horarios</h1>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <button class="icon-btn" id="btn-install" style="display: none;" onclick="PWAInstaller.instalarApp()"
-                title="Instalar aplicación">
+        <div class="header-actions">
+            <button class="icon-btn" id="btn-install" onclick="PWAInstaller.instalarApp()" title="Instalar aplicación">
                 <svg class="icon">
                     <use href="#icon-install" />
                 </svg>
@@ -1720,19 +1977,17 @@
                         <div>0 horas 0 minutos</div>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" id="progress-bar" style="width: 0%"></div>
+                        <div class="progress-fill" id="progress-bar"></div>
                     </div>
                     <div id="stats-mensaje" class="card-anim">Faltan 0 horas 0 minutos</div>
-                    <div id="stats-buffer" class="card-anim"
-                        style="font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2rem;"></div>
+                    <div id="stats-buffer" class="card-anim"></div>
                     <span class="toggle-hint card-anim" id="toggle-hint">Toca para ver la Semana</span>
                 </div>
             </div>
             <div class="card animated-card" id="card-registrar">
-                <h2 class="no-margin"
-                    style="display: flex; justify-content: center; align-items: center; position: relative;">
+                <h2 class="no-margin card-registrar-header">
                     <button class="filter-btn timer-btn" id="btn-timer-main" onclick="UILogic.toggleTimerBreakMain()"
-                        style="padding: 0.5rem; position: absolute; left: 0px">
+                        title="Tiempo Fuera">
                         <svg class="icon">
                             <use href="#icon-exit" />
                         </svg>
@@ -1742,21 +1997,20 @@
                             <use href="#icon-save" />
                         </svg> <span id="btn-registrar-texto">Fichar</span>
                     </button>
-                    <svg class="icon chevron" id="icon-indicator-form" onclick="UILogic.toggleFormulario()"
-                        style="position: absolute; right: 0; cursor: pointer;">
+                    <svg class="icon chevron" id="icon-indicator-form" onclick="UILogic.toggleFormulario()">
                         <use href="#icon-chevron-down" />
                     </svg>
                 </h2>
                 <div class="form-collapsible" id="form-registro">
 
                     <!-- MODO NORMAL -->
-                    <div id="modo-normal" style="display: block;">
-                        <div class="form-group" style="padding-top: 1rem;">
+                    <div id="modo-normal">
+                        <div class="form-group form-group-pt">
                             <label>Fecha</label>
                             <div class="input-with-btn">
                                 <input type="date" id="fecha" />
                                 <button class="time-btn" onclick="UILogic.toggleModoLote()"
-                                    title="Ir al modo lote/especial" style="flex-shrink: 0;">
+                                    title="Ir al modo lote/especial" class="flex-shrink-0">
                                     <svg class="icon">
                                         <use href="#icon-arrow-right" />
                                     </svg>
@@ -1795,15 +2049,15 @@
                     </div>
 
                     <!-- MODO LOTE -->
-                    <div id="modo-lote" class="fade-out" style="display: none;">
-                        <div class="form-group" style="padding-top: 1rem;">
+                    <div id="modo-lote" class="fade-out">
+                        <div class="form-group form-group-pt">
                             <label>Tipo de registro</label>
                             <div class="input-with-btn">
                                 <select id="lote-tipo" onchange="UILogic.actualizarBotonLote()">
                                     <option value="normal">🕒 Normales (borrar)</option>
                                 </select>
-                                <button class="time-btn" onclick="UILogic.toggleModoLote()" title="Ir al modo normal"
-                                    style="flex-shrink: 0;">
+                                <button class="time-btn flex-shrink-0" onclick="UILogic.toggleModoLote()"
+                                    title="Ir al modo normal">
                                     <svg class="icon">
                                         <use href="#icon-arrow-left" />
                                     </svg>
@@ -1841,7 +2095,7 @@
             </div>
             <div class="card animated-card" id="card-estadisticas">
                 <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleStats()">
-                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="card-section-title">
                         <svg class="icon">
                             <use href="#icon-stats" />
                         </svg> Estadísticas
@@ -1851,19 +2105,18 @@
                     </svg>
                 </h2>
                 <div class="form-collapsible" id="form-stats">
-                    <div style="padding-top: 1rem;">
+                    <div class="stats-inner">
                         <div class="form-group">
                             <label>Período</label>
-                            <div style="display:flex; align-items:center; gap:0.5rem;">
-                                <select id="select-mes-stats" onchange="UILogic.cambiarMesStats()"
-                                    style="flex:1;"></select>
+                            <div class="stats-periodo-row">
+                                <select id="select-mes-stats" onchange="UILogic.cambiarMesStats()"></select>
                                 <select id="select-anio-stats" onchange="UILogic.cambiarAnioStats()"
-                                    style="flex:1; display:none;"></select>
+                                    class="hidden"></select>
                                 <select id="select-semana-stats" onchange="UILogic.cambiarSemanaStats()"
-                                    style="flex:1; display:none;"></select>
+                                    class="hidden"></select>
                                 <button id="btn-toggle-periodo" class="time-btn" onclick="UILogic.togglePeriodoStats()"
                                     title="Alternar vista mensual / anual / semanal">
-                                    <svg class="icon" style="width:14px;height:14px;">
+                                    <svg class="icon">
                                         <use href="#icon-calendar-simple" />
                                     </svg>
                                     <span id="label-periodo-toggle">Mensual</span>
@@ -1873,11 +2126,11 @@
                         <div class="stats-grid">
                             <div class="stat-item">
                                 <div class="stat-label">Tiempo Total</div>
-                                <div class="stat-value" id="stat-tiempo-total">0h 0m</div>
+                                <div class="stat-value" id="stat-tiempo-total">--:--</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Promedio Diario</div>
-                                <div class="stat-value" id="stat-promedio-diario">0h 0m</div>
+                                <div class="stat-value" id="stat-promedio-diario">--:--</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Entrada Promedio</div>
@@ -1889,15 +2142,15 @@
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Entrada Regular</div>
-                                <div class="stat-value" id="stat-regularidad-entrada">--</div>
+                                <div class="stat-value" id="stat-regularidad-entrada">--:--</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Jornada Regular</div>
-                                <div class="stat-value" id="stat-regularidad-jornada">--</div>
+                                <div class="stat-value" id="stat-regularidad-jornada">--:--</div>
                             </div>
                             <div class="stat-item">
                                 <div class="stat-label">Tiempo Fuera</div>
-                                <div class="stat-value" id="stat-tiempo-fuera-total">0h 0m</div>
+                                <div class="stat-value" id="stat-tiempo-fuera-total">--:--</div>
                             </div>
                             <div class="stat-item" id="stat-item-saldo">
                                 <div class="stat-label">Saldo</div>
@@ -1949,7 +2202,7 @@
                             </div>
                         </div>
 
-                        <div class="btn-group" style="margin-top: 1rem;">
+                        <div class="btn-group btn-group-mt">
                             <button class="btn-agregar" id="btn-reporte" onclick="UILogic.generarReporte()">
                                 <svg class="icon">
                                     <use href="#icon-download" />
@@ -1963,7 +2216,7 @@
         </div>
         <div class="card animated-card" id="card-historico">
             <h2 class="no-margin card-header-clickable" onclick="UILogic.toggleHistorico()">
-                <span style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="card-section-title">
                     <svg class="icon">
                         <use href="#icon-list" />
                     </svg> Registros
@@ -1974,10 +2227,9 @@
             </h2>
 
             <div class="form-collapsible" id="contenido-historico">
-                <div id="botones-historico" style="padding-top: 0.5rem; margin-bottom: 0.5rem;">
-                    <div
-                        style="display: flex; justify-content: space-between; gap: 0.5rem; padding: 0 0.5rem; margin-top: 0.5rem">
-                        <div style="display: flex; gap: 0.5rem;">
+                <div id="botones-historico">
+                    <div class="botones-historico-inner">
+                        <div class="botones-historico-group">
                             <button class="filter-btn" id="btn-vista-calendario"
                                 onclick="UILogic.toggleVistaHistorico()" title="Vista">
                                 <svg class="icon">
@@ -2003,7 +2255,7 @@
                                 </svg>
                             </button>
                         </div>
-                        <div style="display: flex; gap: 0.5rem;">
+                        <div class="botones-historico-group">
                             <button class="filter-btn" id="btn-undo" onclick="HistoryManager.undo()" title="Deshacer">
                                 <svg class="icon">
                                     <use href="#icon-undo" />
@@ -2018,20 +2270,19 @@
                     </div>
                 </div>
                 <div id="lista-registros" class="custom-scroll"></div>
-                <div id="vista-calendario-historico" style="display:none">
+                <div id="vista-calendario-historico" class="hidden">
                     <div class="calendario-nav">
                         <span class="calendario-titulo" id="calendario-titulo-mes"
                             onclick="UILogic.abrirSelectorMesesCalendario()" title="Seleccionar mes"></span>
-                        <div id="calendario-nav-botones" style="display: flex; gap: 0.5rem; align-items: center;">
-                            <button onclick="UILogic.irHoyCalendario()"
-                                style="width:auto; padding: 4px 10px; font-size:0.8rem; font-weight:600;">Hoy</button>
+                        <div id="calendario-nav-botones">
+                            <button class="btn-hoy-calendario" onclick="UILogic.irHoyCalendario()">Hoy</button>
                             <button onclick="UILogic.navegarCalendario(-1)">
-                                <svg class="icon" style="transform:rotate(90deg);">
+                                <svg class="icon icon-rotate-90">
                                     <use href="#icon-chevron-down" />
                                 </svg>
                             </button>
                             <button onclick="UILogic.navegarCalendario(1)">
-                                <svg class="icon" style="transform:rotate(-90deg);">
+                                <svg class="icon icon-rotate-neg90">
                                     <use href="#icon-chevron-down" />
                                 </svg>
                             </button>
@@ -2048,14 +2299,14 @@
     <div class="modal" id="modal-config">
         <div class="modal-content">
             <div class="modal-config-header">
-                <h3 style="margin-bottom:0">
+                <h3 class="modal-h3-no-mb">
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-settings" />
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_266</span>
+                    <span class="version-text">LUSHIBOSCA build_268</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2153,10 +2404,10 @@
                     <div>
                         <div class="form-group">
                             <label>Tarjetas y posición</label>
-                            <div style="display:flex;flex-direction:column;gap:0.4rem;" id="lista-orden-cards">
+                            <div id="lista-orden-cards">
                                 <div class="orden-card-item" id="orden-item-registrar">
-                                    <button id="btn-toggle-card-registrar" class="drag-handle" data-card="registrar"
-                                        onclick="UILogic.toggleVisibilidadCard('registrar')" style="flex:1;">
+                                    <button id="btn-toggle-card-registrar" class="drag-handle flex-1"
+                                        data-card="registrar" onclick="UILogic.toggleVisibilidadCard('registrar')">
                                         <svg class="icon">
                                             <use href="#icon-save" />
                                         </svg>
@@ -2164,9 +2415,9 @@
                                     </button>
                                 </div>
                                 <div class="orden-card-item" id="orden-item-estadisticas">
-                                    <button id="btn-toggle-card-estadisticas" class="drag-handle"
-                                        data-card="estadisticas" onclick="UILogic.toggleVisibilidadCard('estadisticas')"
-                                        style="flex:1;">
+                                    <button id="btn-toggle-card-estadisticas" class="drag-handle flex-1"
+                                        data-card="estadisticas"
+                                        onclick="UILogic.toggleVisibilidadCard('estadisticas')">
                                         <svg class="icon">
                                             <use href="#icon-stats" />
                                         </svg>
@@ -2174,8 +2425,8 @@
                                     </button>
                                 </div>
                                 <div class="orden-card-item" id="orden-item-historico">
-                                    <button id="btn-toggle-card-historico" class="drag-handle" data-card="historico"
-                                        onclick="UILogic.toggleVisibilidadCard('historico')" style="flex:1;">
+                                    <button id="btn-toggle-card-historico" class="drag-handle flex-1"
+                                        data-card="historico" onclick="UILogic.toggleVisibilidadCard('historico')">
                                         <svg class="icon">
                                             <use href="#icon-list" />
                                         </svg>
@@ -2230,7 +2481,7 @@
     <div class="modal" id="modal-gist">
         <div class="modal-content">
             <div class="modal-config-header">
-                <h3 style="margin-bottom:1rem">
+                <h3 class="modal-h3-mb-1">
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-cloud" />
@@ -2268,23 +2519,23 @@
 
                 <div class="config-actions">
                     <label>Acciones</label>
-                    <div style="display:flex; gap:0.5rem;">
-                        <button class="btn-export" id="btn-gist-subir" onclick="UILogic.gistSubir()" style="flex:1">
+                    <div class="flex-row">
+                        <button class="btn-export flex-1" id="btn-gist-subir" onclick="UILogic.gistSubir()">
                             <svg class="icon">
                                 <use href="#icon-cloud-upload" />
                             </svg> Subir
                         </button>
-                        <button class="btn-backup" id="btn-gist-bajar" onclick="UILogic.gistBajar()" style="flex:1">
+                        <button class="btn-backup flex-1" id="btn-gist-bajar" onclick="UILogic.gistBajar()">
                             <svg class="icon">
                                 <use href="#icon-cloud-download" />
                             </svg> Bajar
                         </button>
                     </div>
                 </div>
-                <div class="form-group" style="margin-top:0.5rem">
+                <div class="form-group form-group-mt-half">
                     <label>Automatización</label>
-                    <div style="display:flex; gap:0.5rem;">
-                        <button id="btn-toggle-gist-backup" onclick="UILogic.toggleGistBackup()" style="flex:1">
+                    <div class="flex-row">
+                        <button id="btn-toggle-gist-backup" class="flex-1" onclick="UILogic.toggleGistBackup()">
                             <span id="label-gist-backup">Sin automatizar</span>
                             <span id="hint-gist-backup">—</span>
                         </button>
@@ -2296,7 +2547,7 @@
                         </button>
                     </div>
                     <div id="gist-limite-sync">
-                        <div class="form-group" style="margin-bottom:0.5rem">
+                        <div class="form-group form-group-mb-half">
                             <label id="gist-limite-label">Límite por hora</label>
                             <div class="input-number-group">
                                 <input type="number" id="gist-limite-valor" min="0" max="99" step="1" readonly />
@@ -2347,7 +2598,7 @@
     <div class="modal" id="modal-gist-merge">
         <div class="modal-content">
             <div class="modal-config-header">
-                <h3 style="margin-bottom:0.5rem">
+                <h3 class="modal-h3-mb-half">
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-cloud-download" />
@@ -2357,7 +2608,7 @@
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
-                <div id="gist-merge-resumen" style="font-size:0.9rem; color:var(--text-muted); line-height:1.8;"></div>
+                <div id="gist-merge-resumen"></div>
             </div>
             <div class="modal-config-footer">
                 <div class="btn-group">
@@ -2438,15 +2689,14 @@
                         </svg>
                     </button>
                     <button id="btn-toggle-credito" class="time-btn" onclick="UILogic.toggleCredito()"
-                        style="margin-left: 5px;" title="(Compensación/Asueto)">
+                        title="(Compensación/Asueto)">
                         <svg class="icon">
                             <use href="#icon-exit" />
                         </svg>
                     </button>
                 </div>
             </div>
-            <div id="edit-hint-resumen" class="config-hint-text"
-                style="text-align: center; margin-top: 0; min-height: 1.2em;"></div>
+            <div id="edit-hint-resumen" class="config-hint-text"></div>
             <div class="btn-group">
                 <button class="btn-edit" onclick="DataManagement.guardarEdicion()"><svg class="icon">
                         <use href="#icon-save" />
@@ -2468,20 +2718,19 @@
                     <use href="#icon-upload" />
                 </svg> Restaurar Registros</h3>
             <div class="form-group">
-                <input type="file" id="file-import" accept=".json" style="display: none;" />
+                <input type="file" id="file-import" accept=".json" />
                 <button type="button" class="btn-backup" onclick="document.getElementById('file-import').click()">
                     <svg class="icon">
                         <use href="#icon-upload" />
                     </svg>
                     Seleccionar archivo
                 </button>
-                <div id="nombre-archivo-seleccionado" class="config-hint-text"
-                    style="text-align: center; margin-top: 0.5rem; color: var(--c-green); display: none;">
+                <div id="nombre-archivo-seleccionado" class="config-hint-text">
                     <!-- Aquí aparecerá el nombre del archivo -->
                 </div>
-                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0 1rem 0;">
+                <hr class="modal-hr">
             </div>
-            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+            <div class="importar-btns">
                 <button class="btn-backup" id="btn-combinar" onclick="DataManagement.importarDatos('merge')" disabled>
                     <svg class="icon">
                         <use href="#icon-combine" />
@@ -2523,8 +2772,7 @@
             </div>
 
             <!-- Campos de rango (ocultos por defecto) -->
-            <div id="campos-rango-exportar"
-                style="max-height:0; overflow:hidden; transition:max-height 0.3s ease, opacity 0.3s ease; opacity:0; display:block;">
+            <div id="campos-rango-exportar">
                 <div class="form-group">
                     <label>Desde</label>
                     <input type="date" id="export-fecha-desde" />
@@ -2596,7 +2844,7 @@
                 </span>
             </h3>
             <div id="lista-perfiles-botones" class="perfil-list-container"></div>
-            <div class="form-group" style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+            <div class="form-group form-group-border-top">
                 <label>Agregar perfil</label>
                 <div class="input-with-btn">
                     <input type="text" id="nombre-nuevo-perfil-selector" placeholder="Nombre del perfil..."
@@ -2609,7 +2857,7 @@
                 </div>
             </div>
             <div class="btn-group">
-                <button class="btn-edit" onclick="UILogic.mostrarconfig()" style="flex: 1;">
+                <button class="btn-edit flex-1" onclick="UILogic.mostrarconfig()">
                     <svg class="icon">
                         <use href="#icon-settings" />
                     </svg>
@@ -2721,8 +2969,7 @@
                     </button>
                 </div>
             </div>
-            <div id="edit-grupo-hint" class="config-hint-text"
-                style="text-align: center; margin-top: 0; min-height: 1.2em;"></div>
+            <div id="edit-grupo-hint" class="config-hint-text"></div>
             <div class="btn-group">
                 <button class="btn-edit" onclick="DataManagement.guardarEdicionGrupo()">
                     <svg class="icon">
@@ -2748,7 +2995,7 @@
     <div class="modal" id="modal-confirmar">
         <div class="modal-content">
             <div class="modal-config-header">
-                <h3 style="margin-bottom:0">
+                <h3 class="modal-h3-no-mb">
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-help" />
@@ -2758,8 +3005,7 @@
                 </h3>
             </div>
             <div class="modal-config-body">
-                <p id="modal-confirmar-texto"
-                    style="color:var(--text-muted); font-size:0.95rem; line-height:1.6; margin:0.5rem 0"></p>
+                <p id="modal-confirmar-texto"></p>
             </div>
             <div class="modal-config-footer">
                 <div class="btn-group">
@@ -6322,7 +6568,7 @@
                         salidaPromedio: `${String(Math.floor(promedioSalida / 60)).padStart(2, '0')}:${String(promedioSalida % 60).padStart(2, '0')}`,
                         diasTrabajados: registrosValidos.length,
                         promedioDiario: `${hPromedio}h ${mPromedio}m`,
-                        tiempoFueraTotal: `${hTiempoFuera}h ${mTiempoFuera}m`,
+                        tiempoFueraTotal: hTiempoFuera > 0 ? `${hTiempoFuera}h ${mTiempoFuera}m` : `${mTiempoFuera}m`,
                         tiempoTotal: `${hTotal}h ${mTotal}m`,
                         feriados, ausencias, vacaciones, enfermedades,
                         asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios,
@@ -6333,7 +6579,7 @@
                 }
 
                 function _renderizarStats(stats, opciones = {}) {
-                    const { mostrarRegularidad = true, mostrarBtnReporte = true } = opciones;
+                    const { mostrarBtnReporte = true } = opciones;
 
                     const set = (id, val) => { const el = $(id); if (el) el.textContent = val; };
                     set('stat-entrada-promedio', stats.entradaPromedio);
@@ -6359,18 +6605,12 @@
                     toggleStatItem('stat-compensatorios', stats.compensatorios);
 
                     const elProm = $('stat-promedio-diario');
-                    if (elProm) {
-                        const si = elProm.closest('.stat-item');
-                        if (si) { if (stats.promedioDiario === '--:--') { si.style.display = 'none'; } else { si.style.display = ''; elProm.textContent = stats.promedioDiario; } }
-                    }
+                    if (elProm) elProm.textContent = stats.promedioDiario || '--:--';
 
-                    const showHide = (id, show, val) => {
-                        const el = $(id); if (!el) return;
-                        const si = el.closest('.stat-item');
-                        if (si) { if (show) { si.style.display = ''; el.textContent = val || '--:--'; } else { si.style.display = 'none'; } }
-                    };
-                    showHide('stat-regularidad-entrada', mostrarRegularidad, stats.regularidadEntrada);
-                    showHide('stat-regularidad-jornada', mostrarRegularidad, stats.regularidadJornada);
+                    const elRegEnt = $('stat-regularidad-entrada');
+                    if (elRegEnt) elRegEnt.textContent = stats.regularidadEntrada || '--:--';
+                    const elRegJor = $('stat-regularidad-jornada');
+                    if (elRegJor) elRegJor.textContent = stats.regularidadJornada || '--:--';
 
                     const btnReporte = document.getElementById('btn-reporte');
                     if (btnReporte) {
@@ -6430,7 +6670,7 @@
                         }
                     }
                     const stats = calcularEstadisticasMes(mesAnio);
-                    _renderizarStats(stats, { mostrarRegularidad: true, mostrarBtnReporte: true });
+                    _renderizarStats(stats, { mostrarBtnReporte: true });
                 }
 
                 function _perfilKey(base) {
@@ -6946,22 +7186,22 @@
                     const semEl = $('select-semana-stats');
                     const labelEl = $('label-periodo-toggle');
                     if (modoEstadisticas === 'anual') {
-                        if (anioEl) anioEl.style.display = '';
-                        if (mesEl) mesEl.style.display = 'none';
-                        if (semEl) semEl.style.display = 'none';
+                        if (anioEl) anioEl.classList.remove('hidden');
+                        if (mesEl) mesEl.classList.add('hidden');
+                        if (semEl) semEl.classList.add('hidden');
                         if (labelEl) labelEl.textContent = 'Anual';
                         poblarSelectorAnios();
                     } else if (modoEstadisticas === 'semanal') {
-                        if (anioEl) anioEl.style.display = 'none';
-                        if (mesEl) mesEl.style.display = 'none';
-                        if (semEl) semEl.style.display = '';
+                        if (anioEl) anioEl.classList.add('hidden');
+                        if (mesEl) mesEl.classList.add('hidden');
+                        if (semEl) semEl.classList.remove('hidden');
                         if (labelEl) labelEl.textContent = 'Semanal';
                         poblarSelectorSemanas();
                         actualizarEstadisticasSemana(semEl?.value);
                     } else {
-                        if (anioEl) anioEl.style.display = 'none';
-                        if (mesEl) mesEl.style.display = '';
-                        if (semEl) semEl.style.display = 'none';
+                        if (anioEl) anioEl.classList.add('hidden');
+                        if (mesEl) mesEl.classList.remove('hidden');
+                        if (semEl) semEl.classList.add('hidden');
                         if (labelEl) labelEl.textContent = 'Mensual';
                         poblarSelectorMeses();
                     }
@@ -7533,7 +7773,7 @@
 
                 function actualizarEstadisticasAnio(anio) {
                     const stats = calcularEstadisticasAnio(anio);
-                    _renderizarStats(stats, { mostrarRegularidad: true, mostrarBtnReporte: true });
+                    _renderizarStats(stats, { mostrarBtnReporte: true });
                 }
 
                 function _obtenerSemanas() {
@@ -7615,7 +7855,7 @@
                     // Al quitar el return, si no hay registros calcularEstadisticasSemana devolverá 
                     // las estadísticas vacías y _renderizarStats se encargará de ocultar los "0"
                     const stats = calcularEstadisticasSemana(lunesISO);
-                    _renderizarStats(stats, { mostrarRegularidad: true, mostrarBtnReporte: false });
+                    _renderizarStats(stats, { mostrarBtnReporte: false });
                 }
 
                 function cambiarSemanaStats() {
@@ -7655,19 +7895,19 @@
                     const selectSemana = $('select-semana-stats');
                     formStats.classList.add('fade-out');
                     setTimeout(() => {
-                        selectMes.style.display = 'none';
-                        selectAnio.style.display = 'none';
-                        if (selectSemana) selectSemana.style.display = 'none';
+                        selectMes.classList.add('hidden');
+                        selectAnio.classList.add('hidden');
+                        if (selectSemana) selectSemana.classList.add('hidden');
                         if (modoEstadisticas === 'anual') {
-                            selectAnio.style.display = '';
+                            selectAnio.classList.remove('hidden');
                             if (label) label.textContent = 'Anual';
                             poblarSelectorAnios();
                         } else if (modoEstadisticas === 'semanal') {
-                            if (selectSemana) selectSemana.style.display = '';
+                            if (selectSemana) selectSemana.classList.remove('hidden');
                             if (label) label.textContent = 'Semanal';
                             poblarSelectorSemanas();
                         } else {
-                            selectMes.style.display = '';
+                            selectMes.classList.remove('hidden');
                             if (label) label.textContent = 'Mensual';
                             poblarSelectorMeses();
                         }
@@ -10655,8 +10895,8 @@ Generado por Sistema Lushibosca
                                 const cal = document.getElementById('vista-calendario-historico');
                                 const btnFiltro = document.getElementById('btn-filtro');
                                 const btnVista = document.getElementById('btn-vista-calendario');
-                                if (lista) lista.style.display = 'none';
-                                if (cal) cal.style.display = '';
+                                if (lista) lista.classList.add('hidden');
+                                if (cal) cal.classList.remove('hidden');
                                 if (btnFiltro) { btnFiltro.disabled = false; btnFiltro.style.opacity = ''; }
                                 _renderizarCalendario();
                             }
@@ -10833,9 +11073,9 @@ Generado por Sistema Lushibosca
                     if (saliente) saliente.classList.add('fade-out');
 
                     setTimeout(() => {
-                        if (saliente) { saliente.classList.remove('fade-out'); saliente.style.display = 'none'; }
+                        if (saliente) { saliente.classList.remove('fade-out'); saliente.classList.add('hidden'); }
                         if (entrante) {
-                            entrante.style.display = '';
+                            entrante.classList.remove('hidden');
                             entrante.classList.add('fade-out');
                             entrante.offsetHeight; // forzar reflow
                             entrante.classList.remove('fade-out');
@@ -10853,7 +11093,7 @@ Generado por Sistema Lushibosca
                     const selector = document.getElementById('calendario-selector-meses');
                     const grid = document.getElementById('calendario-grid');
                     const navBotones = document.getElementById('calendario-nav-botones');
-                    if (selector && selector.style.display !== 'none') {
+                    if (selector && !selector.classList.contains('hidden') && selector.style.display !== 'none') {
                         selector.style.display = 'none';
                         if (grid) grid.style.display = 'grid';
                         if (navBotones) navBotones.style.display = 'flex';
@@ -11383,11 +11623,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 266
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 268
     // ====================================================================
     
       - CAMBIOS:
-    1) 
+    1) Refactorizacion completa de los div, se mueve todo a css
 
      - BUGS CONOCIDOS:
     1)
