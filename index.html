@@ -10453,7 +10453,7 @@ Generado por Sistema Lushibosca
                         }
                     }
 
-                    setInterval(() => actualizarUI(null, true), 60000);
+                    setInterval(() => actualizarUI(null, true), 20000);
                     console.log('Sistema iniciado correctamente');
 
                     // Escape cierra el modal abierto simulando su botón cerrar/volver
@@ -11628,6 +11628,7 @@ Generado por Sistema Lushibosca
     
       - CAMBIOS:
     1) Refactorizacion completa de los div, se mueve todo a css
+    2) Se cambia la actualizacion de la tarjeta de estado a 20s (antes 60s)
 
      - BUGS CONOCIDOS:
     1)
