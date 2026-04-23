@@ -2314,7 +2314,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_273</span>
+                    <span class="version-text">LUSHIBOSCA build_274</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -4406,7 +4406,7 @@
                             if (timerDetenido && usaHoraActual) {
                                 // Caso: Salida con hora actual Y timer activo
                                 const tiempoFuera = registroExistente.tiempoFuera || '00:00';
-                                mensaje = `Salida registrada con hora actual \n⏱️ Descanso finalizado: +${tiempoFuera} \n(entrada: ${registroExistente.entrada})`;
+                                mensaje = `Salida registrada con hora actual \nDescanso finalizado: +${tiempoFuera} \n(entrada: ${registroExistente.entrada})`;
                             } else if (usaHoraActual) {
                                 // Caso: Salida con hora actual SIN timer
                                 mensaje = `Salida registrada con hora actual \n(entrada: ${registroExistente.entrada})`;
@@ -5445,9 +5445,8 @@
 
                             // Solo actualizar si estamos en modo lote
                             if (window.UILogic && window.UILogic.actualizarBotonLote) {
-                                // Verificar si el modo lote está activo
                                 const modoLote = document.getElementById('modo-lote');
-                                if (modoLote && modoLote.style.display !== 'none') {
+                                if (modoLote && getComputedStyle(modoLote).display !== 'none') {
                                     window.UILogic.actualizarBotonLote();
                                 }
                             }
@@ -5475,9 +5474,8 @@
 
                             // Solo actualizar si estamos en modo lote
                             if (window.UILogic && window.UILogic.actualizarBotonLote) {
-                                // Verificar si el modo lote está activo
                                 const modoLote = document.getElementById('modo-lote');
-                                if (modoLote && modoLote.style.display !== 'none') {
+                                if (modoLote && getComputedStyle(modoLote).display !== 'none') {
                                     window.UILogic.actualizarBotonLote();
                                 }
                             }
@@ -8375,9 +8373,8 @@ Generado por Sistema Lushibosca
                     const card = document.getElementById('stats-card');
                     if (!btn) return;
 
-                    // Verificamos si el 'modo-lote' es el que está visible actualmente
-                    const modoLote = document.getElementById('modo-lote');
-                    if (modoLote && modoLote.style.display !== 'none') {
+                    // Verificamos si estamos en modo lote
+                    if (modoLoteActivo) {
                         // Si estamos en modo lote, nos aseguramos que el botón siga oculto y SALIMOS
                         btn.style.display = 'none';
                         return;
@@ -8494,7 +8491,7 @@ Generado por Sistema Lushibosca
                     if (!storedStart) {
                         // --- INICIAR ---
                         localStorage.setItem(storageKey, Date.now());
-                        mostrarToast('⏱️ Tiempo fuera iniciado', 'info');
+                        mostrarToast('Tiempo fuera iniciado', 'info');
                     } else {
                         // --- DETENER ---
                         const start = parseInt(storedStart);
@@ -8514,7 +8511,7 @@ Generado por Sistema Lushibosca
                         // Si el tiempo es menor a 30 segundos, no registrar nada
                         if (segundosTranscurridos < 30) {
                             localStorage.removeItem(storageKey);
-                            mostrarToast('⏱️ Tiempo muy corto, no se registró', 'info');
+                            mostrarToast('Tiempo muy corto, no se registró', 'info');
                             actualizarEstadoBotonTimerMain();
                             actualizarUI();
                             return;
@@ -11662,11 +11659,13 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 273
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 274
     // ====================================================================
     
       - CAMBIOS:
-    1) Se agrega swipe en la tarjeta de fichaje
+    1) Correccion bug: no aparecia el boton tiempo fuera luego de la refactorizacion,
+    idem en 2 lugares distintos
+    2) se agrega swipe a la tarjeta de fichaje
 
      - BUGS CONOCIDOS:
     1)
