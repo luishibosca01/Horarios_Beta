@@ -1945,6 +1945,14 @@
             <polyline points="12 5 19 12 12 19" fill="none" stroke="currentColor" stroke-width="2"
                 stroke-linecap="round" stroke-linejoin="round"></polyline>
         </symbol>
+        <symbol id="icon-external-link" viewBox="0 0 24 24">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            <polyline points="15 3 21 3 21 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"></line>
+        </symbol>
     </svg>
     <div class="header">
         <h1>Horarios</h1>
@@ -2306,7 +2314,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_268</span>
+                    <span class="version-text">LUSHIBOSCA build_272</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2502,6 +2510,13 @@
                                 <use href="#icon-lock-open" />
                             </svg>
                         </button>
+                        <button class="time-btn"
+                            onclick="window.open('https://github.com/settings/tokens/new?description=Horarios+sync&scopes=gist','_blank')"
+                            title="Crear token en GitHub">
+                            <svg class="icon">
+                                <use href="#icon-plus" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
                 <div class="form-group">
@@ -2511,7 +2526,7 @@
                             autocomplete="off" oninput="UILogic.actualizarEstadoBotonesGist()" />
                         <button class="time-btn" onclick="UILogic.abrirGistEnBrowser()" title="Abrir en GitHub">
                             <svg class="icon">
-                                <use href="#icon-help" />
+                                <use href="#icon-external-link" />
                             </svg>
                         </button>
                     </div>
@@ -2574,6 +2589,7 @@
                     </div>
                 </div>
                 <div class="config-hint-text" id="gist-ultima-sync">Sin sincronizar</div>
+                <div class="config-hint-text">Anotá tu Token e ID para no perderlos.</div>
             </div>
             <div class="modal-config-footer">
                 <div class="btn-group">
@@ -9621,6 +9637,7 @@ Generado por Sistema Lushibosca
                     let _gistAutoSyncTemp = null;
                     let _gistLimitesTemp = null;
                     let _gistLimitesOrig = null;
+                    let _gistMergeDesdeModal = false;
 
                     function actualizarEstadoBotonesGist() {
                         const token = document.getElementById('gist-token')?.value.trim() || '';
@@ -9858,6 +9875,10 @@ Generado por Sistema Lushibosca
                         ModalManager.cerrar('modal-gist-merge');
                         const btn = document.getElementById('btn-gist-bajar');
                         if (btn) btn.disabled = false;
+                        if (_gistMergeDesdeModal) {
+                            _gistMergeDesdeModal = false;
+                            ModalManager.abrir('modal-gist');
+                        }
                     }
 
                     function toggleGistMerge() {
@@ -10002,6 +10023,7 @@ Generado por Sistema Lushibosca
 
                     async function gistBajar(modoAutomatico = false) {
                         _gistGuardarCredencialesSiModalAbierto();
+                        _gistMergeDesdeModal = document.getElementById('modal-gist')?.classList.contains('show') ?? false;
                         const btn = document.getElementById('btn-gist-bajar');
                         if (btn) btn.disabled = true;
                         mostrarToast('Bajando...', 'info');
@@ -11636,7 +11658,7 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 269
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 272
     // ====================================================================
     
       - CAMBIOS:
