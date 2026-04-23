@@ -2314,7 +2314,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_272</span>
+                    <span class="version-text">LUSHIBOSCA build_273</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -5776,12 +5776,13 @@
                 let modoEstadisticas = 'mensual'; // 'mensual' | 'anual'
                 let _modalAbiertoDesdeLista = false;
 
-                function registrarSwipe(el, callback, { minX = 50, maxY = 80 } = {}) {
+                function registrarSwipe(el, callback, { minX = 50, maxY = 80, ignoreInputs = false } = {}) {
                     if (!el || el.dataset.swipeInit) return;
                     el.dataset.swipeInit = '1';
                     let _x = null, _y = null;
                     el.addEventListener('touchstart', e => {
                         if (e.touches.length !== 1) return;
+                        if (ignoreInputs && ['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
                         _x = e.touches[0].clientX;
                         _y = e.touches[0].clientY;
                     }, { passive: true });
@@ -10322,6 +10323,9 @@ Generado por Sistema Lushibosca
                     // Swipe en stats-card (solo touch/móvil)
                     registrarSwipe(document.getElementById('stats-card'), () => alternarVista());
 
+                    // Swipe en form-registro para alternar modo normal/lote (ignora si hay un campo con foco)
+                    registrarSwipe(document.getElementById('form-registro'), () => toggleModoLote(), { ignoreInputs: true });
+
                     // CARGAR CONFIGURACIÓN
                     const config = D.cargarConfiguracion();
                     const temaOscuro = config.temaOscuro;
@@ -11658,11 +11662,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 272
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 273
     // ====================================================================
     
       - CAMBIOS:
-    1) Mejoras de seguridad sugeridas
+    1) Se agrega swipe en la tarjeta de fichaje
 
      - BUGS CONOCIDOS:
     1)
