@@ -3593,6 +3593,9 @@
                         localStorage.setItem(storageKey, JSON.stringify(historyData));
                     } catch (error) {
                         console.error('Error guardando historial:', error);
+                        if (error.name === 'QuotaExceededError' || error.code === 22) {
+                            if (window.UILogic) UILogic.mostrarToast('Almacenamiento lleno: historial de deshacer no guardado', 'warning');
+                        }
                     }
                 }
 
@@ -10075,13 +10078,17 @@ Generado por Sistema Lushibosca
                                         `<div><svg class="icon"><use href="#icon-combine"/></svg> En ambos <strong>${enAmbos.length}</strong> registro${enAmbos.length !== 1 ? 's' : ''} (por fecha${complementarios.length > 0 ? `, <strong style="color:var(--c-blue)">${complementarios.length}</strong> para completar` : ''})</div>` +
                                         `<div><svg class="icon"><use href="#icon-save"/></svg> Local <strong>${soloLocal.length}</strong> registro${soloLocal.length !== 1 ? 's' : ''} no subidos</div>` +
                                         `</div>` +
-                                        (configCambios.length > 0
-                                            ? `<svg class="icon"><use href="#icon-settings"/></svg> Reemplazar cambiará: ${configCambios.join(', ')}</div>`
-                                            : `<svg class="icon"><use href="#icon-settings"/></svg> Sin cambios de configuración</div>`) +
+                                        `<div id="_gist-config-cambios"></div>` +
                                         `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.75rem">` +
                                         `<strong>Combinar</strong>: agrega ${soloEnGist.length} nuevo(s)${complementarios.length > 0 ? `, completa ${complementarios.length} registro(s)` : ''}, mantiene los locales<br>` +
                                         `<strong>Reemplazar</strong>: usa los ${registrosNormalizados.length} registros del Gist` +
                                         `</div>`;
+                                    const configEl = resumenEl.querySelector('#_gist-config-cambios');
+                                    if (configEl) {
+                                        configEl.textContent = configCambios.length > 0
+                                            ? `⚙ Reemplazar cambiará: ${configCambios.join(', ')}`
+                                            : `⚙ Sin cambios de configuración`;
+                                    }
                                 }
                                 ModalManager.cerrar('modal-gist');
                                 ModalManager.abrir('modal-gist-merge');
@@ -11041,11 +11048,10 @@ Generado por Sistema Lushibosca
                         const clase = claseDelDia(fecha);
                         const esHoy = anio === hoy.getFullYear() && mes === hoy.getMonth() && dia === hoy.getDate();
                         const reg = regsPorFecha[fecha];
-                        const onclick = reg ? ` onclick="UILogic._onclickCalendarioDia(event, '${reg.id}')"` : '';
-                        const onhover = reg ? ` onmouseenter="UILogic._popupCalendarioHover(event, '${reg.id}')" onmouseleave="UILogic._cerrarPopupCalendarioHover(event)"` : '';
                         const cursor = reg ? ' style="cursor:pointer;"' : '';
                         const esNuevo = idResaltar && reg && reg.id === idResaltar ? ' nuevo-registro-animacion' : '';
-                        html += `<div class="calendario-dia ${clase}${esHoy ? ' hoy' : ''}${esNuevo}"${onclick}${onhover}${cursor}>${dia}</div>`;
+                        const dataId = reg ? ` data-reg-id="${reg.id}"` : '';
+                        html += `<div class="calendario-dia ${clase}${esHoy ? ' hoy' : ''}${esNuevo}"${dataId}${cursor}>${dia}</div>`;
                     }
 
                     if (filtroActivo) {
@@ -11054,6 +11060,13 @@ Generado por Sistema Lushibosca
                         grid.classList.remove('calendario-filtro-activo');
                     }
                     grid.innerHTML = html;
+
+                    grid.querySelectorAll('.calendario-dia[data-reg-id]').forEach(el => {
+                        const id = el.dataset.regId;
+                        el.addEventListener('click', (e) => UILogic._onclickCalendarioDia(e, id));
+                        el.addEventListener('mouseenter', (e) => UILogic._popupCalendarioHover(e, id));
+                        el.addEventListener('mouseleave', (e) => UILogic._cerrarPopupCalendarioHover(e));
+                    });
 
                 }
 
@@ -11623,12 +11636,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 268
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 269
     // ====================================================================
     
       - CAMBIOS:
-    1) Refactorizacion completa de los div, se mueve todo a css
-    2) Se cambia la actualizacion de la tarjeta de estado a 20s (antes 60s)
+    1) Mejoras de seguridad sugeridas
 
      - BUGS CONOCIDOS:
     1)
