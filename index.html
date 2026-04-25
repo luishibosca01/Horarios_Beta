@@ -2168,42 +2168,7 @@
                                 <div class="stat-label">Jornadas</div>
                                 <div class="stat-value" id="stat-dias-trabajados">0</div>
                             </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Feriados</div>
-                                <div class="stat-value" id="stat-feriados">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Licencias</div>
-                                <div class="stat-value" id="stat-ausencias">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Vacaciones</div>
-                                <div class="stat-value" id="stat-vacaciones">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Enfermedades</div>
-                                <div class="stat-value" id="stat-enfermedades">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Asuetos</div>
-                                <div class="stat-value" id="stat-asuetos-dia">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Paros</div>
-                                <div class="stat-value" id="stat-paros">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Remotos</div>
-                                <div class="stat-value" id="stat-remotos">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Capacitaciones</div>
-                                <div class="stat-value" id="stat-capacitaciones">0</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-label">Compensatorios</div>
-                                <div class="stat-value" id="stat-compensatorios">0</div>
-                            </div>
+                            <div id="stat-items-tipos-anchor" style="display:none"></div>
                             <div class="stat-item">
                                 <div class="stat-label">Salidas Temprano</div>
                                 <div class="stat-value" id="stat-compensaciones">0</div>
@@ -2314,7 +2279,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_275</span>
+                    <span class="version-text">LUSHIBOSCA build_279</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -6469,21 +6434,15 @@
                 function _calcularEstadisticasRango(registrosRango, opciones = {}) {
                     const { regularidadPorMes = false } = opciones;
 
-                    const contarPorTipo = (tipoId) => {
-                        const tipo = TiposRegistro.obtenerTipoPorId(tipoId);
-                        if (!tipo) return 0;
-                        return registrosRango.filter(r => r.entrada === tipo.codigo && r.salida === tipo.codigo).length;
-                    };
+                    // Contar cada tipo especial dinámicamente desde TiposRegistro
+                    const conteosPorTipo = {};
+                    TiposRegistro.obtenerTodosLosTipos().forEach(t => {
+                        conteosPorTipo[t.labelPlural.toLowerCase()] = registrosRango.filter(
+                            r => r.entrada === t.codigo && r.salida === t.codigo
+                        ).length;
+                    });
 
-                    const feriados = contarPorTipo('feriado');
-                    const ausencias = contarPorTipo('ausencia');
-                    const vacaciones = contarPorTipo('vacaciones');
-                    const enfermedades = contarPorTipo('enfermedad');
-                    const asuetosDiaCompleto = contarPorTipo('asueto');
-                    const paros = contarPorTipo('paro');
-                    const remotos = contarPorTipo('remoto');
-                    const capacitaciones = contarPorTipo('capacitacion');
-                    const compensatorios = contarPorTipo('compensatorio');
+                    // Compensaciones (crédito) — no es un tipo especial, se mantiene aparte
                     const compensaciones = registrosRango.filter(r => r.credito && r.credito !== '00:00').length;
 
                     let tiempoFueraTotalMinutos = 0;
@@ -6504,8 +6463,7 @@
                         entradaPromedio: '--:--', salidaPromedio: '--:--',
                         diasTrabajados: 0, promedioDiario: '--:--',
                         tiempoFueraTotal: '--:--', tiempoTotal: '--:--',
-                        feriados, ausencias, vacaciones, enfermedades,
-                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios,
+                        ...conteosPorTipo, compensaciones,
                         regularidadEntrada: '--:--', regularidadJornada: '--:--',
                         bufferPeriodo: null
                     };
@@ -6517,6 +6475,7 @@
                     const promedioSalida = avgMin(registrosValidos.map(r => toMin(r.salida)));
 
                     const horasDiariasParaRemoto = D.horasDiarias();
+                    const remotos = conteosPorTipo['remotos'] || 0;
                     const totalHorasTrabajadas = registrosValidos.reduce((s, r) => s + r.total, 0);
                     const totalHoras = totalHorasTrabajadas + (remotos * horasDiariasParaRemoto);
                     const promDiario = totalHorasTrabajadas / registrosValidos.length;
@@ -6588,8 +6547,7 @@
                         promedioDiario: `${hPromedio}h ${mPromedio}m`,
                         tiempoFueraTotal: hTiempoFuera > 0 ? `${hTiempoFuera}h ${mTiempoFuera}m` : `${mTiempoFuera}m`,
                         tiempoTotal: `${hTotal}h ${mTotal}m`,
-                        feriados, ausencias, vacaciones, enfermedades,
-                        asuetosDiaCompleto, compensaciones, paros, remotos, capacitaciones, compensatorios,
+                        ...conteosPorTipo, compensaciones,
                         regularidadEntrada: regEntrada,
                         regularidadJornada: regJornada,
                         bufferPeriodo
@@ -6611,16 +6569,14 @@
                         if (si) { if (value === 0) { si.style.display = 'none'; } else { si.style.display = ''; el.textContent = value; } }
                     };
                     toggleStatItem('stat-dias-trabajados', stats.diasTrabajados);
-                    toggleStatItem('stat-feriados', stats.feriados);
-                    toggleStatItem('stat-ausencias', stats.ausencias);
-                    toggleStatItem('stat-vacaciones', stats.vacaciones);
-                    toggleStatItem('stat-enfermedades', stats.enfermedades);
-                    toggleStatItem('stat-asuetos-dia', stats.asuetosDiaCompleto);
+
+                    // Tipos especiales — dinámico desde TiposRegistro
+                    TiposRegistro.obtenerTodosLosTipos().forEach(t => {
+                        const clave = t.labelPlural.toLowerCase();
+                        toggleStatItem(`stat-${clave}`, stats[clave] || 0);
+                    });
+
                     toggleStatItem('stat-compensaciones', stats.compensaciones);
-                    toggleStatItem('stat-paros', stats.paros);
-                    toggleStatItem('stat-remotos', stats.remotos);
-                    toggleStatItem('stat-capacitaciones', stats.capacitaciones);
-                    toggleStatItem('stat-compensatorios', stats.compensatorios);
 
                     const elProm = $('stat-promedio-diario');
                     if (elProm) elProm.textContent = stats.promedioDiario || '--:--';
@@ -8095,28 +8051,25 @@ REPORTE DE HORAS TRABAJADAS
 
 ────────────────────────────────────────────────────────────────`,
 
-                        resumenGeneral: () => `
+                        resumenGeneral: () => {
+                            const lineasTipos = TiposRegistro.obtenerTodosLosTipos()
+                                .map(t => `   • ${(t.label + ':').padEnd(24)}${stats[t.labelPlural.toLowerCase()] || 0}`)
+                                .join('\n');
+                            return `
 
 📈 RESUMEN GENERAL
 ────────────────────────────────────────────────────────────────
 
    • Jornadas:               ${stats.diasTrabajados}
-   • Feriados:               ${stats.feriados}
-   • Licencias:              ${stats.ausencias}
-   • Vacaciones:             ${stats.vacaciones}
-   • Enfermedades:           ${stats.enfermedades}
-   • Asuetos:                ${stats.asuetosDiaCompleto}
+${lineasTipos}
    • Salidas Temprano:       ${stats.compensaciones}
-   • Paros:                  ${stats.paros}
-   • Remotos:                ${stats.remotos}
-   • Capacitaciones:         ${stats.capacitaciones}
-   • Compensatorios:         ${stats.compensatorios}
    • Entrada promedio:       ${stats.entradaPromedio}
    • Salida promedio:        ${stats.salidaPromedio}
    • Promedio diario:        ${stats.promedioDiario}
    
    • Total horas trabajadas: ${hTotal}h ${mTotal}m
-   • Saldo:                  ${stats.bufferPeriodo !== null ? horasATextoCorto(stats.bufferPeriodo) : 'N/A'}`,
+   • Saldo:                  ${stats.bufferPeriodo !== null ? horasATextoCorto(stats.bufferPeriodo) : 'N/A'}`;
+                        },
 
                         detallePeriodo: () => {
                             if (esAnual) {
@@ -8154,14 +8107,10 @@ REPORTE DE HORAS TRABAJADAS
 
                                     const notas = [];
                                     const ct = (id) => especiales.filter(r => { const t = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida); return t && t.id === id; }).length;
-                                    const f = ct('feriado'); if (f) notas.push(`${f} feriado(s)`);
-                                    const au = ct('ausencia'); if (au) notas.push(`${au} ausencia(s)`);
-                                    const v = ct('vacaciones'); if (v) notas.push(`${v} vacacion(es)`);
-                                    const en = ct('enfermedad'); if (en) notas.push(`${en} enfermedad(es)`);
-                                    const as = ct('asueto'); if (as) notas.push(`${as} asueto(s)`);
-                                    const pa = ct('paro'); if (pa) notas.push(`${pa} paro(s)`);
-                                    const re = ct('remoto'); if (re) notas.push(`${re} remoto(s)`);
-                                    const ca = ct('capacitacion'); if (ca) notas.push(`${ca} capacitacion(es)`);
+                                    TiposRegistro.obtenerTodosLosTipos().forEach(t => {
+                                        const n = ct(t.id);
+                                        if (n) notas.push(`${n} ${t.labelPlural.toLowerCase()}`);
+                                    });
 
                                     seccion += `   ${nombreMesCap.padEnd(12)} ${String(hM).padStart(3)}h ${String(mM).padStart(2, '0')}m   (${normales.length} jornadas)`;
                                     if (notas.length > 0) seccion += `  [${notas.join(', ')}]`;
@@ -10323,6 +10272,25 @@ Generado por Sistema Lushibosca
                     // Swipe en form-registro para alternar modo normal/lote (ignora si hay un campo con foco)
                     registrarSwipe(document.getElementById('form-registro'), () => toggleModoLote(), { ignoreInputs: true });
 
+                    // Generar stat-items de tipos especiales dinámicamente desde TiposRegistro
+                    const anchor = document.getElementById('stat-items-tipos-anchor');
+                    if (anchor) {
+                        TiposRegistro.obtenerTodosLosTipos().forEach(t => {
+                            const item = document.createElement('div');
+                            item.className = 'stat-item';
+                            const label = document.createElement('div');
+                            label.className = 'stat-label';
+                            label.textContent = t.labelPlural;
+                            const value = document.createElement('div');
+                            value.className = 'stat-value';
+                            value.id = `stat-${t.labelPlural.toLowerCase()}`;
+                            value.textContent = '0';
+                            item.appendChild(label);
+                            item.appendChild(value);
+                            anchor.parentNode.insertBefore(item, anchor);
+                        });
+                    }
+
                     // CARGAR CONFIGURACIÓN
                     const config = D.cargarConfiguracion();
                     const temaOscuro = config.temaOscuro;
@@ -11659,13 +11627,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 275
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 279
     // ====================================================================
     
       - CAMBIOS:
-    1) Correccion bug: no aparecia el boton tiempo fuera luego de la refactorizacion,
-    idem en 2 lugares distintos
-    2) se agrega swipe a la tarjeta de fichaje
+    1) Se quita el hardcodeo de los tipos de registros especialesen en la funcion de estadisticas y reporte,
+    ahora se agregan de forma dinamica en base al modulo de tipos de registros
 
      - BUGS CONOCIDOS:
     1)
