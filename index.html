@@ -2279,7 +2279,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_279</span>
+                    <span class="version-text">LUSHIBOSCA build_280</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -11608,17 +11608,12 @@ Generado por Sistema Lushibosca
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('SW registrado:', registration.scope);
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // Lógica visual para avisar al usuario
-                                    if (window.UILogic) UILogic.mostrarToast('Nueva versión disponible. Recargar.', 'info');
-                                }
-                            });
-                        });
                     })
                     .catch(err => console.error('❌ Error SW:', err));
+
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (window.UILogic) UILogic.mostrarToast('Aplicación actualizada.', 'info');
+                });
             });
         }
     </script>
@@ -11627,12 +11622,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 279
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 280
     // ====================================================================
     
       - CAMBIOS:
-    1) Se quita el hardcodeo de los tipos de registros especialesen en la funcion de estadisticas y reporte,
-    ahora se agregan de forma dinamica en base al modulo de tipos de registros
+    1) optimizacion de toast informativo al actualizar versiones
 
      - BUGS CONOCIDOS:
     1)
