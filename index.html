@@ -2279,7 +2279,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_282</span>
+                    <span class="version-text">LUSHIBOSCA build_283</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -3055,24 +3055,10 @@
                 }
 
                 async function instalarApp() {
-                    if (!deferredPrompt) {
-                        console.log('No hay prompt de instalación disponible');
-                        return;
-                    }
+                    if (!deferredPrompt) return;
 
-                    // Mostrar el prompt de instalación
                     deferredPrompt.prompt();
-
-                    // Esperar a que el usuario responda
-                    const { outcome } = await deferredPrompt.userChoice;
-
-                    if (outcome === 'accepted') {
-                        console.log('Usuario aceptó la instalación');
-                    } else {
-                        console.log('Usuario rechazó la instalación');
-                    }
-
-                    // Limpiar el prompt
+                    await deferredPrompt.userChoice;
                     deferredPrompt = null;
                 }
 
@@ -4365,7 +4351,7 @@
                             if (salidaManual) {
                                 UILogic.aplicarFeedbackCampos([
                                     { id: 'entrada', fallback: 'Entrada', mostrar: false },
-                                    { id: 'salida',  fallback: 'Salida',  mostrar: true  }
+                                    { id: 'salida', fallback: 'Salida', mostrar: true }
                                 ]);
                             }
 
@@ -4438,9 +4424,9 @@
 
                         if (entradaManual || salidaManual) {
                             UILogic.aplicarFeedbackCampos([
-                                    { id: 'entrada', fallback: 'Entrada', mostrar: entradaManual },
-                                    { id: 'salida',  fallback: 'Salida',  mostrar: salidaManual  }
-                                ]);
+                                { id: 'entrada', fallback: 'Entrada', mostrar: entradaManual },
+                                { id: 'salida', fallback: 'Salida', mostrar: salidaManual }
+                            ]);
                         }
 
                         const mensaje = usaHoraActual ? 'Registro agregado con hora actual' : 'Registro agregado';
@@ -9118,7 +9104,7 @@ Generado por Sistema Lushibosca
                             await DataManagement.registrarDiaEspecial(desde, tipo);
                             // Solo limpiar si fue exitoso
                             aplicarFeedbackCampos([
-                                { id: 'lote-fecha-desde', fallback: 'Desde', mostrar: true  },
+                                { id: 'lote-fecha-desde', fallback: 'Desde', mostrar: true },
                                 { id: 'lote-fecha-hasta', fallback: 'Hasta', mostrar: false }
                             ]);
                             document.getElementById('lote-fecha-desde').value = '';
@@ -9178,9 +9164,9 @@ Generado por Sistema Lushibosca
 
                         // Solo limpiar campos si la operación fue exitosa
                         aplicarFeedbackCampos([
-                                { id: 'lote-fecha-desde', fallback: 'Desde', mostrar: true },
-                                { id: 'lote-fecha-hasta', fallback: 'Hasta', mostrar: true }
-                            ]);
+                            { id: 'lote-fecha-desde', fallback: 'Desde', mostrar: true },
+                            { id: 'lote-fecha-hasta', fallback: 'Hasta', mostrar: true }
+                        ]);
                         document.getElementById('lote-fecha-desde').value = '';
                         document.getElementById('lote-fecha-hasta').value = '';
                     } catch (error) {
@@ -11568,7 +11554,7 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 282
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 283
     // ====================================================================
     
       - CAMBIOS:
