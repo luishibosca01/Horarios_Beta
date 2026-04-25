@@ -2062,7 +2062,7 @@
                             <label>Tipo de registro</label>
                             <div class="input-with-btn">
                                 <select id="lote-tipo" onchange="UILogic.actualizarBotonLote()">
-                                    <option value="normal">🕒 Normales (borrar)</option>
+                                    <option value="normal">🕒 Jornadas (borrar)</option>
                                 </select>
                                 <button class="time-btn flex-shrink-0" onclick="UILogic.toggleModoLote()"
                                     title="Ir al modo normal">
@@ -2279,7 +2279,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_280</span>
+                    <span class="version-text">LUSHIBOSCA build_281</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2802,7 +2802,7 @@
                 <label>Tipo de registro</label>
                 <select id="filtro-tipo">
                     <option value="">Todos</option>
-                    <option value="normal">🕒 Normales</option>
+                    <option value="normal">🕒 Jornadas</option>
                 </select>
             </div>
             <div class="btn-group">
@@ -4363,7 +4363,10 @@
                             // FEEDBACK VISUAL (solo salida manual)
                             const salidaManual = !usaHoraActual;
                             if (salidaManual) {
-                                UILogic.aplicarFeedbackRegistro(false, true); // Solo salida
+                                UILogic.aplicarFeedbackCampos([
+                                    { id: 'entrada', fallback: 'Entrada', mostrar: false },
+                                    { id: 'salida',  fallback: 'Salida',  mostrar: true  }
+                                ]);
                             }
 
                             // Mensaje diferenciado según si había timer activo
@@ -4434,7 +4437,10 @@
                         const salidaManual = s && !usaHoraActual;
 
                         if (entradaManual || salidaManual) {
-                            UILogic.aplicarFeedbackRegistro(entradaManual, salidaManual);
+                            UILogic.aplicarFeedbackCampos([
+                                    { id: 'entrada', fallback: 'Entrada', mostrar: entradaManual },
+                                    { id: 'salida',  fallback: 'Salida',  mostrar: salidaManual  }
+                                ]);
                         }
 
                         const mensaje = usaHoraActual ? 'Registro agregado con hora actual' : 'Registro agregado';
@@ -5331,7 +5337,7 @@
                     }
 
                     if (registrosAEliminar.length === 0) {
-                        UILogic.mostrarToast('No hay registros normales en ese período', 'info');
+                        UILogic.mostrarToast('No hay registros de jornadas en ese período', 'info');
                         throw new Error('Sin registros');
                     }
 
@@ -9122,7 +9128,10 @@ Generado por Sistema Lushibosca
                         try {
                             await DataManagement.registrarDiaEspecial(desde, tipo);
                             // Solo limpiar si fue exitoso
-                            aplicarFeedbackLote(true, false);
+                            aplicarFeedbackCampos([
+                                { id: 'lote-fecha-desde', fallback: 'Desde', mostrar: true  },
+                                { id: 'lote-fecha-hasta', fallback: 'Hasta', mostrar: false }
+                            ]);
                             document.getElementById('lote-fecha-desde').value = '';
                             document.getElementById('lote-fecha-hasta').value = '';
                         } catch (error) {
@@ -9179,7 +9188,10 @@ Generado por Sistema Lushibosca
                         }
 
                         // Solo limpiar campos si la operación fue exitosa
-                        aplicarFeedbackLote(true, true);
+                        aplicarFeedbackCampos([
+                                { id: 'lote-fecha-desde', fallback: 'Desde', mostrar: true },
+                                { id: 'lote-fecha-hasta', fallback: 'Hasta', mostrar: true }
+                            ]);
                         document.getElementById('lote-fecha-desde').value = '';
                         document.getElementById('lote-fecha-hasta').value = '';
                     } catch (error) {
@@ -9209,14 +9221,14 @@ Generado por Sistema Lushibosca
                         });
                         const optNormal = document.createElement('option');
                         optNormal.value = 'normal';
-                        optNormal.textContent = '🕒 Normales (borrar)';
+                        optNormal.textContent = '🕒 Jornadas (borrar)';
                         selectLote.appendChild(optNormal);
                     }
 
                     // filtro-tipo: "Todos" + "Normales" + tipos especiales en plural
                     const selectFiltro = $('filtro-tipo');
                     if (selectFiltro) {
-                        selectFiltro.innerHTML = '<option value="">Todos</option><option value="normal">🕒 Normales</option>';
+                        selectFiltro.innerHTML = '<option value="">Todos</option><option value="normal">🕒 Jornadas</option>';
                         tipos.forEach(t => {
                             const opt = document.createElement('option');
                             opt.value = t.id;
@@ -10081,7 +10093,7 @@ Generado por Sistema Lushibosca
                         eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                         iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                         toggleCredito, init, toggleFormulario, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo,
-                        mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro,
+                        mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackCampos,
                         iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                         togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, navegarCalendario, toggleGistMerge,
                         actualizarEstadoBotonesGist, togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico,
@@ -11480,68 +11492,7 @@ Generado por Sistema Lushibosca
                     });
                 }
 
-                function aplicarFeedbackRegistro(mostrarEntrada, mostrarSalida) {
-                    const inputEntrada = $('entrada');
-                    const inputSalida = $('salida');
-
-                    const labelEntrada = inputEntrada?.closest('.form-group')?.querySelector('label');
-                    const labelSalida = inputSalida?.closest('.form-group')?.querySelector('label');
-
-                    // Guardar textos originales
-                    const textoOriginalEntrada = labelEntrada ? labelEntrada.textContent : 'Entrada';
-                    const textoOriginalSalida = labelSalida ? labelSalida.textContent : 'Salida';
-
-                    // Función helper para animar cambio de texto
-                    const cambiarTextoSuave = (label, nuevoTexto, color) => {
-                        if (!label) return;
-
-                        // Fade out
-                        label.style.opacity = '0';
-                        label.style.transform = 'translateY(-3px)';
-
-                        setTimeout(() => {
-                            label.textContent = nuevoTexto;
-                            label.style.color = color;
-                            // Fade in
-                            label.style.opacity = '1';
-                            label.style.transform = 'translateY(0)';
-                        }, 150); // Mitad del tiempo de transición
-                    };
-
-                    if (mostrarEntrada && inputEntrada && labelEntrada) {
-                        inputEntrada.classList.add('input-agregado-animacion');
-                        cambiarTextoSuave(labelEntrada, '✓ Agregado', 'var(--c-green)');
-                    }
-
-                    if (mostrarSalida && inputSalida && labelSalida) {
-                        inputSalida.classList.add('input-agregado-animacion');
-                        cambiarTextoSuave(labelSalida, '✓ Agregado', 'var(--c-green)');
-                    }
-
-                    // Remover después de 2 segundos
-                    setTimeout(() => {
-                        if (mostrarEntrada && inputEntrada && labelEntrada) {
-                            inputEntrada.classList.remove('input-agregado-animacion');
-                            cambiarTextoSuave(labelEntrada, textoOriginalEntrada, '');
-                        }
-
-                        if (mostrarSalida && inputSalida && labelSalida) {
-                            inputSalida.classList.remove('input-agregado-animacion');
-                            cambiarTextoSuave(labelSalida, textoOriginalSalida, '');
-                        }
-                    }, 2000);
-                }
-
-                function aplicarFeedbackLote(mostrarDesde, mostrarHasta) {
-                    const inputDesde = document.getElementById('lote-fecha-desde');
-                    const inputHasta = document.getElementById('lote-fecha-hasta');
-
-                    const labelDesde = inputDesde?.closest('.form-group')?.querySelector('label');
-                    const labelHasta = inputHasta?.closest('.form-group')?.querySelector('label');
-
-                    const textoOriginalDesde = labelDesde ? labelDesde.textContent : 'Desde';
-                    const textoOriginalHasta = labelHasta ? labelHasta.textContent : 'Hasta';
-
+                function aplicarFeedbackCampos(campos) {
                     const cambiarTextoSuave = (label, nuevoTexto, color) => {
                         if (!label) return;
                         label.style.opacity = '0';
@@ -11554,25 +11505,26 @@ Generado por Sistema Lushibosca
                         }, 150);
                     };
 
-                    if (mostrarDesde && inputDesde) {
-                        inputDesde.classList.add('input-agregado-animacion');
-                        cambiarTextoSuave(labelDesde, '✓ Agregado', 'var(--c-green)');
-                    }
-
-                    if (mostrarHasta && inputHasta) {
-                        inputHasta.classList.add('input-agregado-animacion');
-                        cambiarTextoSuave(labelHasta, '✓ Agregado', 'var(--c-green)');
-                    }
+                    const activos = campos
+                        .filter(c => c.mostrar)
+                        .map(c => {
+                            const input = document.getElementById(c.id);
+                            const label = input?.closest('.form-group')?.querySelector('label');
+                            const textoOriginal = label ? label.textContent : c.fallback;
+                            if (input && label) {
+                                input.classList.add('input-agregado-animacion');
+                                cambiarTextoSuave(label, '✓ Agregado', 'var(--c-green)');
+                            }
+                            return { input, label, textoOriginal };
+                        });
 
                     setTimeout(() => {
-                        if (mostrarDesde && inputDesde) {
-                            inputDesde.classList.remove('input-agregado-animacion');
-                            cambiarTextoSuave(labelDesde, textoOriginalDesde, '');
-                        }
-                        if (mostrarHasta && inputHasta) {
-                            inputHasta.classList.remove('input-agregado-animacion');
-                            cambiarTextoSuave(labelHasta, textoOriginalHasta, '');
-                        }
+                        activos.forEach(({ input, label, textoOriginal }) => {
+                            if (input && label) {
+                                input.classList.remove('input-agregado-animacion');
+                                cambiarTextoSuave(label, textoOriginal, '');
+                            }
+                        });
                     }, 2000);
                 }
 
@@ -11588,7 +11540,7 @@ Generado por Sistema Lushibosca
                     eliminarPerfilDesdeEditor, crearPerfilDesdeSelector, renderizarListaPerfiles, ejecutarAccionRegistro,
                     iniciarCambioHoras, detenerCambio, mostrarconfig, alternarFechaActual, verificarBloqueoCredito,
                     toggleCredito, setBloqueoEdicionGrupo, toggleBloqueoEdicionGrupo, cerrarEdicionGrupo, poblarSelectoresTipos,
-                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackRegistro, aplicarFeedbackLote,
+                    mostrarExportar, cerrarExportar, ejecutarExportacion, toggleCamposRangoExport, aplicarFeedbackCampos,
                     iniciarTimerAutoCierreBotones, cancelarTimerAutoCierreBotones, toggleIgnorarTiempoFuera, actualizarEstadoBotonIgnorarTF,
                     togglePeriodoStats, cambiarAnioStats, cambiarSemanaStats, toggleFondoCard, setFondoCard, toggleVisibilidadCard, aplicarVisibilidadCards,
                     togglePersistirTarjetas, actualizarEstadoBotonPersistir, toggleVistaHistorico, actualizarHintGrupo,
@@ -11608,12 +11560,17 @@ Generado por Sistema Lushibosca
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('SW registrado:', registration.scope);
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // Lógica visual para avisar al usuario
+                                    if (window.UILogic) UILogic.mostrarToast('Nueva versión disponible.', 'info');
+                                }
+                            });
+                        });
                     })
                     .catch(err => console.error('❌ Error SW:', err));
-
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (window.UILogic) UILogic.mostrarToast('Aplicación actualizada.', 'info');
-                });
             });
         }
     </script>
@@ -11622,11 +11579,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 280
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 281
     // ====================================================================
     
       - CAMBIOS:
-    1) optimizacion de toast informativo al actualizar versiones
+    1) Se unifican las funciones de aplicarFeedbackRegistro y aplicarFeedbackLote en aplicarFeedbackCampos
 
      - BUGS CONOCIDOS:
     1)
