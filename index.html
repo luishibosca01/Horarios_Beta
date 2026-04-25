@@ -2314,7 +2314,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_274</span>
+                    <span class="version-text">LUSHIBOSCA build_275</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -8219,11 +8219,15 @@ REPORTE DE HORAS TRABAJADAS
                             const semanas = new Map();
                             registrosPeriodo.forEach(r => {
                                 const lunes = obtenerLunesSemana(r.fecha);
-                                if (!semanas.has(lunes)) semanas.set(lunes, { trabajados: [], feriados: [], ausencias: [], vacaciones: [], enfermedades: [], asuetos: [], paros: [], remotos: [], capacitaciones: [] });
+                                if (!semanas.has(lunes)) {
+                                    const _base = { trabajados: [] };
+                                    TiposRegistro.obtenerTodosLosTipos().forEach(t => _base[t.labelPlural.toLowerCase()] = []);
+                                    semanas.set(lunes, _base);
+                                }
                                 const semana = semanas.get(lunes);
                                 const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
                                 if (tipoEspecial) {
-                                    const categoria = tipoEspecial.id + 's';
+                                    const categoria = tipoEspecial.labelPlural.toLowerCase();
                                     if (semana[categoria]) semana[categoria].push(r);
                                 } else {
                                     semana.trabajados.push(r);
@@ -8285,14 +8289,10 @@ REPORTE DE HORAS TRABAJADAS
                                 seccion += `      └─ ${horasSem}h ${minutosSem}m`;
 
                                 const notasExtras = [];
-                                if (datos.feriados.length > 0) notasExtras.push(`${datos.feriados.length} feriado(s)`);
-                                if (datos.ausencias.length > 0) notasExtras.push(`${datos.ausencias.length} ausencia(s)`);
-                                if (datos.vacaciones.length > 0) notasExtras.push(`${datos.vacaciones.length} vacacion(es)`);
-                                if (datos.enfermedades.length > 0) notasExtras.push(`${datos.enfermedades.length} enfermedad(es)`);
-                                if (datos.asuetos.length > 0) notasExtras.push(`${datos.asuetos.length} asueto(s)`);
-                                if (datos.paros.length > 0) notasExtras.push(`${datos.paros.length} paro(s)`);
-                                if (datos.remotos.length > 0) notasExtras.push(`${datos.remotos.length} remoto(s)`);
-                                if (datos.capacitaciones.length > 0) notasExtras.push(`${datos.capacitaciones.length} capacitacion(es)`);
+                                TiposRegistro.obtenerTodosLosTipos().forEach(t => {
+                                    const clave = t.labelPlural.toLowerCase();
+                                    if (datos[clave]?.length > 0) notasExtras.push(`${datos[clave].length} ${clave}`);
+                                });
                                 if (notasExtras.length > 0) seccion += ` [${notasExtras.join(', ')}]`;
                                 seccion += '\n\n';
 
@@ -11659,7 +11659,7 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 274
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 275
     // ====================================================================
     
       - CAMBIOS:
