@@ -2279,7 +2279,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_281</span>
+                    <span class="version-text">LUSHIBOSCA build_282</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -5947,23 +5947,12 @@
                 }
 
                 function formatoDiferencia(tiempoTotalHoras) {
-                    const horasDiarias = D.horasDiarias();
-                    const objetivoMinutos = horasDiarias * 60;
-                    const actualMinutos = Math.round(tiempoTotalHoras * 60);
-                    let diferenciaMinutos = actualMinutos - objetivoMinutos;
-                    if (diferenciaMinutos === 0) return '';
-                    const signo = diferenciaMinutos > 0 ? '+' : '-';
-                    const absMinutos = Math.abs(diferenciaMinutos);
-                    const h = Math.floor(absMinutos / 60);
-                    const m = absMinutos % 60;
-                    let diferenciaTexto = '';
-                    if (h > 0) diferenciaTexto += `${h}h`;
-                    if (m > 0 || h === 0) {
-                        if (h > 0) diferenciaTexto += ' ';
-                        diferenciaTexto += `${m}m`;
-                    }
-                    if (diferenciaTexto === '') return '';
-                    return `${signo}${diferenciaTexto}`;
+                    const diffMinutos = Math.round(tiempoTotalHoras * 60) - D.horasDiarias() * 60;
+                    if (diffMinutos === 0) return '';
+                    const abs = Math.abs(diffMinutos);
+                    const h = Math.floor(abs / 60);
+                    const m = abs % 60;
+                    return (diffMinutos > 0 ? '+' : '-') + (h > 0 ? `${h}h` : '') + (h > 0 && m > 0 ? ' ' : '') + (m > 0 || h === 0 ? `${m}m` : '');
                 }
 
                 function formatoTituloMes(claveMes) {
@@ -11579,11 +11568,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 281
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 282
     // ====================================================================
     
       - CAMBIOS:
-    1) Se unifican las funciones de aplicarFeedbackRegistro y aplicarFeedbackLote en aplicarFeedbackCampos
+    1) optimizacion de funciones pequeñas
 
      - BUGS CONOCIDOS:
     1)
