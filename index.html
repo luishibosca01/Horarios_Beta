@@ -9160,7 +9160,7 @@ Generado por Sistema Lushibosca
                     }
 
                     if (desde > hasta) {
-                        mostrarToast('La fecha inicial debe ser superior a la final', 'error');
+                        mostrarToast('La fecha inicial debe ser inferior a la final', 'error');
                         return;
                     }
 
@@ -11594,7 +11594,7 @@ Generado por Sistema Lushibosca
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                     // Lógica visual para avisar al usuario
-                                    if (window.UILogic) UILogic.mostrarToast('Nueva versión disponible.', 'info');
+                                    if (window.UILogic) UILogic.mostrarToast('Se actualizará la versión al recargar', 'info');
                                 }
                             });
                         });
