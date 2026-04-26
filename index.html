@@ -11595,7 +11595,7 @@ Generado por Sistema Lushibosca
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                     // Lógica visual para avisar al usuario
-                                    if (window.UILogic) UILogic.mostrarToast('Nueva versión disponible.', 'info');
+                                    if (window.UILogic) UILogic.mostrarToast('Se actualizará la versión al recargar', 'info');
                                 }
                             });
                         });
