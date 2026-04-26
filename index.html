@@ -963,17 +963,19 @@
         }
 
         .cal-popup-fecha {
-            font-size: 0.78rem;
             font-weight: 700;
             color: var(--text-muted);
-            text-transform: capitalize;
-            letter-spacing: 0.03em;
         }
 
         .cal-popup-info {
             font-size: 1rem;
             font-weight: 700;
             color: var(--text-main);
+        }
+
+        .cal-popup-3l {
+            font-size:0.8rem;
+            color:var(--text-muted)
         }
 
         .cal-popup-badge {
@@ -1761,6 +1763,9 @@
             <path d="M3 7v6h6" class="icon-line" stroke="currentColor"></path>
             <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" class="icon-line" stroke="currentColor"></path>
         </symbol>
+        <symbol id="icon-grid-group" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </symbol>
         <symbol id="icon-redo" viewBox="0 0 24 24">
             <path d="M21 7v6h-6" class="icon-line" stroke="currentColor"></path>
             <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13" class="icon-line" stroke="currentColor"></path>
@@ -1938,8 +1943,7 @@
                             <div class="form-group">
                                 <label>Entrada</label>
                                 <div class="input-with-btn">
-                                    <input type="text" id="entrada" inputmode="numeric" placeholder="Hora"
-                                        maxlength="5" />
+                                    <input type="text" id="entrada" inputmode="numeric" maxlength="5" />
                                     <button class="time-btn" onclick="UILogic.pegarHoraActual('entrada')"
                                         title="Pegar hora actual o limpiar">
                                         <svg class="icon">
@@ -1952,8 +1956,7 @@
                             <div class="form-group">
                                 <label>Salida</label>
                                 <div class="input-with-btn">
-                                    <input type="text" id="salida" inputmode="numeric" placeholder="hora"
-                                        maxlength="5" />
+                                    <input type="text" id="salida" inputmode="numeric" maxlength="5" />
                                     <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')"
                                         title="Pegar hora actual o limpiar" s>
                                         <svg class="icon">
@@ -2190,7 +2193,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_291</span>
+                    <span class="version-text">LUSHIBOSCA build_292</span>
                 </h3>
             </div>
             <div class="modal-panel-body custom-scroll">
@@ -2459,11 +2462,9 @@
                     </div>
                     <div id="gist-rango-horario" class="collapsible">
                         <span>Desde</span>
-                        <input type="text" id="gist-rango-desde" inputmode="numeric" maxlength="5"
-                            placeholder="HH:MM" />
+                        <input type="text" id="gist-rango-desde" inputmode="numeric" maxlength="5" />
                         <span>Hasta</span>
-                        <input type="text" id="gist-rango-hasta" inputmode="numeric" maxlength="5"
-                            placeholder="HH:MM" />
+                        <input type="text" id="gist-rango-hasta" inputmode="numeric" maxlength="5" />
                     </div>
                 </div>
                 <div class="config-hint-text" id="gist-ultima-sync">Sin sincronizar</div>
@@ -2760,7 +2761,7 @@
             <div class="form-group form-group-border-top">
                 <label>Agregar perfil</label>
                 <div class="input-with-btn">
-                    <input type="text" id="nombre-nuevo-perfil-selector" placeholder="Nombre del perfil..."
+                    <input type="text" id="nombre-nuevo-perfil-selector" placeholder="Nombre del perfil, lugar..."
                         maxlength="30" />
                     <button class="time-btn" onclick="UILogic.crearPerfilDesdeSelector()" title="Crear perfil">
                         <svg class="icon">
@@ -2804,7 +2805,7 @@
 
             <div class="form-group">
                 <label>Nombre del Perfil</label>
-                <input type="text" id="nombre-perfil-editar" placeholder="Nombre del perfil..." maxlength="30" />
+                <input type="text" id="nombre-perfil-editar" placeholder="Nombre del perfil, lugar..." maxlength="30" />
             </div>
 
             <input type="hidden" id="id-perfil-editar" />
@@ -6541,16 +6542,7 @@
                         } else {
                             itemSaldo.style.display = '';
                             const b = stats.bufferPeriodo;
-                            const abs = Math.abs(b);
-                            let h = Math.floor(abs);
-                            let m = Math.round((abs - h) * 60);
-                            if (m === 60) { h++; m = 0; }
-                            const signo = b >= 0 ? '+' : '-';
-                            const texto = h > 0 && m > 0 ? `${signo}${h}h ${m}m`
-                                : h > 0 ? `${signo}${h}h`
-                                    : m > 0 ? `${signo}${m}m`
-                                        : '0h';
-                            elSaldo.textContent = b === 0 ? '0h' : texto;
+                            elSaldo.textContent = b === 0 ? '0h' : horasATextoCorto(b);
                             elSaldo.style.color = b > 0 ? 'var(--c-green)' : b < 0 ? 'var(--c-red)' : 'var(--text-main)';
                         }
                     }
@@ -6848,7 +6840,7 @@
                     // SIN REGISTRO
                     if (!regHoy || !regHoy.entrada) {
                         return {
-                            titulo: `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`,
+                            titulo: `<svg class="icon"><use href="#icon-clock" /></svg>${obtenerNombreDia(obtenerFechaHoy())}`,
                             stats: esDiaHabil ? '🎒' : '🌞',
                             mensaje: esDiaHabil
                                 ? (horasDiarias === 0 ? '' : 'Esperando registro...')
@@ -6863,7 +6855,7 @@
                     // DÍA ESPECIAL
                     if (tipoEspecialHoy) {
                         return {
-                            titulo: `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`,
+                            titulo: `<svg class="icon"><use href="#icon-clock" /></svg>${obtenerNombreDia(obtenerFechaHoy())}`,
                             stats: `${tipoEspecialHoy.emoji} ${tipoEspecialHoy.label}`,
                             mensaje: `¡${tipoEspecialHoy.descripcion}!`,
                             mostrarMensaje: true,
@@ -6949,7 +6941,7 @@
                     }
 
                     return {
-                        titulo: `<svg class="icon"><use href="#icon-clock" /></svg> Hoy`,
+                        titulo: `<svg class="icon"><use href="#icon-clock" /></svg>${obtenerNombreDia(obtenerFechaHoy())}`,
                         stats: horasATexto(tiempoHoy),
                         mensaje, mostrarMensaje,
                         colorBarra, anchoBarra: prog,
@@ -8304,7 +8296,7 @@ Generado por Sistema Lushibosca
                                 ? '<svg class="icon"><use href="#icon-calendar-simple"/></svg>'
                                 : '<svg class="icon"><use href="#icon-clock"/></svg>';
 
-                            const contexto = vistaActual === 'semana' ? 'Esta Semana' : 'Hoy';
+                            const contexto = vistaActual === 'semana' ? 'Esta Semana' : obtenerNombreDia(obtenerFechaHoy());
 
                             if (titulo) {
                                 titulo.innerHTML = `${icono} ${contexto} - <svg class="icon"><use href="#icon-exit"/></svg> Tiempo fuera <span id="break-counter" style="font-size:0.8em; font-weight:500; color:var(--c-red); margin-left:0.3em;"></span>`;
@@ -10900,7 +10892,7 @@ Generado por Sistema Lushibosca
                         timerAutoCierreBotones = null;
                     }
 
-                    // Iniciar nuevo timer de 5 segundos
+                    // Iniciar nuevo timer 
                     timerAutoCierreBotones = setTimeout(() => {
                         const botones = $('botones-historico');
                         const contenido = $('contenido-historico');
@@ -11099,9 +11091,9 @@ Generado por Sistema Lushibosca
                         const esHoy = reg.fecha === obtenerFechaHoy();
                         infoHtml = esHoy
                             ? `<div class="cal-popup-info" style="color:var(--c-blue)">En curso</div>
-                               <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${_esc(reg.entrada)}</div>`
+                               <div class="cal-popup-3l">Entrada: ${_esc(reg.entrada)}</div>`
                             : `<div class="cal-popup-info" style="color:var(--c-gold)">Incompleto</div>
-                               <div style="font-size:0.82rem;color:var(--text-muted)">Entrada: ${_esc(reg.entrada)}</div>`;
+                               <div class="cal-popup-3l">Entrada: ${_esc(reg.entrada)}</div>`;
                     } else {
                         const totalHoras = reg.total || 0;
                         const h = Math.floor(totalHoras);
@@ -11112,17 +11104,23 @@ Generado por Sistema Lushibosca
                             const [tfH, tfM] = reg.tiempoFuera.split(':').map(Number);
                             tfStr = tfH > 0 ? `${tfH}h${tfM > 0 ? ' ' + tfM + 'm' : ''} fuera` : `${tfM}m fuera`;
                         }
-                        infoHtml = `<div class="cal-popup-info">${totalStr}</div>
-                    <div style="font-size:0.82rem;color:var(--text-muted)">${_esc(reg.entrada)} – ${_esc(reg.salida)}</div>
-                    ${tfStr ? `<div style="font-size:0.82rem;color:var(--text-muted)">${_esc(tfStr)}</div>` : ''}`;
+                        const horasDiarias = D.horasDiarias();
+                        let totalConDiff = totalStr;
+                        let diffColor = '';
+                        if (horasDiarias > 0) {
+                            const diffText = formatoDiferencia(totalHoras);
+                            if (diffText) totalConDiff += ` (${diffText})`;
+                            diffColor = totalHoras >= horasDiarias ? 'var(--c-green)' : 'var(--c-red)';
+                        }
+                        infoHtml = `<div class="cal-popup-info"${diffColor ? ` style="color:${diffColor}"` : ''}>${totalConDiff}</div>
+                    <div class="cal-popup-3l">${_esc(reg.entrada)} – ${_esc(reg.salida)}</div>
+                    ${tfStr ? `<div class="cal-popup-3l">${_esc(tfStr)}</div>` : ''}`;
                     }
 
                     // Botón editar grupo (solo si pertenece a uno)
                     const btnGrupoHtml = grupoDelRegistro ? `
         <button class="cal-popup-btn-edit" onclick="DataManagement.editarGrupo(window._calPopupGrupo);document.getElementById('_cal-popup')?.remove()">
-            <svg class="icon icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-            </svg>
+            <svg class="icon"><use href="#icon-grid-group"/></svg>
             Editar grupo
         </button>` : '';
 
@@ -11139,10 +11137,7 @@ Generado por Sistema Lushibosca
         <div class="cal-popup-fecha">${fechaLabel}</div>
         ${infoHtml}
         <button class="cal-popup-btn-edit" onclick="DataManagement.editarRegistro('${reg.id}');document.getElementById('_cal-popup')?.remove()">
-            <svg class="icon icon-line" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
+            <svg class="icon"><use href="#icon-edit"/></svg>
             Editar
         </button>
         ${btnGrupoHtml}
@@ -11523,11 +11518,13 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 291
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 292
     // ====================================================================
     
       - CAMBIOS:
-    1) Se agrega separacion por años en el selector de estadisticas semanales
+    1) Se agrega nombre del dia en el titulo de la vista diaria
+    2) se quitan svg inline y se colocan en el area de definicion de svg
+    3) se usa el helper horasATextoCorto en las estadisticas
 
      - BUGS CONOCIDOS:
     1)
