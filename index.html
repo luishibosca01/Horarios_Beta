@@ -9048,6 +9048,7 @@ Generado por Sistema Lushibosca
                             modoNormal.classList.remove('fade-out');
 
                             btnTexto.textContent = 'Fichar';
+                            btn.style.color = '';
                             btnTimer.style.opacity = '1';
 
                             actualizarEstadoBotonTimerMain();
@@ -11594,7 +11595,7 @@ Generado por Sistema Lushibosca
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                     // Lógica visual para avisar al usuario
-                                    if (window.UILogic) UILogic.mostrarToast('Se actualizará la versión al recargar', 'info');
+                                    if (window.UILogic) UILogic.mostrarToast('Nueva versión disponible.', 'info');
                                 }
                             });
                         });
@@ -11614,6 +11615,7 @@ Generado por Sistema Lushibosca
       - CAMBIOS:
     1) Se agrega campo comentarios al modal editar registro
     2) se corriguen bugs relacionados al hint y boton togglecredito
+    3) se corrige el bug de color en el boton fichar, ahora se resetea correctamente
 
      - BUGS CONOCIDOS:
     1)
