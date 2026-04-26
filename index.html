@@ -669,8 +669,9 @@
             opacity: 1;
         }
 
-        /* Modal config scrollable con header y footer sticky */
-        #modal-config .modal-content {
+        /* Modal config y gist: scrollable con header y footer sticky */
+        #modal-config .modal-content,
+        #modal-gist .modal-content {
             display: flex;
             flex-direction: column;
             max-height: 90vh;
@@ -701,6 +702,42 @@
             background: var(--bg-card);
             z-index: 2;
             border-top: 1px solid var(--border);
+            margin-top: 0.5rem;
+        }
+
+        /* Modal editar registro y editar grupo: header y footer fijos */
+        #modal-editar .modal-content,
+        #modal-editar-grupo .modal-content {
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        #modal-editar .modal-edit-header,
+        #modal-editar-grupo .modal-edit-header {
+            flex-shrink: 0;
+            background: var(--bg-card);
+            z-index: 2;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 0.5rem;
+        }
+
+        #modal-editar .modal-edit-body,
+        #modal-editar-grupo .modal-edit-body {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        #modal-editar .modal-edit-footer,
+        #modal-editar-grupo .modal-edit-footer {
+            flex-shrink: 0;
+            background: var(--bg-card);
+            z-index: 2;
+            border-top: 1px solid var(--border);
+            padding-top: 0.5rem;
             margin-top: 0.5rem;
         }
 
@@ -1817,6 +1854,16 @@
             <polyline points="17 21 17 13 7 13 7 21" class="icon-line" stroke="currentColor"></polyline>
             <polyline points="7 3 7 8 15 8" class="icon-line" stroke="currentColor"></polyline>
         </symbol>
+        <symbol id="icon-clock-in" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" class="icon-line" stroke="currentColor" fill="none" stroke-width="2">
+            </circle>
+            <path d="M10 8l6 4-6 4V8z" class="icon-line" fill="currentColor"></path>
+        </symbol>
+        <symbol id="icon-clock-out" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" class="icon-line" stroke="currentColor" fill="none" stroke-width="2">
+            </circle>
+            <rect x="9" y="9" width="6" height="6" rx="1" class="icon-line" fill="currentColor"></rect>
+        </symbol>
         <symbol id="icon-broom" viewBox="0 0 24 24">
             <path class="icon-line"
                 d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14zM8 11v6M12 11v6M16 11v6M10 3L9 6h6l-1-3" />
@@ -2032,7 +2079,8 @@
                                 <div class="input-with-btn">
                                     <input type="text" id="entrada" inputmode="numeric" placeholder="Hora"
                                         maxlength="5" />
-                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('entrada')" title="Pegar hora actual o limpiar">
+                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('entrada')"
+                                        title="Pegar hora actual o limpiar">
                                         <svg class="icon">
                                             <use href="#icon-clock" />
                                         </svg>
@@ -2045,7 +2093,8 @@
                                 <div class="input-with-btn">
                                     <input type="text" id="salida" inputmode="numeric" placeholder="hora"
                                         maxlength="5" />
-                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')" title="Pegar hora actual o limpiar"s>
+                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')"
+                                        title="Pegar hora actual o limpiar" s>
                                         <svg class="icon">
                                             <use href="#icon-clock" />
                                         </svg>
@@ -2248,7 +2297,8 @@
                         <span class="calendario-titulo" id="calendario-titulo-mes"
                             onclick="UILogic.abrirSelectorMesesCalendario()" title="Mostrar meses"></span>
                         <div id="calendario-nav-botones">
-                            <button class="btn-hoy-calendario" onclick="UILogic.irHoyCalendario()" title="Ir al mes actual">Hoy</button>
+                            <button class="btn-hoy-calendario" onclick="UILogic.irHoyCalendario()"
+                                title="Ir al mes actual">Hoy</button>
                             <button onclick="UILogic.navegarCalendario(-1)" title="Mes anterior">
                                 <svg class="icon icon-rotate-90">
                                     <use href="#icon-chevron-down" />
@@ -2294,11 +2344,13 @@
                                 <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(0.5)"
                                     onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
                                     ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(0.5)"
-                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()" title="Incrementar tiempo">+</button>
+                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()"
+                                    title="Incrementar tiempo">+</button>
                                 <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(-0.5)"
                                     onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
                                     ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(-0.5)"
-                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()" title="Disminuir tiempo">-</button>
+                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()"
+                                    title="Disminuir tiempo">-</button>
                             </div>
                         </div>
                         <div class="form-group">
@@ -2621,86 +2673,94 @@
 
     <div class="modal" id="modal-editar">
         <div class="modal-content">
-            <h3>
-                <span class="modal-title-block">
-                    <svg class="icon">
-                        <use href="#icon-edit" />
-                    </svg>Editar Registro
-                </span>
-                <span id="edit-hint-resumen" class="config-hint-text"></span>
-            </h3>
-            <div class="form-group">
-                <label>Fecha</label>
-                <div class="input-with-btn">
-                    <input type="date" id="edit-fecha" />
-                    <button id="btn-toggle-credito" class="time-btn" onclick="UILogic.toggleCredito()"
-                        title="Asueto | Salida temprano">
+            <div class="modal-edit-header">
+                <h3 class="modal-h3-no-mb">
+                    <span class="modal-title-block">
                         <svg class="icon">
-                            <use href="#icon-exit" />
-                        </svg>
-                    </button>
-                    <button class="time-btn" id="btn-lock-toggle" onclick="UILogic.toggleBloqueoEdicion()"
-                        title="Desbloquear edición">
-                        <svg class="icon">
-                            <use href="#icon-lock" />
-                        </svg>
-                    </button>
+                            <use href="#icon-edit" />
+                        </svg>Editar Registro
+                    </span>
+                    <span id="edit-hint-resumen" class="config-hint-text"></span>
+                </h3>
+            </div>
+            <div class="modal-edit-body custom-scroll">
+                <div class="form-group">
+                    <label>Fecha</label>
+                    <div class="input-with-btn">
+                        <input type="date" id="edit-fecha" />
+                        <button id="btn-toggle-credito" class="time-btn" onclick="UILogic.toggleCredito()"
+                            title="Asueto | Salida temprano">
+                            <svg class="icon">
+                                <use href="#icon-exit" />
+                            </svg>
+                        </button>
+                        <button class="time-btn" id="btn-lock-toggle" onclick="UILogic.toggleBloqueoEdicion()"
+                            title="Desbloquear edición">
+                            <svg class="icon">
+                                <use href="#icon-lock" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Entrada</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="edit-entrada" inputmode="numeric" maxlength="5" />
+                        <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-entrada')"
+                            title="Pegar hora actual o limpiar"><svg class="icon">
+                                <use href="#icon-clock" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Salida</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="edit-salida" inputmode="numeric" maxlength="5" />
+                        <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-salida')"
+                            title="Pegar hora actual o limpiar"><svg class="icon">
+                                <use href="#icon-clock" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Tiempo Fuera</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="edit-tiempo-fuera" inputmode="numeric" maxlength="5" />
+                        <button class="time-btn" onclick="UILogic.limpiarCampo('edit-tiempo-fuera')" title="Limpiar">
+                            <svg class="icon">
+                                <use href="#icon-broom" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Comentarios</label>
+                    <div class="input-with-btn">
+                        <input type="text" id="edit-notas" maxlength="35" autocomplete="off" />
+                        <button class="time-btn" onclick="UILogic.limpiarCampo('edit-notas')" title="Limpiar">
+                            <svg class="icon">
+                                <use href="#icon-broom" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="form-group">
-                <label>Entrada</label>
-                <div class="input-with-btn">
-                    <input type="text" id="edit-entrada" inputmode="numeric" maxlength="5" />
-                    <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-entrada')" title="Pegar hora actual o limpiar"><svg class="icon">
-                            <use href="#icon-clock" />
-                        </svg>
-                    </button>
+            <div class="modal-edit-footer">
+                <div class="btn-group">
+                    <button class="btn-edit" onclick="DataManagement.guardarEdicion()"><svg class="icon">
+                            <use href="#icon-save" />
+                        </svg> Guardar</button>
+                    <button class="btn-delete" onclick="DataManagement.eliminarRegistroActual()"><svg class="icon">
+                            <use href="#icon-trash" />
+                        </svg> Eliminar</button>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Salida</label>
-                <div class="input-with-btn">
-                    <input type="text" id="edit-salida" inputmode="numeric" maxlength="5" />
-                    <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-salida')" title="Pegar hora actual o limpiar"><svg class="icon">
-                            <use href="#icon-clock" />
-                        </svg>
-                    </button>
+                <div class="btn-group">
+                    <button class="btn-cancel" onclick="UILogic.cerrarEdicion()"><svg class="icon">
+                            <use href="#icon-cancelar" />
+                        </svg> Cancelar</button>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Tiempo Fuera</label>
-                <div class="input-with-btn">
-                    <input type="text" id="edit-tiempo-fuera" inputmode="numeric" maxlength="5" />
-                    <button class="time-btn" onclick="UILogic.limpiarCampo('edit-tiempo-fuera')" title="Limpiar">
-                        <svg class="icon">
-                            <use href="#icon-broom" />
-                        </svg>
-                    </button>                    
-                </div>
-            </div>            
-            <div class="form-group">
-                <label>Comentarios</label>
-                <div class="input-with-btn">
-                    <input type="text" id="edit-notas" maxlength="35" autocomplete="off" />
-                    <button class="time-btn" onclick="UILogic.limpiarCampo('edit-notas')" title="Limpiar">
-                        <svg class="icon">
-                            <use href="#icon-broom" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            <div class="btn-group">
-                <button class="btn-edit" onclick="DataManagement.guardarEdicion()"><svg class="icon">
-                        <use href="#icon-save" />
-                    </svg> Guardar</button>
-                <button class="btn-delete" onclick="DataManagement.eliminarRegistroActual()"><svg class="icon">
-                        <use href="#icon-trash" />
-                    </svg> Eliminar</button>
-            </div>
-            <div class="btn-group">
-                <button class="btn-cancel" onclick="UILogic.cerrarEdicion()"><svg class="icon">
-                        <use href="#icon-cancelar" />
-                    </svg> Cancelar</button>
             </div>
         </div>
     </div>
@@ -2917,69 +2977,75 @@
 
     <div class="modal" id="modal-editar-grupo">
         <div class="modal-content">
-            <h3>
-                <span class="modal-title-block">
-                    <svg class="icon">
-                        <use href="#icon-edit" />
-                    </svg>Editar Grupo
-                </span>
-                <span id="edit-grupo-hint" class="config-hint-text"></span>
-            </h3>
-            <div class="form-group">
-                <label>Tipo de registro</label>
-                <div class="input-with-btn">
-                    <select id="edit-grupo-tipo">
-                    </select>
-                    <button class="time-btn" id="btn-lock-grupo-toggle" onclick="UILogic.toggleBloqueoEdicionGrupo()"
-                        title="Desbloquear edición">
+            <div class="modal-edit-header">
+                <h3 class="modal-h3-no-mb">
+                    <span class="modal-title-block">
                         <svg class="icon">
-                            <use href="#icon-lock" />
-                        </svg>
-                    </button>
+                            <use href="#icon-edit" />
+                        </svg>Editar Grupo
+                    </span>
+                    <span id="edit-grupo-hint" class="config-hint-text"></span>
+                </h3>
+            </div>
+            <div class="modal-edit-body custom-scroll">
+                <div class="form-group">
+                    <label>Tipo de registro</label>
+                    <div class="input-with-btn">
+                        <select id="edit-grupo-tipo">
+                        </select>
+                        <button class="time-btn" id="btn-lock-grupo-toggle" onclick="UILogic.toggleBloqueoEdicionGrupo()"
+                            title="Desbloquear edición">
+                            <svg class="icon">
+                                <use href="#icon-lock" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Desde</label>
+                    <div class="input-with-btn">
+                        <input type="date" id="edit-grupo-desde" />
+                        <button class="time-btn" onclick="UILogic.alternarFechaActual('edit-grupo-desde')"
+                            title="Pegar hoy / Limpiar">
+                            <svg class="icon">
+                                <use href="#icon-calendar-simple" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Hasta</label>
+                    <div class="input-with-btn">
+                        <input type="date" id="edit-grupo-hasta" />
+                        <button class="time-btn" onclick="UILogic.alternarFechaActual('edit-grupo-hasta')"
+                            title="Pegar hoy / Limpiar">
+                            <svg class="icon">
+                                <use href="#icon-calendar-simple" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="form-group">
-                <label>Desde</label>
-                <div class="input-with-btn">
-                    <input type="date" id="edit-grupo-desde" />
-                    <button class="time-btn" onclick="UILogic.alternarFechaActual('edit-grupo-desde')"
-                        title="Pegar hoy / Limpiar">
+            <div class="modal-edit-footer">
+                <div class="btn-group">
+                    <button class="btn-edit" onclick="DataManagement.guardarEdicionGrupo()">
                         <svg class="icon">
-                            <use href="#icon-calendar-simple" />
-                        </svg>
+                            <use href="#icon-save" />
+                        </svg> Guardar
+                    </button>
+                    <button class="btn-delete" onclick="DataManagement.eliminarGrupoActual()">
+                        <svg class="icon">
+                            <use href="#icon-trash" />
+                        </svg> Eliminar
                     </button>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Hasta</label>
-                <div class="input-with-btn">
-                    <input type="date" id="edit-grupo-hasta" />
-                    <button class="time-btn" onclick="UILogic.alternarFechaActual('edit-grupo-hasta')"
-                        title="Pegar hoy / Limpiar">
+                <div class="btn-group">
+                    <button class="btn-cancel" onclick="UILogic.cerrarEdicionGrupo()">
                         <svg class="icon">
-                            <use href="#icon-calendar-simple" />
-                        </svg>
+                            <use href="#icon-cancelar" />
+                        </svg> Cancelar
                     </button>
                 </div>
-            </div>            
-            <div class="btn-group">
-                <button class="btn-edit" onclick="DataManagement.guardarEdicionGrupo()">
-                    <svg class="icon">
-                        <use href="#icon-save" />
-                    </svg> Guardar
-                </button>
-                <button class="btn-delete" onclick="DataManagement.eliminarGrupoActual()">
-                    <svg class="icon">
-                        <use href="#icon-trash" />
-                    </svg> Eliminar
-                </button>
-            </div>
-            <div class="btn-group">
-                <button class="btn-cancel" onclick="UILogic.cerrarEdicionGrupo()">
-                    <svg class="icon">
-                        <use href="#icon-cancelar" />
-                    </svg> Cancelar
-                </button>
             </div>
         </div>
     </div>
@@ -11609,14 +11675,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 287
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 288
     // ====================================================================
     
       - CAMBIOS:
-    1) Se agrega campo comentarios al modal editar registro
-    2) se corriguen bugs relacionados al hint y boton togglecredito
-    3) se corrige el bug de color en el boton fichar, ahora se resetea correctamente
-    4) Se agregan algunas descripciones faltantes en botones
+    1) modal-editar y modal-editar-grupo: header y footer fijos, campos scrolleables
+    2) modal-gist: mismo comportamiento (ya tenía las clases, faltaba el CSS flex)
 
      - BUGS CONOCIDOS:
     1)
