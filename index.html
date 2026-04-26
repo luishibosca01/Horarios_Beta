@@ -1584,7 +1584,7 @@
         /* Hint resumen edición */
         #edit-hint-resumen,
         #edit-grupo-hint {
-            text-align: center;
+            margin-left: auto;
             margin-top: 0;
             min-height: 1.2em;
         }
@@ -2279,7 +2279,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_283</span>
+                    <span class="version-text">LUSHIBOSCA build_287</span>
                 </h3>
             </div>
             <div class="modal-config-body custom-scroll">
@@ -2627,11 +2627,18 @@
                         <use href="#icon-edit" />
                     </svg>Editar Registro
                 </span>
+                <span id="edit-hint-resumen" class="config-hint-text"></span>
             </h3>
             <div class="form-group">
                 <label>Fecha</label>
                 <div class="input-with-btn">
                     <input type="date" id="edit-fecha" />
+                    <button id="btn-toggle-credito" class="time-btn" onclick="UILogic.toggleCredito()"
+                        title="Asueto | Salida temprano">
+                        <svg class="icon">
+                            <use href="#icon-exit" />
+                        </svg>
+                    </button>
                     <button class="time-btn" id="btn-lock-toggle" onclick="UILogic.toggleBloqueoEdicion()"
                         title="Desbloquear edición">
                         <svg class="icon">
@@ -2668,16 +2675,20 @@
                         <svg class="icon">
                             <use href="#icon-broom" />
                         </svg>
-                    </button>
-                    <button id="btn-toggle-credito" class="time-btn" onclick="UILogic.toggleCredito()"
-                        title="(Compensación/Asueto)">
+                    </button>                    
+                </div>
+            </div>            
+            <div class="form-group">
+                <label>Comentarios</label>
+                <div class="input-with-btn">
+                    <input type="text" id="edit-notas" maxlength="35" autocomplete="off" />
+                    <button class="time-btn" onclick="UILogic.limpiarCampo('edit-notas')" title="Limpiar">
                         <svg class="icon">
-                            <use href="#icon-exit" />
+                            <use href="#icon-broom" />
                         </svg>
                     </button>
                 </div>
             </div>
-            <div id="edit-hint-resumen" class="config-hint-text"></div>
             <div class="btn-group">
                 <button class="btn-edit" onclick="DataManagement.guardarEdicion()"><svg class="icon">
                         <use href="#icon-save" />
@@ -2912,6 +2923,7 @@
                         <use href="#icon-edit" />
                     </svg>Editar Grupo
                 </span>
+                <span id="edit-grupo-hint" class="config-hint-text"></span>
             </h3>
             <div class="form-group">
                 <label>Tipo de registro</label>
@@ -2949,8 +2961,7 @@
                         </svg>
                     </button>
                 </div>
-            </div>
-            <div id="edit-grupo-hint" class="config-hint-text"></div>
+            </div>            
             <div class="btn-group">
                 <button class="btn-edit" onclick="DataManagement.guardarEdicionGrupo()">
                     <svg class="icon">
@@ -3075,6 +3086,7 @@
                 const SECURITY_LIMITS = {
                     MAX_REGISTROS: 1000,
                     MAX_STRING_LENGTH: 100,
+                    MAX_NOTAS_LENGTH: 35,
                     MAX_JSON_SIZE: 4 * 1024 * 1024,
                     SCHEMA_VERSION: 3,
                 };
@@ -3082,7 +3094,8 @@
                 const REGEX_PATTERNS = {
                     FECHA: /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
                     HORA: /^([01]\d|2[0-3]):([0-5]\d)$/,
-                    ID: /^[a-zA-Z0-9-_]{10,100}$/
+                    ID: /^[a-zA-Z0-9-_]{10,100}$/,
+                    NOTAS: /[^a-zA-Z0-9áéíóúÁÉÍÓÚüÜñÑ ]/g
                 };
 
                 function sanitizeString(str, maxLength = SECURITY_LIMITS.MAX_STRING_LENGTH) {
@@ -3100,6 +3113,12 @@
                         .replace(/&#/g, '')
                         .trim()
                         .substring(0, maxLength);
+                }
+
+                function sanitizeNotas(str, trim = false) {
+                    if (typeof str !== 'string') return '';
+                    const r = str.replace(REGEX_PATTERNS.NOTAS, '').substring(0, SECURITY_LIMITS.MAX_NOTAS_LENGTH);
+                    return trim ? r.trim() : r;
                 }
 
                 function validarFechaSegura(f) {
@@ -3169,11 +3188,15 @@
                         if (typeof r.credito !== 'string' || !REGEX_PATTERNS.HORA.test(r.credito)) return false;
                     }
 
+                    if (r.notas !== null && r.notas !== undefined && r.notas !== '') {
+                        if (typeof r.notas !== 'string' || r.notas.length > SECURITY_LIMITS.MAX_NOTAS_LENGTH) return false;
+                    }
+
                     if (!Number.isFinite(r.horas) || r.horas < 0 || r.horas > 24) return false;
                     if (!Number.isFinite(r.minutos) || r.minutos < 0 || r.minutos > 59) return false;
                     if (!Number.isFinite(r.total) || r.total < 0 || r.total > 24) return false;
 
-                    const propiedadesPermitidas = ['id', 'fecha', 'entrada', 'salida', 'tiempoFuera', 'horas', 'minutos', 'total', 'credito']; const propiedadesActuales = Object.keys(r);
+                    const propiedadesPermitidas = ['id', 'fecha', 'entrada', 'salida', 'tiempoFuera', 'horas', 'minutos', 'total', 'credito', 'notas']; const propiedadesActuales = Object.keys(r);
                     const tienePropiedadesSospechosas = propiedadesActuales.some(prop => !propiedadesPermitidas.includes(prop));
                     if (tienePropiedadesSospechosas) return false;
 
@@ -3197,6 +3220,7 @@
                     SECURITY_LIMITS,
                     REGEX_PATTERNS,
                     sanitizeString,
+                    sanitizeNotas,
                     validarFechaSegura,
                     validarHoraSegura,
                     generarIDSeguro,
@@ -4489,6 +4513,7 @@
                     $('edit-entrada').value = r.entrada || '';
                     $('edit-salida').value = r.salida || '';
                     $('edit-tiempo-fuera').value = r.tiempoFuera || '';
+                    $('edit-notas').value = r.notas || '';
 
                     // 3. CONFIGURAR EL BOTÓN DE CRÉDITO
                     const btnCredito = document.getElementById('btn-toggle-credito');
@@ -4535,6 +4560,10 @@
 
                     let tf = S.sanitizeString($('edit-tiempo-fuera').value.trim(), 5);
                     if (tf === '') tf = null;
+
+                    let notas = S.sanitizeString($('edit-notas').value.trim(), S.SECURITY_LIMITS.MAX_NOTAS_LENGTH);
+                    if (notas) notas = S.sanitizeNotas(notas, true) || null;
+                    if (notas === '') notas = null;
 
                     // --- CALCULAR CRÉDITO SEGÚN EL BOTÓN ---
                     let cr = null;
@@ -4585,12 +4614,15 @@
                     // Comparar crédito también
                     const actualCR = r.credito || '';
                     const nuevoCR = cr || '';
+                    const actualNotas = r.notas || '';
+                    const nuevasNotas = notas || '';
 
                     if (r.fecha === f &&
                         actualEntrada === nuevaEntrada &&
                         actualSalida === nuevaSalida &&
                         actualTF === nuevoTF &&
-                        actualCR === nuevoCR) {
+                        actualCR === nuevoCR &&
+                        actualNotas === nuevasNotas) {
 
                         UILogic.mostrarToast('Sin cambios', 'info');
                         UILogic.restaurarBotonGuardarEdicion(btnGuardar);
@@ -4690,7 +4722,8 @@
 
                     r.salida = s || null;
                     r.tiempoFuera = tf;
-                    r.credito = cr; // Guardamos el crédito calculado
+                    r.credito = cr;
+                    r.notas = notas;
 
                     // --- 5. RECALCULAR TOTALES ---
                     const t = calcularHoras(r.entrada, r.salida, r.tiempoFuera, r.credito);
@@ -4793,6 +4826,9 @@
                             minutos: Math.max(0, Math.min(59, parseFloat(r.minutos) || 0)),
                             total: Math.max(0, Math.min(24, parseFloat(r.total) || 0)),
                             credito: validarHora(r.credito),
+                            notas: (r.notas && typeof r.notas === 'string')
+                                ? S.sanitizeString(r.notas, S.SECURITY_LIMITS.MAX_NOTAS_LENGTH) || null
+                                : null,
                         }));
 
                     // Recalcular totales para asegurar consistencia interna
@@ -7317,8 +7353,9 @@
 
                 function limpiarCampo(id) {
                     const c = document.getElementById(id);
-                    if (c) c.value = '';
-
+                    if (!c) return;
+                    c.value = '';
+                    c.dispatchEvent(new Event('input'));
                 }
 
                 function formatearInput(e) {
@@ -8493,7 +8530,7 @@ Generado por Sistema Lushibosca
                     }
 
                     // Bloquear Inputs (Menos el botón de crédito, que se maneja aparte)
-                    const inputs = ['edit-fecha', 'edit-entrada', 'edit-salida', 'edit-tiempo-fuera'];
+                    const inputs = ['edit-fecha', 'edit-entrada', 'edit-salida', 'edit-tiempo-fuera', 'edit-notas'];
                     inputs.forEach(id => {
                         const el = $(id);
                         if (el) el.disabled = bloqueado;
@@ -9366,7 +9403,7 @@ Generado por Sistema Lushibosca
 
                     btn.dataset.activo = estaActivo ? "false" : "true";
                     _setBtnActivo('btn-toggle-credito', !estaActivo);
-                    mostrarToast(!estaActivo ? 'Compensación/Asueto activado' : 'Compensación/Asueto desactivado', 'info');
+                    mostrarToast(!estaActivo ? 'Asueto | Salida temprano activado' : 'Asueto | Salida temprano desactivado', 'info');
                 }
 
                 function mostrarExportar(desdeLista = false) {
@@ -10107,7 +10144,21 @@ Generado por Sistema Lushibosca
 
                     // C) Otros inputs
                     const tf = document.getElementById('edit-tiempo-fuera');
-                    if (tf) tf.addEventListener('input', formatearInput);
+                    if (tf) tf.addEventListener('input', (e) => {
+                        formatearInput(e);
+                        verificarBloqueCreditoDebounced();
+                    });
+
+                    const notasEl = document.getElementById('edit-notas');
+                    if (notasEl) notasEl.addEventListener('input', () => {
+                        const v = notasEl.value;
+                        const filtrado = S.sanitizeNotas(v);
+                        if (filtrado !== v) {
+                            const pos = notasEl.selectionStart - (v.length - filtrado.length);
+                            notasEl.value = filtrado;
+                            notasEl.setSelectionRange(pos, pos);
+                        }
+                    });
 
                     // D) modal gist
                     ['gist-rango-desde', 'gist-rango-hasta'].forEach(id => {
@@ -11399,36 +11450,39 @@ Generado por Sistema Lushibosca
                     const btnCredito = document.getElementById('btn-toggle-credito');
                     if (!btnCredito) return; // Seguridad
 
-                    // 1. Verificamos estado del candado global
-                    const bloqueoGlobal = document.getElementById('edit-fecha').disabled;
-
-                    // 2. Obtenemos valores
-                    const e = document.getElementById('edit-entrada').value.trim();
-                    const s = document.getElementById('edit-salida').value.trim();
-
-                    // 3. Validamos que el horario esté VISUALMENTE completo (5 caracteres: HH:MM)
-                    const horarioCompleto = e.length === 5 && s.length === 5;
-
-                    // 4. Detectamos si son días especiales (para bloquear también)
-                    const esEspecial = TiposRegistro.esRegistroEspecial(e, s);
-
-                    // Si hay candado O es día especial O el horario NO está completo...
-                    if (bloqueoGlobal || esEspecial || !horarioCompleto) {
-                        // ... APAGAMOS EL BOTÓN
+                    const _bloquear = () => {
                         btnCredito.disabled = true;
                         btnCredito.style.opacity = '0.5';
                         btnCredito.style.cursor = 'not-allowed';
-
-                        // Si el usuario borra la hora, visualmente desactivamos el toggle verde para no confundir
-                        if (!horarioCompleto && btnCredito.dataset.activo === "true") {
-                            toggleCredito(); // Esto lo vuelve gris automáticamente
-                        }
-                    } else {
-                        // ... HABILITAMOS EL BOTÓN
+                    };
+                    const _habilitar = () => {
                         btnCredito.disabled = false;
                         btnCredito.style.opacity = '1';
                         btnCredito.style.cursor = 'pointer';
+                    };
+
+                    // 1. Candado global: si el modal está bloqueado, cortar directo
+                    if (document.getElementById('edit-fecha').disabled) return _bloquear();
+
+                    // 2. Obtenemos valores y validamos horario completo
+                    const e = document.getElementById('edit-entrada').value.trim();
+                    const s = document.getElementById('edit-salida').value.trim();
+                    const tf = document.getElementById('edit-tiempo-fuera').value.trim() || null;
+
+                    const horarioCompleto = e.length === 5 && s.length === 5;
+                    if (!horarioCompleto) {
+                        if (btnCredito.dataset.activo === "true") toggleCredito();
+                        return _bloquear();
                     }
+
+                    // 3. Días especiales
+                    if (TiposRegistro.esRegistroEspecial(e, s)) return _bloquear();
+
+                    // 4. Horas trabajadas (sin crédito) deben ser menores al objetivo diario
+                    const calcTemp = D.calcularHoras(e, s, tf, null);
+                    if (!calcTemp || calcTemp.total >= D.horasDiarias()) return _bloquear();
+
+                    _habilitar();
                 }
 
                 function setBloqueoEdicionGrupo(bloqueado) {
@@ -11554,11 +11608,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 283
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 287
     // ====================================================================
     
       - CAMBIOS:
-    1) optimizacion de funciones pequeñas
+    1) Se agrega campo comentarios al modal editar registro
+    2) se corriguen bugs relacionados al hint y boton togglecredito
 
      - BUGS CONOCIDOS:
     1)
