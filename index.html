@@ -2032,7 +2032,7 @@
                                 <div class="input-with-btn">
                                     <input type="text" id="entrada" inputmode="numeric" placeholder="Hora"
                                         maxlength="5" />
-                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('entrada')">
+                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('entrada')" title="Pegar hora actual o limpiar">
                                         <svg class="icon">
                                             <use href="#icon-clock" />
                                         </svg>
@@ -2045,7 +2045,7 @@
                                 <div class="input-with-btn">
                                     <input type="text" id="salida" inputmode="numeric" placeholder="hora"
                                         maxlength="5" />
-                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')">
+                                    <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')" title="Pegar hora actual o limpiar"s>
                                         <svg class="icon">
                                             <use href="#icon-clock" />
                                         </svg>
@@ -2246,15 +2246,15 @@
                 <div id="vista-calendario-historico" class="hidden">
                     <div class="calendario-nav">
                         <span class="calendario-titulo" id="calendario-titulo-mes"
-                            onclick="UILogic.abrirSelectorMesesCalendario()" title="Seleccionar mes"></span>
+                            onclick="UILogic.abrirSelectorMesesCalendario()" title="Mostrar meses"></span>
                         <div id="calendario-nav-botones">
-                            <button class="btn-hoy-calendario" onclick="UILogic.irHoyCalendario()">Hoy</button>
-                            <button onclick="UILogic.navegarCalendario(-1)">
+                            <button class="btn-hoy-calendario" onclick="UILogic.irHoyCalendario()" title="Ir al mes actual">Hoy</button>
+                            <button onclick="UILogic.navegarCalendario(-1)" title="Mes anterior">
                                 <svg class="icon icon-rotate-90">
                                     <use href="#icon-chevron-down" />
                                 </svg>
                             </button>
-                            <button onclick="UILogic.navegarCalendario(1)">
+                            <button onclick="UILogic.navegarCalendario(1)" title="Mes siguiente">
                                 <svg class="icon icon-rotate-neg90">
                                     <use href="#icon-chevron-down" />
                                 </svg>
@@ -2294,11 +2294,11 @@
                                 <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(0.5)"
                                     onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
                                     ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(0.5)"
-                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()">+</button>
+                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()" title="Incrementar tiempo">+</button>
                                 <button class="btn-increment" onmousedown="UILogic.iniciarCambioHoras(-0.5)"
                                     onmouseup="UILogic.detenerCambio()" onmouseleave="UILogic.detenerCambio()"
                                     ontouchstart="event.preventDefault(); UILogic.iniciarCambioHoras(-0.5)"
-                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()">−</button>
+                                    ontouchend="event.preventDefault(); UILogic.detenerCambio()" title="Disminuir tiempo">-</button>
                             </div>
                         </div>
                         <div class="form-group">
@@ -2651,7 +2651,7 @@
                 <label>Entrada</label>
                 <div class="input-with-btn">
                     <input type="text" id="edit-entrada" inputmode="numeric" maxlength="5" />
-                    <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-entrada')"><svg class="icon">
+                    <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-entrada')" title="Pegar hora actual o limpiar"><svg class="icon">
                             <use href="#icon-clock" />
                         </svg>
                     </button>
@@ -2661,7 +2661,7 @@
                 <label>Salida</label>
                 <div class="input-with-btn">
                     <input type="text" id="edit-salida" inputmode="numeric" maxlength="5" />
-                    <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-salida')"><svg class="icon">
+                    <button class="time-btn" onclick="UILogic.pegarHoraActual('edit-salida')" title="Pegar hora actual o limpiar"><svg class="icon">
                             <use href="#icon-clock" />
                         </svg>
                     </button>
@@ -11616,6 +11616,7 @@ Generado por Sistema Lushibosca
     1) Se agrega campo comentarios al modal editar registro
     2) se corriguen bugs relacionados al hint y boton togglecredito
     3) se corrige el bug de color en el boton fichar, ahora se resetea correctamente
+    4) Se agregan algunas descripciones faltantes en botones
 
      - BUGS CONOCIDOS:
     1)
