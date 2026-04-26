@@ -49,7 +49,7 @@
             --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             --radius: 20px;
             --hover: brightness(0.9);
-            --transition-anim: opacity 0.35s ease, transform 0.35s ease;
+            --transition-anim: opacity 0.3s ease, transform 0.3s ease;
             --transition-collapse: max-height 0.3s ease-out, opacity 0.3s ease-out;
         }
 
@@ -160,25 +160,21 @@
             overflow-x: hidden;
         }
 
-        .custom-scroll::-webkit-scrollbar,
-        .perfil-list-container::-webkit-scrollbar {
+        .custom-scroll::-webkit-scrollbar {
             width: 4px;
         }
 
-        .custom-scroll::-webkit-scrollbar-track,
-        .perfil-list-container::-webkit-scrollbar-track {
+        .custom-scroll::-webkit-scrollbar-track {
             background: var(--bg-body);
             border-radius: var(--radius);
         }
 
-        .custom-scroll::-webkit-scrollbar-thumb,
-        .perfil-list-container::-webkit-scrollbar-thumb {
+        .custom-scroll::-webkit-scrollbar-thumb {
             background: var(--border);
             border-radius: var(--radius);
         }
 
-        .custom-scroll::-webkit-scrollbar-thumb:hover,
-        .perfil-list-container::-webkit-scrollbar-thumb:hover {
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
             background: var(--text-muted);
         }
 
@@ -261,11 +257,6 @@
             align-items: center;
         }
 
-        .contenedor-fechas,
-        .contenedor-horas {
-            display: block;
-        }
-
         .contenedor-fechas .form-group,
         .contenedor-horas .form-group {
             flex-grow: 1;
@@ -304,16 +295,7 @@
             color: var(--text-disabled);
         }
 
-        #btn-timer-main {
-            border: none;
-        }
-
-        #btn-timer-main:disabled {
-            display: none;
-        }
-
         /* Variantes de botones */
-
         .btn-register {
             width: auto;
             padding: 17px;
@@ -360,12 +342,16 @@
             border-color: var(--c-red);
         }
 
-        #gist-rango-horario,
-        #gist-limite-sync {
+        /* --- Colapsables (base compartida) --- */
+        .collapsible {
             max-height: 0;
             overflow: hidden;
-            transition: var(--transition-collapse);
             opacity: 0;
+            transition: var(--transition-collapse);
+        }
+
+        #gist-rango-horario,
+        #gist-limite-sync {
             margin-top: 0.5rem;
         }
 
@@ -373,10 +359,6 @@
             display: flex;
             gap: 0.5rem;
             align-items: center;
-        }
-
-        #gist-limite-sync {
-            display: block;
         }
 
         .btn-group {
@@ -565,10 +547,6 @@
             letter-spacing: 0.5px;
         }
 
-        .registro-info {
-            flex: 1;
-        }
-
         .registro-fecha {
             font-weight: 600;
             margin-bottom: 0.25rem;
@@ -669,53 +647,15 @@
             opacity: 1;
         }
 
-        /* Modal config y gist: scrollable con header y footer sticky */
-        #modal-config .modal-content,
-        #modal-gist .modal-content {
+        /* Modales con scroll interno: header/footer sticky, body scrollable */
+        .modal-scrollable>.modal-content {
             display: flex;
             flex-direction: column;
             max-height: 90vh;
             overflow: hidden;
         }
 
-        #modal-config .modal-config-header {
-            flex-shrink: 0;
-            position: sticky;
-            top: 0;
-            background: var(--bg-card);
-            z-index: 2;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 0.5rem;
-        }
-
-        #modal-config .modal-config-body {
-            flex: 1;
-            overflow-y: auto;
-            padding-right: 0.25rem;
-        }
-
-        #modal-config .modal-config-footer {
-            flex-shrink: 0;
-            position: sticky;
-            bottom: 0;
-            background: var(--bg-card);
-            z-index: 2;
-            border-top: 1px solid var(--border);
-            margin-top: 0.5rem;
-        }
-
-        /* Modal editar registro y editar grupo: header y footer fijos */
-        #modal-editar .modal-content,
-        #modal-editar-grupo .modal-content {
-            display: flex;
-            flex-direction: column;
-            max-height: 90vh;
-            overflow: hidden;
-        }
-
-        #modal-editar .modal-edit-header,
-        #modal-editar-grupo .modal-edit-header {
+        .modal-scrollable .modal-panel-header {
             flex-shrink: 0;
             background: var(--bg-card);
             z-index: 2;
@@ -724,15 +664,13 @@
             margin-bottom: 0.5rem;
         }
 
-        #modal-editar .modal-edit-body,
-        #modal-editar-grupo .modal-edit-body {
+        .modal-scrollable .modal-panel-body {
             flex: 1;
             overflow-y: auto;
             padding-right: 0.25rem;
         }
 
-        #modal-editar .modal-edit-footer,
-        #modal-editar-grupo .modal-edit-footer {
+        .modal-scrollable .modal-panel-footer {
             flex-shrink: 0;
             background: var(--bg-card);
             z-index: 2;
@@ -753,7 +691,7 @@
             left: 50%;
             justify-content: center;
             transform: translateX(-50%) translateY(80px);
-            transition: opacity 0.3s, transform 0.3s;
+            transition: var(--transition-anim);
             background: var(--bg-toast);
             color: white;
             padding: 1rem 1.5rem;
@@ -993,7 +931,8 @@
             font-weight: 700;
         }
 
-        .calendario-dia.dia-sin-registro {
+        .calendario-dia.dia-sin-registro,
+        .stat-value {
             color: var(--text-muted);
         }
 
@@ -1099,13 +1038,6 @@
             align-items: center;
         }
 
-        .form-collapsible {
-            max-height: 0;
-            overflow: hidden;
-            transition: var(--transition-collapse);
-            opacity: 0;
-        }
-
         .form-collapsible.expanded {
             max-height: 700px;
             opacity: 1;
@@ -1117,10 +1049,6 @@
             transform-origin: center;
             z-index: 10;
             position: relative;
-        }
-
-        .calendario-dia.nuevo-registro-animacion {
-            animation: fade-blur 0.5s ease-out forwards;
         }
 
         /* Animación del boton tiempo fuera*/
@@ -1167,13 +1095,6 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.5rem;
-        }
-
-        .registro-mes-detalle {
-            overflow: hidden;
-            max-height: 0;
-            opacity: 0;
-            transition: var(--transition-collapse);
         }
 
         .registro-mes-detalle.expanded {
@@ -1297,7 +1218,7 @@
         /* Transición suave entre modos */
         #modo-normal,
         #modo-lote {
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: var(--transition-anim);
         }
 
         /* Transición suave entre meses en estadísticas */
@@ -1309,11 +1230,7 @@
             transition: var(--transition-collapse), transform 0.3s ease;
         }
 
-        .fade-out {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
+        .fade-out,
         #form-stats.fade-out {
             opacity: 0;
             transform: translateY(-10px);
@@ -1375,9 +1292,6 @@
 
         /* Estado colapsado de botones histórico */
         #botones-historico {
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
             transition: var(--transition-collapse), padding 0.3s ease-out, margin 0.3s ease-out;
             padding-top: 0;
             margin-bottom: 0;
@@ -1410,19 +1324,18 @@
             justify-content: center;
         }
 
-        .stat-value {
-            color: var(--text-muted)
-        }
-
         /* --- Clases utilitarias (reemplazo de inline styles) --- */
-
         /* Ocultar elementos — JS usa classList.add/remove('hidden') */
         .hidden {
             display: none !important;
         }
 
         /* SVG sprite oculto */
-        .svg-sprite {
+        .svg-sprite,
+        #btn-timer-main:disabled,
+        #btn-install,
+        #file-import,
+        #modo-lote {
             display: none;
         }
 
@@ -1431,11 +1344,6 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-        }
-
-        /* Botón install: oculto por defecto, JS lo muestra */
-        #btn-install {
-            display: none;
         }
 
         /* progress-bar fill: width se setea por JS, sólo definimos el estado inicial */
@@ -1473,16 +1381,17 @@
         }
 
         /* Modos del formulario */
-        #modo-normal {
+        #modo-normal,
+        #campos-rango-exportar,
+        #gist-limite-sync,
+        .contenedor-fechas,
+        .contenedor-horas {
             display: block;
-        }
-
-        #modo-lote {
-            display: none;
         }
 
         /* Padding top en primer form-group de cada modo */
         .form-group-pt {
+            padding-top: 1rem;
             padding-top: 1rem;
         }
 
@@ -1498,11 +1407,6 @@
             gap: 0.5rem;
         }
 
-        /* Div de stats con padding top */
-        .stats-inner {
-            padding-top: 1rem;
-        }
-
         /* Selector de período de stats */
         .stats-periodo-row {
             display: flex;
@@ -1510,20 +1414,10 @@
             gap: 0.5rem;
         }
 
-        /* Selects del período con flex:1 */
-        .stats-periodo-row select {
-            flex: 1;
-        }
-
         /* Icono pequeño del btn periodo */
         #btn-toggle-periodo .icon {
             width: 14px;
             height: 14px;
-        }
-
-        /* btn-group con margin-top extra */
-        .btn-group-mt {
-            margin-top: 1rem;
         }
 
         /* Botones histórico: layout interno */
@@ -1550,9 +1444,7 @@
         /* Botón "Hoy" del calendario */
         .btn-hoy-calendario {
             width: auto;
-            padding: 4px 10px;
             font-size: 0.8rem;
-            font-weight: 600;
         }
 
         /* Chevrons del calendario (rotados) */
@@ -1562,20 +1454,6 @@
 
         .icon-rotate-neg90 {
             transform: rotate(-90deg);
-        }
-
-        /* Modal headers sin margin-bottom */
-        .modal-h3-no-mb {
-            margin-bottom: 0;
-        }
-
-        /* Modal headers con margin-bottom estándar */
-        .modal-h3-mb-1 {
-            margin-bottom: 1rem;
-        }
-
-        .modal-h3-mb-half {
-            margin-bottom: 0.5rem;
         }
 
         /* Lista orden cards */
@@ -1592,7 +1470,9 @@
         }
 
         /* flex:1 genérico — reemplaza flex-1, flex-1, flex-1 */
-        .flex-1 {
+        .flex-1,
+        .stats-periodo-row select,
+        .registro-info {
             flex: 1;
         }
 
@@ -1613,22 +1493,12 @@
             line-height: 1.8;
         }
 
-        /* Botón crédito con margin-left */
-        #btn-toggle-credito {
-            margin-left: 5px;
-        }
-
         /* Hint resumen edición */
         #edit-hint-resumen,
         #edit-grupo-hint {
             margin-left: auto;
             margin-top: 0;
             min-height: 1.2em;
-        }
-
-        /* Input file oculto */
-        #file-import {
-            display: none;
         }
 
         /* Nombre archivo seleccionado */
@@ -1652,15 +1522,6 @@
             flex-direction: column;
             gap: 0.75rem;
             margin-top: 1rem;
-        }
-
-        /* Campos rango exportar (colapsable, JS controla) */
-        #campos-rango-exportar {
-            max-height: 0;
-            overflow: hidden;
-            transition: var(--transition-collapse);
-            opacity: 0;
-            display: block;
         }
 
         /* Form-group con borde superior (separador en modal perfiles) */
@@ -1769,7 +1630,7 @@
                 align-items: start;
             }
 
-            #modal-config .modal-config-footer .btn-delete {
+            #modal-config .modal-panel-footer .btn-delete {
                 width: 50%;
                 margin: 0 auto;
             }
@@ -2056,7 +1917,7 @@
                         <use href="#icon-chevron-down" />
                     </svg>
                 </h2>
-                <div class="form-collapsible" id="form-registro">
+                <div class="form-collapsible collapsible" id="form-registro">
 
                     <!-- MODO NORMAL -->
                     <div id="modo-normal">
@@ -2161,7 +2022,7 @@
                         <use href="#icon-chevron-down" />
                     </svg>
                 </h2>
-                <div class="form-collapsible" id="form-stats">
+                <div class="form-collapsible collapsible" id="form-stats">
                     <div class="stats-inner">
                         <div class="form-group">
                             <label>Período</label>
@@ -2224,7 +2085,7 @@
                             </div>
                         </div>
 
-                        <div class="btn-group btn-group-mt">
+                        <div class="btn-group">
                             <button class="btn-agregar" id="btn-reporte" onclick="UILogic.generarReporte()">
                                 <svg class="icon">
                                     <use href="#icon-download" />
@@ -2248,8 +2109,8 @@
                 </svg>
             </h2>
 
-            <div class="form-collapsible" id="contenido-historico">
-                <div id="botones-historico">
+            <div class="form-collapsible collapsible" id="contenido-historico">
+                <div id="botones-historico" class="collapsible">
                     <div class="botones-historico-inner">
                         <div class="botones-historico-group">
                             <button class="filter-btn" id="btn-vista-calendario"
@@ -2319,20 +2180,20 @@
             </div>
         </div>
     </div>
-    <div class="modal" id="modal-config">
+    <div class="modal modal-scrollable" id="modal-config">
         <div class="modal-content">
-            <div class="modal-config-header">
-                <h3 class="modal-h3-no-mb">
+            <div class="modal-panel-header">
+                <h3>
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-settings" />
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_288</span>
+                    <span class="version-text">LUSHIBOSCA build_291</span>
                 </h3>
             </div>
-            <div class="modal-config-body custom-scroll">
+            <div class="modal-panel-body custom-scroll">
                 <div class="modal-config-cols">
 
                     <!-- COLUMNA IZQUIERDA -->
@@ -2490,8 +2351,8 @@
                     </div>
 
                 </div>
-            </div><!-- /modal-config-body -->
-            <div class="modal-config-footer">
+            </div><!-- /modal-panel-body -->
+            <div class="modal-panel-footer">
                 <div class="btn-group">
                     <button class="btn-delete" onclick="UILogic.cerrarConfig()">
                         <svg class="icon">
@@ -2499,14 +2360,14 @@
                         </svg> Volver
                     </button>
                 </div>
-            </div><!-- /modal-config-footer -->
+            </div><!-- /modal-panel-footer -->
         </div>
     </div>
 
-    <div class="modal" id="modal-gist">
+    <div class="modal modal-scrollable" id="modal-gist">
         <div class="modal-content">
-            <div class="modal-config-header">
-                <h3 class="modal-h3-mb-1">
+            <div class="modal-panel-header">
+                <h3>
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-cloud" />
@@ -2515,7 +2376,7 @@
                     </span>
                 </h3>
             </div>
-            <div class="modal-config-body custom-scroll">
+            <div class="modal-panel-body custom-scroll">
                 <div class="form-group">
                     <label>Personal Access Token</label>
                     <div class="input-with-btn">
@@ -2578,7 +2439,7 @@
                             <span id="hint-gist-merge">Reemplazar</span>
                         </button>
                     </div>
-                    <div id="gist-limite-sync">
+                    <div id="gist-limite-sync" class="collapsible">
                         <div class="form-group form-group-mb-half">
                             <label id="gist-limite-label">Límite por hora</label>
                             <div class="input-number-group">
@@ -2596,7 +2457,7 @@
                             </div>
                         </div>
                     </div>
-                    <div id="gist-rango-horario">
+                    <div id="gist-rango-horario" class="collapsible">
                         <span>Desde</span>
                         <input type="text" id="gist-rango-desde" inputmode="numeric" maxlength="5"
                             placeholder="HH:MM" />
@@ -2608,7 +2469,7 @@
                 <div class="config-hint-text" id="gist-ultima-sync">Sin sincronizar</div>
                 <div class="config-hint-text">Anotá tu Token e ID para no perderlos.</div>
             </div>
-            <div class="modal-config-footer">
+            <div class="modal-panel-footer">
                 <div class="btn-group">
                     <button class="btn-export" onclick="UILogic.guardarConfigGist()">
                         <svg class="icon">
@@ -2630,8 +2491,8 @@
 
     <div class="modal" id="modal-gist-merge">
         <div class="modal-content">
-            <div class="modal-config-header">
-                <h3 class="modal-h3-mb-half">
+            <div class="modal-panel-header">
+                <h3>
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-cloud-download" />
@@ -2640,10 +2501,10 @@
                     </span>
                 </h3>
             </div>
-            <div class="modal-config-body custom-scroll">
+            <div class="modal-panel-body custom-scroll">
                 <div id="gist-merge-resumen"></div>
             </div>
-            <div class="modal-config-footer">
+            <div class="modal-panel-footer">
                 <div class="btn-group">
                     <button class="btn-backup" id="btn-gist-merge-combinar" onclick="UILogic.gistMergeAplicar('merge')">
                         <svg class="icon">
@@ -2671,10 +2532,10 @@
         </div>
     </div>
 
-    <div class="modal" id="modal-editar">
+    <div class="modal modal-scrollable" id="modal-editar">
         <div class="modal-content">
-            <div class="modal-edit-header">
-                <h3 class="modal-h3-no-mb">
+            <div class="modal-panel-header">
+                <h3>
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-edit" />
@@ -2683,7 +2544,7 @@
                     <span id="edit-hint-resumen" class="config-hint-text"></span>
                 </h3>
             </div>
-            <div class="modal-edit-body custom-scroll">
+            <div class="modal-panel-body custom-scroll">
                 <div class="form-group">
                     <label>Fecha</label>
                     <div class="input-with-btn">
@@ -2747,7 +2608,7 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-edit-footer">
+            <div class="modal-panel-footer">
                 <div class="btn-group">
                     <button class="btn-edit" onclick="DataManagement.guardarEdicion()"><svg class="icon">
                             <use href="#icon-save" />
@@ -2824,7 +2685,7 @@
             </div>
 
             <!-- Campos de rango (ocultos por defecto) -->
-            <div id="campos-rango-exportar">
+            <div id="campos-rango-exportar" class="collapsible">
                 <div class="form-group">
                     <label>Desde</label>
                     <input type="date" id="export-fecha-desde" />
@@ -2895,7 +2756,7 @@
                     Perfiles
                 </span>
             </h3>
-            <div id="lista-perfiles-botones" class="perfil-list-container"></div>
+            <div id="lista-perfiles-botones" class="perfil-list-container custom-scroll"></div>
             <div class="form-group form-group-border-top">
                 <label>Agregar perfil</label>
                 <div class="input-with-btn">
@@ -2975,10 +2836,10 @@
         </div>
     </div>
 
-    <div class="modal" id="modal-editar-grupo">
+    <div class="modal modal-scrollable" id="modal-editar-grupo">
         <div class="modal-content">
-            <div class="modal-edit-header">
-                <h3 class="modal-h3-no-mb">
+            <div class="modal-panel-header">
+                <h3>
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-edit" />
@@ -2987,14 +2848,14 @@
                     <span id="edit-grupo-hint" class="config-hint-text"></span>
                 </h3>
             </div>
-            <div class="modal-edit-body custom-scroll">
+            <div class="modal-panel-body custom-scroll">
                 <div class="form-group">
                     <label>Tipo de registro</label>
                     <div class="input-with-btn">
                         <select id="edit-grupo-tipo">
                         </select>
-                        <button class="time-btn" id="btn-lock-grupo-toggle" onclick="UILogic.toggleBloqueoEdicionGrupo()"
-                            title="Desbloquear edición">
+                        <button class="time-btn" id="btn-lock-grupo-toggle"
+                            onclick="UILogic.toggleBloqueoEdicionGrupo()" title="Desbloquear edición">
                             <svg class="icon">
                                 <use href="#icon-lock" />
                             </svg>
@@ -3026,7 +2887,7 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-edit-footer">
+            <div class="modal-panel-footer">
                 <div class="btn-group">
                     <button class="btn-edit" onclick="DataManagement.guardarEdicionGrupo()">
                         <svg class="icon">
@@ -3049,11 +2910,10 @@
             </div>
         </div>
     </div>
-
     <div class="modal" id="modal-confirmar">
         <div class="modal-content">
-            <div class="modal-config-header">
-                <h3 class="modal-h3-no-mb">
+            <div class="modal-panel-header">
+                <h3>
                     <span class="modal-title-block">
                         <svg class="icon">
                             <use href="#icon-help" />
@@ -3062,10 +2922,10 @@
                     </span>
                 </h3>
             </div>
-            <div class="modal-config-body">
+            <div class="modal-panel-body">
                 <p id="modal-confirmar-texto"></p>
             </div>
-            <div class="modal-config-footer">
+            <div class="modal-panel-footer">
                 <div class="btn-group">
                     <button class="btn-delete" id="modal-confirmar-ok">
                         <svg class="icon">
@@ -3325,7 +3185,7 @@
                             perfiles['default'] = {
                                 nombre: 'Principal',
                                 registros: [],
-                                diasHabiles: [1, 2, 3, 4, 5], // <---  Array
+                                diasHabiles: [1, 2, 3, 4, 5],
                                 horasDiarias: 7
                             };
                         }
@@ -7834,14 +7694,19 @@
                     _renderizarStats(stats, { mostrarBtnReporte: true });
                 }
 
+                function _getLunes(fecha = new Date()) {
+                    const dow = fecha.getDay();
+                    const diff = (dow === 0) ? -6 : 1 - dow;
+                    const lunes = new Date(fecha);
+                    lunes.setDate(fecha.getDate() + diff);
+                    return lunes;
+                }
+
                 function _obtenerSemanas() {
                     const semanas = new Map();
                     D.registros().forEach(r => {
                         const d = new Date(r.fecha + 'T00:00:00');
-                        const dow = d.getDay();
-                        const diff = (dow === 0) ? -6 : 1 - dow;
-                        const lunes = new Date(d);
-                        lunes.setDate(d.getDate() + diff);
+                        const lunes = _getLunes(d);
                         const key = S.formatearFechaLocal(lunes);
                         if (!semanas.has(key)) semanas.set(key, lunes);
                     });
@@ -7876,24 +7741,38 @@
                         actualizarEstadisticasSemana(null);
                         return;
                     }
+                    // Agrupar semanas por año
+                    const semanasPorAnio = new Map();
                     semanas.forEach(key => {
-                        const opt = document.createElement('option');
-                        opt.value = key;
-                        opt.textContent = _formatearSemana(key);
-                        select.appendChild(opt);
+                        const anio = key.substring(0, 4);
+                        if (!semanasPorAnio.has(anio)) semanasPorAnio.set(anio, []);
+                        semanasPorAnio.get(anio).push(key);
                     });
+
+                    // Determinar valor a seleccionar
+                    let seleccionar;
                     if (selActual && semanas.includes(selActual)) {
-                        select.value = selActual;
+                        seleccionar = selActual;
                     } else {
-                        const hoy = new Date();
-                        const dow = hoy.getDay();
-                        const diff = (dow === 0) ? -6 : 1 - dow;
-                        const lunes = new Date(hoy);
-                        lunes.setDate(hoy.getDate() + diff);
-                        const lunesISO = S.formatearFechaLocal(lunes);
-                        select.value = semanas.includes(lunesISO) ? lunesISO : semanas[0];
+                        const lunesISO = S.formatearFechaLocal(_getLunes());
+                        seleccionar = semanas.includes(lunesISO) ? lunesISO : semanas[0];
                     }
-                    actualizarEstadisticasSemana(select.value);
+
+                    // Crear opciones agrupadas por año
+                    semanasPorAnio.forEach((keys, anio) => {
+                        const grupo = document.createElement('optgroup');
+                        grupo.label = anio;
+                        keys.forEach(key => {
+                            const opt = document.createElement('option');
+                            opt.value = key;
+                            opt.textContent = _formatearSemana(key);
+                            if (key === seleccionar) opt.selected = true;
+                            grupo.appendChild(opt);
+                        });
+                        select.appendChild(grupo);
+                    });
+
+                    actualizarEstadisticasSemana(seleccionar);
                 }
 
                 function calcularEstadisticasSemana(lunesISO) {
@@ -7907,52 +7786,39 @@
                 }
 
                 function actualizarEstadisticasSemana(lunesISO) {
-                    const select = $('select-semana-stats');
-                    if (!lunesISO && select) lunesISO = select.value;
-
-                    // Al quitar el return, si no hay registros calcularEstadisticasSemana devolverá 
-                    // las estadísticas vacías y _renderizarStats se encargará de ocultar los "0"
                     const stats = calcularEstadisticasSemana(lunesISO);
                     _renderizarStats(stats, { mostrarBtnReporte: false });
                 }
 
-                function cambiarSemanaStats() {
-                    const select = $('select-semana-stats');
+                function _animarCambioStats(fn) {
                     const formStats = $('form-stats');
-                    if (!select || !formStats) return;
+                    if (!formStats) return;
                     formStats.classList.add('fade-out');
-                    setTimeout(() => {
-                        actualizarEstadisticasSemana(select.value);
-                        formStats.classList.remove('fade-out');
-                    }, 300);
+                    setTimeout(() => { fn(); formStats.classList.remove('fade-out'); }, 300);
+                }
+
+                function cambiarSemanaStats() {
+                    const v = $('select-semana-stats')?.value;
+                    if (v !== undefined) _animarCambioStats(() => actualizarEstadisticasSemana(v));
                 }
 
                 function cambiarAnioStats() {
-                    const selectAnio = $('select-anio-stats');
-                    const formStats = $('form-stats');
-                    if (!selectAnio || !formStats) return;
-                    const anioSeleccionado = selectAnio.value;
-                    formStats.classList.add('fade-out');
-                    setTimeout(() => {
-                        actualizarEstadisticasAnio(anioSeleccionado);
-                        formStats.classList.remove('fade-out');
-                    }, 300);
+                    const v = $('select-anio-stats')?.value;
+                    if (v !== undefined) _animarCambioStats(() => actualizarEstadisticasAnio(v));
                 }
 
                 function togglePeriodoStats(direccion = 1) {
                     const selectMes = $('select-mes-stats');
                     const selectAnio = $('select-anio-stats');
                     const label = $('label-periodo-toggle');
-                    const formStats = $('form-stats');
+                    const selectSemana = $('select-semana-stats');
 
                     const orden = ['mensual', 'anual', 'semanal'];
                     const idx = orden.indexOf(modoEstadisticas);
                     modoEstadisticas = orden[(idx + direccion + orden.length) % orden.length];
                     try { localStorage.setItem('modoEstadisticas', modoEstadisticas); } catch (e) { }
 
-                    const selectSemana = $('select-semana-stats');
-                    formStats.classList.add('fade-out');
-                    setTimeout(() => {
+                    _animarCambioStats(() => {
                         selectMes.classList.add('hidden');
                         selectAnio.classList.add('hidden');
                         if (selectSemana) selectSemana.classList.add('hidden');
@@ -7969,8 +7835,7 @@
                             if (label) label.textContent = 'Mensual';
                             poblarSelectorMeses();
                         }
-                        formStats.classList.remove('fade-out');
-                    }, 300);
+                    });
                 }
 
                 function poblarSelectorMeses() {
@@ -8057,25 +7922,8 @@
                 }
 
                 function cambiarMesStats() {
-                    const selectMes = $('select-mes-stats');
-                    const formStats = $('form-stats');
-                    const icon = $('icon-indicator-stats');
-
-                    if (!selectMes || !formStats) return;
-
-                    const mesSeleccionado = selectMes.value;
-
-                    // 1. Iniciamos fade-out del contenido
-                    formStats.classList.add('fade-out');
-
-                    // 2. Esperamos a que termine la animación de fade-out
-                    setTimeout(() => {
-                        // Actualizamos los datos mientras está invisible
-                        actualizarEstadisticas(mesSeleccionado);
-
-                        // 3. Removemos fade-out para que vuelva a aparecer
-                        formStats.classList.remove('fade-out');
-                    }, 300);
+                    const v = $('select-mes-stats')?.value;
+                    if (v !== undefined) _animarCambioStats(() => actualizarEstadisticas(v));
                 }
 
                 function generarReporte() {
@@ -11675,12 +11523,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 288
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 291
     // ====================================================================
     
       - CAMBIOS:
-    1) modal-editar y modal-editar-grupo: header y footer fijos, campos scrolleables
-    2) modal-gist: mismo comportamiento (ya tenía las clases, faltaba el CSS flex)
+    1) Se agrega separacion por años en el selector de estadisticas semanales
 
      - BUGS CONOCIDOS:
     1)
