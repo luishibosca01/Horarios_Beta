@@ -974,8 +974,8 @@
         }
 
         .cal-popup-3l {
-            font-size:0.8rem;
-            color:var(--text-muted)
+            font-size: 0.8rem;
+            color: var(--text-muted)
         }
 
         .cal-popup-badge {
@@ -1764,7 +1764,10 @@
             <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" class="icon-line" stroke="currentColor"></path>
         </symbol>
         <symbol id="icon-grid-group" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
         </symbol>
         <symbol id="icon-redo" viewBox="0 0 24 24">
             <path d="M21 7v6h-6" class="icon-line" stroke="currentColor"></path>
@@ -2193,7 +2196,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_292</span>
+                    <span class="version-text">LUSHIBOSCA build_293</span>
                 </h3>
             </div>
             <div class="modal-panel-body custom-scroll">
@@ -3812,182 +3815,128 @@
                     const btnGuardar = modal.querySelector('.btn-edit');
                     btnGuardar.disabled = true;
 
-                    // ============================================
-                    // 1. SANITIZACIÓN Y CAPTURA DE INPUTS
-                    // ============================================
-                    const nuevoTipo = S.sanitizeString($('edit-grupo-tipo').value.trim(), 20);
-                    const nuevaDesde = S.sanitizeString($('edit-grupo-desde').value.trim(), 10);
-                    const nuevaHasta = S.sanitizeString($('edit-grupo-hasta').value.trim(), 10);
+                    try {
+                        // --- 1. Sanitización y captura de inputs ---
+                        const nuevoTipo = S.sanitizeString($('edit-grupo-tipo').value.trim(), 20);
+                        const nuevaDesde = S.sanitizeString($('edit-grupo-desde').value.trim(), 10);
+                        const nuevaHasta = S.sanitizeString($('edit-grupo-hasta').value.trim(), 10);
 
-                    // ============================================
-                    // 2. VALIDACIONES BÁSICAS
-                    // ============================================
+                        // --- 2. Validaciones básicas ---
+                        if (!nuevaDesde || !nuevaHasta) {
+                            UILogic.mostrarToast('Verifica ambas fechas', 'error');
+                            return;
+                        }
+                        if (!S.validarFechaSegura(nuevaDesde)) {
+                            UILogic.mostrarToast('Fecha "Desde" inválida', 'error');
+                            return;
+                        }
+                        if (!S.validarFechaSegura(nuevaHasta)) {
+                            UILogic.mostrarToast('Fecha "Hasta" inválida', 'error');
+                            return;
+                        }
+                        if (nuevaDesde > nuevaHasta) {
+                            UILogic.mostrarToast('La fecha inicial debe ser inferior a la final', 'error');
+                            return;
+                        }
 
-                    // Validar existencia
-                    if (!nuevaDesde || !nuevaHasta) {
-                        UILogic.mostrarToast('Verifica ambas fechas', 'error');
-                        btnGuardar.disabled = false;
-                        return;
-                    }
+                        // --- 3. Validación de rango razonable (2 años) ---
+                        const hoy = new Date();
+                        const fechaInicioObj = S.parsearFechaLocal(nuevaDesde);
+                        const fechaFinObj = S.parsearFechaLocal(nuevaHasta);
 
-                    // Validar formato
-                    if (!S.validarFechaSegura(nuevaDesde)) {
-                        UILogic.mostrarToast('Fecha "Desde" inválida', 'error');
-                        btnGuardar.disabled = false;
-                        return;
-                    }
+                        const dosPasado = new Date(hoy);
+                        dosPasado.setFullYear(hoy.getFullYear() - 2);
+                        const dosFuturo = new Date(hoy);
+                        dosFuturo.setFullYear(hoy.getFullYear() + 2);
 
-                    if (!S.validarFechaSegura(nuevaHasta)) {
-                        UILogic.mostrarToast('Fecha "Hasta" inválida', 'error');
-                        btnGuardar.disabled = false;
-                        return;
-                    }
+                        if (fechaInicioObj < dosPasado || fechaFinObj > dosFuturo) {
+                            UILogic.mostrarToast('El rango debe estar entre 2 años atrás y 2 años adelante', 'error');
+                            return;
+                        }
 
-                    // Validar orden
-                    if (nuevaDesde > nuevaHasta) {
-                        UILogic.mostrarToast('La fecha inicial debe ser inferior a la final', 'error');
-                        btnGuardar.disabled = false;
-                        return;
-                    }
+                        // --- 4. Validación de tipo ---
+                        if (!TiposRegistro.validarTipoPermitido(nuevoTipo)) {
+                            UILogic.mostrarToast('Tipo de registro inválido', 'error');
+                            return;
+                        }
 
-                    // ============================================
-                    // 3. VALIDACIÓN DE RANGO RAZONABLE (2 AÑOS)
-                    // ============================================
-                    const hoy = new Date();
-                    const fechaInicioObj = S.parsearFechaLocal(nuevaDesde);
-                    const fechaFinObj = S.parsearFechaLocal(nuevaHasta);
+                        // --- 5. Validación de límite de 60 días ---
+                        const diffDays = Math.ceil(Math.abs(fechaFinObj - fechaInicioObj) / (1000 * 60 * 60 * 24)) + 1;
+                        if (diffDays > 60) {
+                            UILogic.mostrarToast(`El rango contiene ${diffDays} días.\n Máximo: 60 días por operación.`, 'error');
+                            return;
+                        }
 
-                    // Permitir hasta 2 años en el futuro
-                    const dosPasado = new Date(hoy);
-                    dosPasado.setFullYear(hoy.getFullYear() - 2);
-                    const dosFuturo = new Date(hoy);
-                    dosFuturo.setFullYear(hoy.getFullYear() + 2);
+                        // --- 6. Detección de cambios ---
+                        const huboCambios =
+                            nuevoTipo !== grupoEnEdicion.subtipo ||
+                            nuevaDesde !== grupoEnEdicion.fechaDesde ||
+                            nuevaHasta !== grupoEnEdicion.fechaHasta;
 
-                    if (fechaInicioObj < dosPasado || fechaFinObj > dosFuturo) {
-                        UILogic.mostrarToast(
-                            'El rango debe estar entre 2 años atrás y 2 años adelante',
-                            'error'
-                        );
-                        btnGuardar.disabled = false;
-                        return;
-                    }
+                        if (!huboCambios) {
+                            UILogic.mostrarToast('Sin cambios', 'info');
+                            UILogic.cerrarEdicionGrupo();
+                            return;
+                        }
 
-                    // ============================================
-                    // 4. VALIDACIÓN DE TIPO
-                    // ============================================
-                    if (!TiposRegistro.validarTipoPermitido(nuevoTipo)) {
-                        UILogic.mostrarToast('Tipo de registro inválido', 'error');
-                        btnGuardar.disabled = false;
-                        return;
-                    }
+                        // --- 7. Generar lista de fechas nuevas ---
+                        const fechasNuevas = [];
+                        let checkFecha = S.parsearFechaLocal(nuevaDesde);
+                        const checkFin = S.parsearFechaLocal(nuevaHasta);
 
-                    // ============================================
-                    // 5. VALIDACIÓN DE LÍMITE DE 60 DÍAS
-                    // ============================================
-                    const diffTime = Math.abs(fechaFinObj - fechaInicioObj);
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                        while (checkFecha <= checkFin) {
+                            fechasNuevas.push(S.formatearFechaLocal(checkFecha));
+                            checkFecha.setDate(checkFecha.getDate() + 1);
+                        }
 
-                    if (diffDays > 60) {
-                        UILogic.mostrarToast(
-                            `El rango contiene ${diffDays} días.\n Máximo: 60 días por operación.`,
-                            'error'
-                        );
-                        btnGuardar.disabled = false;
-                        return;
-                    }
+                        // --- 8. Validación de conflictos ---
+                        const idsDelGrupo = new Set(grupoEnEdicion.registros.map(r => r.id));
+                        const fechasSet = new Set(fechasNuevas);
+                        const conflictos = registros.filter(r => fechasSet.has(r.fecha) && !idsDelGrupo.has(r.id));
 
-                    // ============================================
-                    // 6. DETECCIÓN DE CAMBIOS
-                    // ============================================
-                    const huboCambios =
-                        nuevoTipo !== grupoEnEdicion.subtipo ||
-                        nuevaDesde !== grupoEnEdicion.fechaDesde ||
-                        nuevaHasta !== grupoEnEdicion.fechaHasta;
+                        if (conflictos.length > 0) {
+                            const diasConflicto = conflictos
+                                .map(r => r.fecha.substring(8, 10))
+                                .sort((a, b) => a - b)
+                                .join(', ');
+                            UILogic.mostrarToast(`Conflicto en día(s): ${diasConflicto}\n Ya existen registros en esas fechas.`, 'error');
+                            return;
+                        }
 
-                    if (!huboCambios) {
-                        UILogic.mostrarToast('Sin cambios', 'info');
-                        btnGuardar.disabled = false;
-                        UILogic.cerrarEdicionGrupo();
-                        return;
-                    }
+                        // --- 9. Actualización ---
+                        registros = registros.filter(r => !idsDelGrupo.has(r.id));
 
-                    // ============================================
-                    // 7. GENERAR LISTA DE FECHAS NUEVAS
-                    // ============================================
-                    const fechasNuevas = [];
-                    let checkFecha = S.parsearFechaLocal(nuevaDesde);
-                    const checkFin = S.parsearFechaLocal(nuevaHasta);
+                        const codigosTipo = TiposRegistro.obtenerCodigosPorTipo(nuevoTipo);
+                        const { entrada, salida } = codigosTipo;
 
-                    while (checkFecha <= checkFin) {
-                        const y = checkFecha.getFullYear();
-                        const m = String(checkFecha.getMonth() + 1).padStart(2, '0');
-                        const d = String(checkFecha.getDate()).padStart(2, '0');
-                        fechasNuevas.push(`${y}-${m}-${d}`);
-                        checkFecha.setDate(checkFecha.getDate() + 1);
-                    }
-
-                    // ============================================
-                    // 8. VALIDACIÓN DE CONFLICTOS (OPTIMIZADA)
-                    // ============================================
-                    const idsDelGrupo = grupoEnEdicion.registros.map(r => r.id);
-                    const conflictos = registros.filter(r =>
-                        fechasNuevas.includes(r.fecha) && !idsDelGrupo.includes(r.id)
-                    );
-
-                    if (conflictos.length > 0) {
-                        const diasConflicto = conflictos
-                            .map(r => r.fecha.substring(8, 10))
-                            .sort((a, b) => a - b)
-                            .join(', ');
-
-                        UILogic.mostrarToast(
-                            `Conflicto en día(s): ${diasConflicto}\n Ya existen registros en esas fechas.`,
-                            'error'
-                        );
-                        btnGuardar.disabled = false;
-                        return;
-                    }
-
-                    // ============================================
-                    // 9. LÓGICA DE ACTUALIZACIÓN
-                    // ============================================
-                    registros = registros.filter(r => !idsDelGrupo.includes(r.id));
-
-                    const codigosTipo = TiposRegistro.obtenerCodigosPorTipo(nuevoTipo);
-                    const entrada = codigosTipo.entrada;
-                    const salida = codigosTipo.salida;
-                    const idsNuevos = [];
-
-                    fechasNuevas.forEach(fechaISO => {
-                        const t = calcularHoras(entrada, salida, null);
-                        const nuevoId = S.generarIDSeguro();
-                        idsNuevos.push(nuevoId);
-
-                        registros.push({
-                            id: nuevoId,
-                            fecha: fechaISO,
-                            entrada: entrada,
-                            salida: salida,
-                            tiempoFuera: null,
-                            horas: t?.horas || 0,
-                            minutos: t?.minutos || 0,
-                            total: t?.total || 0
+                        const nuevosRegistros = fechasNuevas.map(fechaISO => {
+                            const t = calcularHoras(entrada, salida, null);
+                            return {
+                                id: S.generarIDSeguro(),
+                                fecha: fechaISO,
+                                entrada,
+                                salida,
+                                tiempoFuera: null,
+                                horas: t?.horas || 0,
+                                minutos: t?.minutos || 0,
+                                total: t?.total || 0
+                            };
                         });
-                    });
 
-                    registros.sort((a, b) => {
-                        if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
-                        return (b.entrada || '').localeCompare(a.entrada || '');
-                    });
+                        registros.push(...nuevosRegistros);
+                        registros.sort((a, b) => {
+                            if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
+                            return (b.entrada || '').localeCompare(a.entrada || '');
+                        });
 
-                    HistoryManager.saveState(registros);
-                    const saved = await guardarYActualizar(idsNuevos);
+                        HistoryManager.saveState(registros);
+                        const saved = await guardarYActualizar(nuevosRegistros.map(r => r.id));
 
-                    if (saved) {
-                        UILogic.mostrarToast('Grupo actualizado', 'success');
-                        btnGuardar.disabled = false;
-                        UILogic.cerrarEdicionGrupo();
-                    } else {
+                        if (saved) {
+                            UILogic.mostrarToast('Grupo actualizado', 'success');
+                            UILogic.cerrarEdicionGrupo();
+                        }
+                    } finally {
                         btnGuardar.disabled = false;
                     }
                 }
@@ -5892,7 +5841,7 @@
                     let m = Math.round((abs - h) * 60);
                     if (m === 60) { h++; m = 0; }
                     const signo = totalHoras >= 0 ? '+' : '-';
-                    return m > 0 ? `${signo}${h}h ${m}m` : `${signo}${h}h`;
+                    return h > 0 ? `${signo}${h}h${m > 0 ? ' ' + m + 'm' : ''}` : `${signo}${m}m`;
                 }
 
                 function formatoDiferencia(tiempoTotalHoras) {
@@ -11518,13 +11467,12 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 292
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 293
     // ====================================================================
     
       - CAMBIOS:
-    1) Se agrega nombre del dia en el titulo de la vista diaria
-    2) se quitan svg inline y se colocan en el area de definicion de svg
-    3) se usa el helper horasATextoCorto en las estadisticas
+    1) Refactor de guardarEdicionGrupo
+    2) cambio menor en la funcion horastexto
 
      - BUGS CONOCIDOS:
     1)
