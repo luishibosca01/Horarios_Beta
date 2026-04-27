@@ -1099,6 +1099,13 @@
             gap: 0.5rem;
         }
 
+        .registro-mes-detalle {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: var(--transition-collapse);
+        }
+
         .registro-mes-detalle.expanded {
             max-height: 3500px;
             opacity: 1;
@@ -2196,7 +2203,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_293</span>
+                    <span class="version-text">LUSHIBOSCA build_295</span>
                 </h3>
             </div>
             <div class="modal-panel-body custom-scroll">
@@ -4685,7 +4692,6 @@
                 // ----------------------------------------------------------------
                 // HELPER COMPARTIDO: filtra, sanitiza y recalcula una lista de
                 // registros crudos (usada por importarDatos y gistBajar).
-                // calcularHorasFn: función calcularHoras del scope correcto.
                 // ----------------------------------------------------------------
                 function normalizarRegistrosImportados(rawList, calcularHorasFn) {
                     const validarHora = (h) => h && S.REGEX_PATTERNS.HORA.test(h) ? S.sanitizeString(h, 5) : null;
@@ -5966,16 +5972,22 @@
                     return resultado;
                 }
 
-                function crearItemRegistroIndividual(r, horasDiarias, idResaltar = null) {
+                function _crearChevron() {
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.setAttribute('class', 'icon chevron-mes');
+                    svg.setAttribute('viewBox', '0 0 24 24');
+                    svg.style.cssText = 'width:1.2em;height:1.2em;vertical-align:middle';
+                    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+                    use.setAttribute('href', '#icon-chevron-down');
+                    svg.appendChild(use);
+                    return svg;
+                }
+
+                function crearItemRegistroIndividual(r, horasDiarias, idResaltar = null, hoy = obtenerFechaHoy()) {
                     const item = document.createElement('div');
-                    const hoy = obtenerFechaHoy();
 
                     let className = r.fecha === hoy ? 'registro-item hoy' : 'registro-item';
-
-                    if (idResaltar && r.id === idResaltar) {
-                        className += ' nuevo-registro-animacion';
-                    }
-
+                    if (idResaltar && r.id === idResaltar) className += ' nuevo-registro-animacion';
                     item.className = className;
                     item.dataset.registroId = r.id;
                     item.dataset.accion = 'editar-registro';
@@ -5987,14 +5999,9 @@
 
                     const fechaEl = document.createElement('div');
                     fechaEl.className = 'registro-fecha';
-
-                    let etiqueta = '';
-                    if (tipoEspecial) {
-                        etiqueta = ` ${tipoEspecial.emoji} (${tipoEspecial.label})`;
-                    }
-
+                    const etiqueta = tipoEspecial ? ` ${tipoEspecial.emoji} (${tipoEspecial.label})` : '';
                     fechaEl.textContent = `${obtenerNombreDia(r.fecha)} ${r.fecha.substring(8)}${etiqueta}`;
-                    // --- VISUALIZACIÓN DE EXTRAS ---
+
                     const tfText = (() => {
                         if (!r.tiempoFuera || r.tiempoFuera === '' || r.tiempoFuera === '00:00') return '';
                         const [tfH, tfM] = r.tiempoFuera.split(':').map(Number);
@@ -6005,38 +6012,26 @@
 
                     const horasEl = document.createElement('div');
                     horasEl.className = 'registro-horas';
-
-                    if (tipoEspecial) {
-                        horasEl.textContent = tipoEspecial.descripcion;
-                    } else {
-                        horasEl.textContent = `${r.entrada || '-'} → ${r.salida || '-'}${tfText}${crText}`;
-                    }
+                    horasEl.textContent = tipoEspecial
+                        ? tipoEspecial.descripcion
+                        : `${r.entrada || '-'} → ${r.salida || '-'}${tfText}${crText}`;
 
                     const totalEl = document.createElement('div');
                     totalEl.className = 'registro-total';
                     let totalText = 'Incompleto';
-                    totalEl.classList.remove('green-text', 'red-text', 'purple-text');
 
                     if (tipoEspecial) {
                         totalText = 'Justificado';
                         totalEl.classList.add(`${tipoEspecial.color}-text`);
                     } else if (r.entrada && r.salida) {
                         totalText = `${r.horas}h ${r.minutos}m`;
-
-                        if (horasDiarias === 0) {
-                            // Sin color
-                        } else {
+                        if (horasDiarias > 0) {
                             const diffText = formatoDiferencia(r.total);
-                            if (r.total >= horasDiarias) {
-                                totalEl.classList.add('green-text');
-                            } else {
-                                totalEl.classList.add('red-text');
-                            }
+                            totalEl.classList.add(r.total >= horasDiarias ? 'green-text' : 'red-text');
                             if (diffText) totalText += ` (${diffText})`;
                         }
                     } else if (r.entrada && !r.salida) {
-                        const esHoy = r.fecha === hoy;
-                        if (esHoy) {
+                        if (r.fecha === hoy) {
                             totalText = 'En curso . . .';
                             totalEl.classList.add('blue-text');
                         } else {
@@ -6056,14 +6051,7 @@
                     return item;
                 }
 
-                function setProgressBarColor(progressEl, status) {
-                    if (!progressEl) return;
-                    progressEl.className = 'progress-fill';
-                    progressEl.classList.add(status);
-                    if (status === 'blue') progressEl.classList.add('shimmer');
-                }
-
-                function crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy) {
+                function crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy, hoy) {
                     const grupos = agruparRegistrosConsecutivos(registrosDelMes);
 
                     const contenedorMesActual = document.createElement('div');
@@ -6072,20 +6060,12 @@
                     const headerMes = document.createElement('h3');
                     headerMes.className = 'registro-mes-header';
                     headerMes.dataset.mesId = claveMes;
+                    headerMes.dataset.accion = 'toggle-mes';
+                    headerMes.dataset.mesContainer = claveMes;
 
-                    const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                    chevron.setAttribute('class', 'icon chevron-mes');
-                    chevron.setAttribute('viewBox', '0 0 24 24');
-                    chevron.style.width = '1.2em';
-                    chevron.style.height = '1.2em';
-                    chevron.style.verticalAlign = 'middle';
-                    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-                    use.setAttribute('href', '#icon-chevron-down');
-                    chevron.appendChild(use);
-
-                    const textoMes = document.createTextNode(' ' + formatoTituloMes(claveMes));
+                    const chevron = _crearChevron();
                     headerMes.appendChild(chevron);
-                    headerMes.appendChild(textoMes);
+                    headerMes.appendChild(document.createTextNode(' ' + formatoTituloMes(claveMes)));
 
                     const detalleMesActual = document.createElement('div');
                     detalleMesActual.className = 'registro-mes-detalle';
@@ -6093,13 +6073,9 @@
                     let debeEstarExpandido = false;
                     try {
                         const estadoGuardado = localStorage.getItem(`mes-${claveMes}-expandido`);
-                        if (estadoGuardado !== null) {
-                            debeEstarExpandido = estadoGuardado === 'true';
-                        } else {
-                            debeEstarExpandido = (claveMes === mesHoy);
-                        }
+                        debeEstarExpandido = estadoGuardado !== null ? estadoGuardado === 'true' : claveMes === mesHoy;
                     } catch (e) {
-                        debeEstarExpandido = (claveMes === mesHoy);
+                        debeEstarExpandido = claveMes === mesHoy;
                     }
 
                     if (debeEstarExpandido) {
@@ -6109,33 +6085,24 @@
 
                     let semanaAnterior = null;
                     grupos.forEach(grupo => {
-                        if (grupo.tipo === 'grupo') {
-                            const primerRegistro = grupo.registros[grupo.registros.length - 1];
-                            const semanaActual = obtenerLunesSemana(primerRegistro.fecha);
-                            if (semanaAnterior && semanaActual !== semanaAnterior) {
-                                const separador = document.createElement('div');
-                                separador.className = 'separador-semana';
-                                detalleMesActual.appendChild(separador);
-                            }
-                            const container = crearGrupoExpandible(grupo, horasDiarias, idNuevo);
-                            detalleMesActual.appendChild(container);
-                            semanaAnterior = semanaActual;
-                        } else {
-                            const r = grupo.registros[0];
-                            const semanaActual = obtenerLunesSemana(r.fecha);
-                            if (semanaAnterior && semanaActual !== semanaAnterior) {
-                                const separador = document.createElement('div');
-                                separador.className = 'separador-semana';
-                                detalleMesActual.appendChild(separador);
-                            }
-                            const item = crearItemRegistroIndividual(r, horasDiarias, idNuevo);
-                            detalleMesActual.appendChild(item);
-                            semanaAnterior = semanaActual;
+                        const esGrupo = grupo.tipo === 'grupo';
+                        const r = esGrupo ? grupo.registros[grupo.registros.length - 1] : grupo.registros[0];
+                        const semanaActual = obtenerLunesSemana(r.fecha);
+
+                        if (semanaAnterior && semanaActual !== semanaAnterior) {
+                            const sep = document.createElement('div');
+                            sep.className = 'separador-semana';
+                            detalleMesActual.appendChild(sep);
                         }
+
+                        detalleMesActual.appendChild(
+                            esGrupo
+                                ? crearGrupoExpandible(grupo, horasDiarias, idNuevo)
+                                : crearItemRegistroIndividual(r, horasDiarias, idNuevo, hoy)
+                        );
+                        semanaAnterior = semanaActual;
                     });
 
-                    headerMes.dataset.accion = 'toggle-mes';
-                    headerMes.dataset.mesContainer = claveMes;
                     contenedorMesActual.appendChild(headerMes);
                     contenedorMesActual.appendChild(detalleMesActual);
                     return contenedorMesActual;
@@ -6150,9 +6117,7 @@
                         const detalle = container.querySelector('.registro-mes-detalle');
                         if (detalle && detalle.classList.contains('expanded')) {
                             const header = container.querySelector('.registro-mes-header');
-                            if (header && header.dataset.mesId) {
-                                mesesExpandidos.add(header.dataset.mesId);
-                            }
+                            if (header && header.dataset.mesId) mesesExpandidos.add(header.dataset.mesId);
                         }
                     });
 
@@ -6165,14 +6130,12 @@
                         return;
                     }
 
-                    const gruposPorMes = agruparRegistrosPorMes(registrosAMostrar);
-                    const fragmento = document.createDocumentFragment();
-
                     const hoy = obtenerFechaHoy();
                     const mesHoy = hoy.substring(0, 7);
                     const anioHoy = hoy.substring(0, 4);
+                    const gruposPorMes = agruparRegistrosPorMes(registrosAMostrar);
+                    const fragmento = document.createDocumentFragment();
 
-                    // Separar meses del año actual de los anteriores
                     const mesesAnioActual = new Map();
                     const mesesPorAnio = new Map();
 
@@ -6186,17 +6149,14 @@
                         }
                     });
 
-                    // --- AÑO ACTUAL: mostrar meses normalmente ---
                     mesesAnioActual.forEach((registrosDelMes, claveMes) => {
-                        fragmento.appendChild(crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy));
+                        fragmento.appendChild(crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy, hoy));
                     });
 
-                    // --- AÑOS ANTERIORES: agrupar por año ---
                     const aniosOrdenados = Array.from(mesesPorAnio.keys()).sort().reverse();
                     aniosOrdenados.forEach(anio => {
                         const mesesDelAnio = mesesPorAnio.get(anio);
 
-                        // Contenedor año (mismo estilo que mes)
                         const contenedorAnio = document.createElement('div');
                         contenedorAnio.className = 'registro-mes-container';
 
@@ -6205,26 +6165,16 @@
                         headerAnio.dataset.anioId = anio;
                         headerAnio.dataset.accion = 'toggle-anio';
 
-                        const chevronAnio = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                        chevronAnio.setAttribute('class', 'icon chevron-mes');
-                        chevronAnio.setAttribute('viewBox', '0 0 24 24');
-                        chevronAnio.style.width = '1.2em';
-                        chevronAnio.style.height = '1.2em';
-                        chevronAnio.style.verticalAlign = 'middle';
-                        const useAnio = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-                        useAnio.setAttribute('href', '#icon-chevron-down');
-                        chevronAnio.appendChild(useAnio);
+                        const chevronAnio = _crearChevron();
                         headerAnio.appendChild(chevronAnio);
                         headerAnio.appendChild(document.createTextNode(' ' + anio));
 
                         const detalleAnio = document.createElement('div');
                         detalleAnio.className = 'registro-mes-detalle';
 
-                        // Persistencia estado año
                         let anioExpandido = false;
                         try {
-                            const estadoAnio = localStorage.getItem(`anio-${anio}-expandido`);
-                            anioExpandido = estadoAnio === 'true';
+                            anioExpandido = localStorage.getItem(`anio-${anio}-expandido`) === 'true';
                         } catch (e) { }
 
                         if (anioExpandido) {
@@ -6232,9 +6182,8 @@
                             chevronAnio.style.transform = 'rotate(180deg)';
                         }
 
-                        // Meses dentro del año
                         mesesDelAnio.forEach((registrosDelMes, claveMes) => {
-                            detalleAnio.appendChild(crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy));
+                            detalleAnio.appendChild(crearContenedorMes(claveMes, registrosDelMes, horasDiarias, idNuevo, mesHoy, hoy));
                         });
 
                         contenedorAnio.appendChild(headerAnio);
@@ -6243,6 +6192,13 @@
                     });
 
                     lista.appendChild(fragmento);
+                }
+
+                function setProgressBarColor(progressEl, status) {
+                    if (!progressEl) return;
+                    progressEl.className = 'progress-fill';
+                    progressEl.classList.add(status);
+                    if (status === 'blue') progressEl.classList.add('shimmer');
                 }
 
                 function crearGrupoExpandible(grupo, horasDiarias, idResaltar = null) {
@@ -7870,10 +7826,24 @@
                 function generarReporte() {
                     const esAnual = modoEstadisticas === 'anual';
                     const horasDiariasObjetivo = D.horasDiarias();
-                    const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+                    // Helper local: evita triplicar el mismo cálculo de h/m
+                    const fmtHM = (total) => {
+                        let h = Math.floor(total), m = Math.round((total - h) * 60);
+                        if (m === 60) { h++; m = 0; }
+                        return `${h}h ${String(m).padStart(2, '0')}m`;
+                    };
+
+                    // Helper local: suma horas de un array de registros
+                    const sumarHoras = (regs) => regs.reduce((sum, r) => {
+                        const t = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                        if (t && t.id === 'remoto') return sum + horasDiariasObjetivo;
+                        if (!t) return sum + r.total;
+                        return sum;
+                    }, 0);
 
                     // --- PERÍODO Y REGISTROS ---
-                    let periodoLabel, registrosPeriodo, stats, nombreArchivo;
+                    let periodoLabel, registrosPeriodo, stats, nombreArchivo, mesSeleccionado;
 
                     if (esAnual) {
                         const selectAnio = $('select-anio-stats');
@@ -7886,7 +7856,7 @@
                         stats = calcularEstadisticasAnio(anioSeleccionado);
                     } else {
                         const selectMes = $('select-mes-stats');
-                        const mesSeleccionado = selectMes ? selectMes.value : null;
+                        mesSeleccionado = selectMes ? selectMes.value : null;
                         if (!mesSeleccionado) { mostrarToast('No hay mes seleccionado', 'error'); return; }
                         periodoLabel = selectMes.options[selectMes.selectedIndex].text;
                         nombreArchivo = `reporte_${mesSeleccionado}.txt`;
@@ -7897,17 +7867,6 @@
                         });
                         stats = calcularEstadisticasMes(mesSeleccionado);
                     }
-
-                    // --- TOTAL HORAS ---
-                    let totalHoras = 0;
-                    registrosPeriodo.forEach(r => {
-                        const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-                        if (tipoEspecial && tipoEspecial.id === 'remoto') totalHoras += horasDiariasObjetivo;
-                        else if (!tipoEspecial) totalHoras += r.total;
-                    });
-                    let hTotal = Math.floor(totalHoras);
-                    let mTotal = Math.round((totalHoras - hTotal) * 60);
-                    if (mTotal === 60) { hTotal++; mTotal = 0; }
 
                     // ============================================
                     // ESTRUCTURA MODULAR DEL REPORTE
@@ -7940,16 +7899,16 @@ ${lineasTipos}
    • Salida promedio:        ${stats.salidaPromedio}
    • Promedio diario:        ${stats.promedioDiario}
    
-   • Total horas trabajadas: ${hTotal}h ${mTotal}m
+   • Total horas trabajadas: ${fmtHM(sumarHoras(registrosPeriodo))}
    • Saldo:                  ${stats.bufferPeriodo !== null ? horasATextoCorto(stats.bufferPeriodo) : 'N/A'}`;
                         },
 
                         detallePeriodo: () => {
                             if (esAnual) {
                                 // --- TOTALES POR MES ---
-                                const mesesUnicos = new Set();
-                                registrosPeriodo.forEach(r => mesesUnicos.add(r.fecha.substring(0, 7)));
-                                const mesesOrdenados = Array.from(mesesUnicos).sort();
+                                const mesesOrdenados = Array.from(
+                                    new Set(registrosPeriodo.map(r => r.fecha.substring(0, 7)))
+                                ).sort();
 
                                 let seccion = `
 
@@ -7959,33 +7918,25 @@ ${lineasTipos}
 ────────────────────────────────────────────────────────────────
 
 `;
-                                mesesOrdenados.forEach(mesAnio => {
-                                    const [a, m] = mesAnio.split('-').map(Number);
-                                    const regsM = registrosPeriodo.filter(r => parseInt(r.fecha.substring(5, 7)) === m);
-
-                                    let totalMes = 0;
-                                    regsM.forEach(r => {
-                                        const t = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-                                        if (t && t.id === 'remoto') totalMes += horasDiariasObjetivo;
-                                        else if (!t) totalMes += r.total;
-                                    });
-                                    let hM = Math.floor(totalMes);
-                                    let mM = Math.round((totalMes - hM) * 60);
-                                    if (mM === 60) { hM++; mM = 0; }
-
-                                    const nombreMes = new Date(a, m - 1, 1).toLocaleDateString('es-ES', { month: 'long' });
-                                    const nombreMesCap = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1);
+                                mesesOrdenados.forEach(claveMes => {
+                                    const regsM = registrosPeriodo.filter(r => r.fecha.startsWith(claveMes));
                                     const normales = regsM.filter(r => !TiposRegistro.esRegistroEspecial(r.entrada, r.salida) && r.entrada && r.salida);
                                     const especiales = regsM.filter(r => TiposRegistro.esRegistroEspecial(r.entrada, r.salida));
 
-                                    const notas = [];
-                                    const ct = (id) => especiales.filter(r => { const t = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida); return t && t.id === id; }).length;
-                                    TiposRegistro.obtenerTodosLosTipos().forEach(t => {
-                                        const n = ct(t.id);
-                                        if (n) notas.push(`${n} ${t.labelPlural.toLowerCase()}`);
-                                    });
+                                    const notas = TiposRegistro.obtenerTodosLosTipos()
+                                        .map(t => {
+                                            const n = especiales.filter(r => {
+                                                const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
+                                                return tipo && tipo.id === t.id;
+                                            }).length;
+                                            return n ? `${n} ${t.labelPlural.toLowerCase()}` : null;
+                                        })
+                                        .filter(Boolean);
 
-                                    seccion += `   ${nombreMesCap.padEnd(12)} ${String(hM).padStart(3)}h ${String(mM).padStart(2, '0')}m   (${normales.length} jornadas)`;
+                                    // Usa formatoTituloMes — ya existe para esto
+                                    const nombreMesCap = formatoTituloMes(claveMes).split(' ')[0];
+
+                                    seccion += `   ${nombreMesCap.padEnd(12)} ${fmtHM(sumarHoras(regsM)).padEnd(10)}  (${normales.length} jornadas)`;
                                     if (notas.length > 0) seccion += `  [${notas.join(', ')}]`;
                                     seccion += '\n';
                                 });
@@ -8013,7 +7964,7 @@ ${lineasTipos}
                                     } else {
                                         const entrada = r.entrada || '--:--';
                                         const salida = r.salida || '--:--';
-                                        const total = r.salida ? `${r.horas}h ${r.minutos}m` : 'Incompleto';
+                                        const total = r.salida ? fmtHM(r.total) : 'Incompleto';
                                         const tiempoFuera = r.tiempoFuera ? ` (${r.tiempoFuera} fuera)` : '';
                                         const infoAsueto = (r.credito && r.credito !== '00:00') ? ' [SALIDA TEMPRANO]' : '';
                                         let indicador = '  ';
@@ -8027,11 +7978,8 @@ ${lineasTipos}
                         },
 
                         totalesPorSemana: () => {
-                            if (esAnual) return '';
-
-                            const selectMes = $('select-mes-stats');
-                            const mesSeleccionado = selectMes ? selectMes.value : null;
-                            if (!mesSeleccionado) return '';
+                            // mesSeleccionado ya está disponible en el closure, no hace falta releer el DOM
+                            if (esAnual || !mesSeleccionado) return '';
 
                             const [añoActual, mesActual] = mesSeleccionado.split('-').map(Number);
                             const primerDiaMes = `${añoActual}-${String(mesActual).padStart(2, '0')}-01`;
@@ -8053,7 +8001,8 @@ ${lineasTipos}
                                     if (semana[categoria]) semana[categoria].push(r);
                                 } else {
                                     semana.trabajados.push(r);
-                                    if (r.credito && r.credito !== '00:00') semana.asuetos.push(r);
+                                    // Nota: registros con crédito son jornadas normales (salida temprana),
+                                    // no se clasifican como asuetos
                                 }
                             });
 
@@ -8070,19 +8019,16 @@ ${lineasTipos}
 `;
                             const semanasIncompletas = [];
 
-                            semanasOrdenadas.forEach(([lunes, datos], index) => {
+                            semanasOrdenadas.forEach(([lunesOriginal, datos], index) => {
                                 let totalSemanal = datos.trabajados.reduce((sum, r) => sum + r.total, 0);
                                 if (datos.remotos && datos.remotos.length > 0) totalSemanal += datos.remotos.length * horasDiariasObjetivo;
 
-                                let horasSem = Math.floor(totalSemanal);
-                                let minutosSem = Math.round((totalSemanal - horasSem) * 60);
-                                if (minutosSem === 60) { horasSem++; minutosSem = 0; }
-
-                                const fechaLunes = S.parsearFechaLocal(lunes);
+                                const fechaLunes = S.parsearFechaLocal(lunesOriginal);
                                 const fechaDomingo = new Date(fechaLunes);
                                 fechaDomingo.setDate(fechaLunes.getDate() + 6);
                                 const domingo = S.formatearFechaLocal(fechaDomingo);
 
+                                let lunes = lunesOriginal;
                                 let fechaFin = domingo;
                                 let esIncompleta = false;
                                 let continuaEn = '';
@@ -8090,31 +8036,33 @@ ${lineasTipos}
                                 if (domingo > ultimaFechaMes) {
                                     fechaFin = ultimaFechaMes;
                                     esIncompleta = true;
-                                    const mesSiguiente = mesActual === 12 ? 1 : mesActual + 1;
-                                    const añoSiguiente = mesActual === 12 ? añoActual + 1 : añoActual;
-                                    continuaEn = `continúa en ${new Date(añoSiguiente, mesSiguiente - 1, 1).toLocaleDateString('es-ES', { month: 'long' })}`;
+                                    const mesSig = mesActual === 12 ? 1 : mesActual + 1;
+                                    const añoSig = mesActual === 12 ? añoActual + 1 : añoActual;
+                                    continuaEn = `continúa en ${new Date(añoSig, mesSig - 1, 1).toLocaleDateString('es-ES', { month: 'long' })}`;
                                 }
 
                                 if (lunes < primerDiaMes) {
                                     lunes = primerDiaMes;
                                     esIncompleta = true;
-                                    const mesAnterior = mesActual === 1 ? 12 : mesActual - 1;
-                                    const añoAnterior = mesActual === 1 ? añoActual - 1 : añoActual;
-                                    continuaEn = `viene de ${new Date(añoAnterior, mesAnterior - 1, 1).toLocaleDateString('es-ES', { month: 'long' })}`;
+                                    const mesAnt = mesActual === 1 ? 12 : mesActual - 1;
+                                    const añoAnt = mesActual === 1 ? añoActual - 1 : añoActual;
+                                    continuaEn = `viene de ${new Date(añoAnt, mesAnt - 1, 1).toLocaleDateString('es-ES', { month: 'long' })}`;
                                 }
 
-                                const lunesFormato = (lunes < primerDiaMes ? primerDiaMes : lunes).split('-').reverse().join('/');
+                                const lunesFormato = lunes.split('-').reverse().join('/');
                                 const finFormato = fechaFin.split('-').reverse().join('/');
                                 const asterisco = esIncompleta ? '*' : '';
 
                                 seccion += `   Semana ${index + 1} (${lunesFormato} - ${finFormato})${asterisco}:\n`;
-                                seccion += `      └─ ${horasSem}h ${minutosSem}m`;
+                                seccion += `      └─ ${fmtHM(totalSemanal)}`;
 
-                                const notasExtras = [];
-                                TiposRegistro.obtenerTodosLosTipos().forEach(t => {
-                                    const clave = t.labelPlural.toLowerCase();
-                                    if (datos[clave]?.length > 0) notasExtras.push(`${datos[clave].length} ${clave}`);
-                                });
+                                const notasExtras = TiposRegistro.obtenerTodosLosTipos()
+                                    .map(t => {
+                                        const clave = t.labelPlural.toLowerCase();
+                                        return datos[clave]?.length > 0 ? `${datos[clave].length} ${clave}` : null;
+                                    })
+                                    .filter(Boolean);
+
                                 if (notasExtras.length > 0) seccion += ` [${notasExtras.join(', ')}]`;
                                 seccion += '\n\n';
 
@@ -8133,7 +8081,7 @@ ${lineasTipos}
 ────────────────────────────────────────────────────────────────
 
    • Horas diarias:          ${D.horasDiarias()}
-   • Días hábiles/semana:    ${D.diasHabiles().map(d => nombresDias[d]).join(', ')}
+   • Días hábiles/semana:    ${D.diasHabiles().map(d => ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][d]).join(', ')}
    • Horas semanales:        ${D.horasSemanales()}`,
 
                         footer: () => `
@@ -8168,6 +8116,7 @@ Generado por Sistema Lushibosca
                         mostrarToast('Error al generar reporte', 'error');
                     }
                 }
+
                 // Función auxiliar para sumar minutos a un formato HH:MM
                 function sumarMinutosAHora(horaString, minutosASumar) {
                     let totalMinutos = minutosASumar;
@@ -11467,12 +11416,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 293
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 295
     // ====================================================================
     
       - CAMBIOS:
-    1) Refactor de guardarEdicionGrupo
-    2) cambio menor en la funcion horastexto
+    1) Refactor de la funcion GenerarReporte
 
      - BUGS CONOCIDOS:
     1)
