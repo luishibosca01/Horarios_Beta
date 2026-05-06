@@ -2208,7 +2208,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_297</span>
+                    <span class="version-text">LUSHIBOSCA build_298</span>
                 </h3>
             </div>
             <div class="modal-panel-body custom-scroll">
@@ -4192,25 +4192,15 @@
                     let e = S.sanitizeString($('entrada').value.trim(), 5);
                     let s = S.sanitizeString($('salida').value.trim(), 5);
 
-                    // --- MODIFICADO: Interceptar si no hay entrada (incluso si llenó la salida manual) ---
+                    // --- Interceptar si no hay entrada (incluso si llenó la salida manual) ---
                     if (!e) {
-                        const ayerObj = S.parsearFechaLocal(UILogic.obtenerFechaHoy());
-                        ayerObj.setDate(ayerObj.getDate() - 1);
-                        const ayer = S.formatearFechaLocal(ayerObj);
-
-                        const regAyer = registros.find(r => r.fecha === ayer);
+                        const { ayerStr: ayer, regAyer, ayerAbierto } = detectarAyerAbierto(UILogic.obtenerFechaHoy(), registros);
                         const regHoy = registros.find(r => r.fecha === f);
 
-                        // Si ayer está incompleto, hoy está vacío, Y no pasaron 24hs
-                        if (regAyer && regAyer.entrada && !regAyer.salida && !regHoy) {
-                            const [hE, mE] = regAyer.entrada.split(':').map(Number);
-                            const fechaEntrada = S.parsearFechaLocal(ayer);
-                            fechaEntrada.setHours(hE, mE, 0, 0);
-
-                            if ((new Date() - fechaEntrada) <= 86400000) {
-                                f = ayer;
-                                $('fecha').value = f; // Sincronizamos la UI con ayer
-                            }
+                        // Si ayer está abierto, hoy está vacío, Y no pasaron 24hs → redirigir a ayer
+                        if (ayerAbierto && !regHoy) {
+                            f = ayer;
+                            $('fecha').value = f; // Sincronizamos la UI con ayer
                         }
                     }
 
@@ -5055,6 +5045,32 @@
                     return true; // Timer detenido exitosamente
                 }
 
+                // ---------------------------------------------------------
+                // HELPER: detectarAyerAbierto(fechaHoy, registros)
+                // Centraliza la detección de turno activo cruzando medianoche.
+                // Acepta registros como Array o Map.
+                // Retorna: { ayerStr, regAyer, ayerAbierto }
+                // ---------------------------------------------------------
+                function detectarAyerAbierto(fechaHoy, regs) {
+                    const ayerObj = S.parsearFechaLocal(fechaHoy);
+                    ayerObj.setDate(ayerObj.getDate() - 1);
+                    const ayerStr = S.formatearFechaLocal(ayerObj);
+
+                    const regAyer = regs instanceof Map
+                        ? (regs.get(ayerStr) ?? null)
+                        : (regs.find(r => r.fecha === ayerStr) ?? null);
+
+                    let ayerAbierto = false;
+                    if (regAyer?.entrada && !regAyer.salida) {
+                        const [hE, mE] = regAyer.entrada.split(':').map(Number);
+                        const fechaEntrada = S.parsearFechaLocal(ayerStr);
+                        fechaEntrada.setHours(hE, mE, 0, 0);
+                        ayerAbierto = (Date.now() - fechaEntrada.getTime()) <= 86400000;
+                    }
+
+                    return { ayerStr, regAyer, ayerAbierto };
+                }
+
                 function calcularBufferSemanal(inicioSemana, fechaHoy) {
                     const horasDiariasLocal = horasDiarias;
                     let buffer = 0;
@@ -5065,21 +5081,8 @@
                     let fechaIteracion = S.parsearFechaLocal(inicioSemana);
                     let fechaLimite = S.parsearFechaLocal(fechaHoy);
 
-                    // --- NUEVO: Detectar si ayer quedó en Standby ---
-                    const ayerObj = S.parsearFechaLocal(fechaHoy);
-                    ayerObj.setDate(ayerObj.getDate() - 1);
-                    const ayerStr = S.formatearFechaLocal(ayerObj);
-                    const regAyer = registrosMap.get(ayerStr);
-                    let ayerAbierto = false;
-
-                    if (regAyer && regAyer.entrada && !regAyer.salida) {
-                        const [hE, mE] = regAyer.entrada.split(':').map(Number);
-                        const fechaEntrada = S.parsearFechaLocal(ayerStr);
-                        fechaEntrada.setHours(hE, mE, 0, 0);
-                        if ((new Date() - fechaEntrada) <= 86400000) {
-                            ayerAbierto = true; // Turno activo (menor a 24hs)
-                        }
-                    }
+                    // --- Detectar si ayer quedó en Standby ---
+                    const { ayerStr, ayerAbierto } = detectarAyerAbierto(fechaHoy, registrosMap);
 
                     while (fechaIteracion <= fechaLimite) {
                         const y = fechaIteracion.getFullYear();
@@ -5331,6 +5334,7 @@
                     exportarJSON,
                     importarDatos,
                     calcularBufferSemanal,
+                    detectarAyerAbierto,
                     aplicarFiltrosInmediato,
                     limpiarFiltros,
                     obtenerRegistrosFiltrados,
@@ -6403,20 +6407,8 @@
                         const regsPorFecha = new Map(registrosRango.map(r => [r.fecha, r]));
                         const hoy = obtenerFechaHoy();
 
-                        // --- NUEVO: Standby para estadísticas ---
-                        const ayerObj = S.parsearFechaLocal(hoy);
-                        ayerObj.setDate(ayerObj.getDate() - 1);
-                        const ayerStr = S.formatearFechaLocal(ayerObj);
-                        const regAyer = regsPorFecha.get(ayerStr);
-                        let ayerAbierto = false;
-                        if (regAyer && regAyer.entrada && !regAyer.salida) {
-                            const [hE, mE] = regAyer.entrada.split(':').map(Number);
-                            const fechaEntrada = S.parsearFechaLocal(ayerStr);
-                            fechaEntrada.setHours(hE, mE, 0, 0);
-                            if ((new Date() - fechaEntrada) <= 86400000) {
-                                ayerAbierto = true;
-                            }
-                        }
+                        // --- Standby para estadísticas ---
+                        const { ayerStr, ayerAbierto } = D.detectarAyerAbierto(hoy, regsPorFecha);
 
                         let objetivo = 0;
                         let hechas = 0;
@@ -6647,24 +6639,7 @@
                     const horasDiarias = D.horasDiarias();
                     const horasSemanales = D.horasSemanales();
                     const diasHabiles = D.diasHabiles();
-                    const ayerObj = S.parsearFechaLocal(hoy);
-                    ayerObj.setDate(ayerObj.getDate() - 1);
-                    const ayer = S.formatearFechaLocal(ayerObj);
-                    const regAyer = registros.find(r => r.fecha === ayer);
-
-                    let ayerAbierto = false;
-                    if (regAyer && regAyer.entrada && !regAyer.salida) {
-                        // Construir un objeto Date con la fecha y hora de la entrada de ayer
-                        const [hE, mE] = regAyer.entrada.split(':').map(Number);
-                        const fechaEntrada = S.parsearFechaLocal(ayer);
-                        fechaEntrada.setHours(hE, mE, 0, 0);
-
-                        // Si pasaron menos o igual a 24 horas (24 * 60 * 60 * 1000 ms)
-                        if ((new Date() - fechaEntrada) <= 86400000) {
-                            ayerAbierto = true;
-                        }
-                    }
-
+                    const { ayerStr: ayer, regAyer, ayerAbierto } = D.detectarAyerAbierto(hoy, registros);
 
                     // --- Día hábil hoy (compatible array v6.63 y fallback numérico) ---
                     const diaSemanaHoy = new Date().getDay();
@@ -6768,7 +6743,7 @@
                         totalSemana, objetivoSemana,
                         tipoEspecialHoy, tiempoHoy,
                         todosEspeciales,
-                        ayerAbierto // <-- NUEVO: exportamos este estado
+                        ayerAbierto, ayerStr: ayer, regAyer // turno cruzando medianoche
                     };
                 }
 
@@ -6859,16 +6834,13 @@
                             }
 
                             // --- CALCULAR NOMBRE DEL DÍA DE AYER ---
-                            const ayerObj = S.parsearFechaLocal(UILogic.obtenerFechaHoy());
-                            ayerObj.setDate(ayerObj.getDate() - 1);
-                            const ayer = S.formatearFechaLocal(ayerObj);
-                            const nombreDiaAyer = obtenerNombreDia(ayer);
+                            const nombreDiaAyer = obtenerNombreDia(est.ayerStr);
 
                             // --- CALCULAR SALIDA ESTIMADA PARA AYER ---
                             let hint = 'Toca Fichar para registrar salida';
                             let hintEsHTML = false;
 
-                            const regAyer = est.registros.find(r => r.fecha === ayer);
+                            const regAyer = est.regAyer;
 
                             if (regAyer && regAyer.entrada && objetivoDiario > 0 && !TiposRegistro.esRegistroEspecial(regAyer.entrada, regAyer.salida)) {
                                 const [hE, mE] = regAyer.entrada.split(':').map(Number);
@@ -11580,11 +11552,15 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 297
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 298
     // ====================================================================
     
       - CAMBIOS:
     1) Se agrega deteccion de dia anterior incompleto
+    2) Refactor: helper detectarAyerAbierto() centraliza la detección
+       de turno activo cruzando medianoche (reemplaza 4 bloques inline idénticos)
+    3) calcularEstadoCard() exporta ayerStr y regAyer en su return
+       para evitar recálculo redundante en derivarVistaHoy()
 
      - BUGS CONOCIDOS:
     1)
