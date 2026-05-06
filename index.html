@@ -1973,7 +1973,7 @@
                                 <div class="input-with-btn">
                                     <input type="text" id="salida" inputmode="numeric" maxlength="5" />
                                     <button class="time-btn" onclick="UILogic.pegarHoraActual('salida')"
-                                        title="Pegar hora actual o limpiar" s>
+                                        title="Pegar hora actual o limpiar">
                                         <svg class="icon">
                                             <use href="#icon-clock" />
                                         </svg>
@@ -2208,7 +2208,7 @@
                         </svg>
                         Ajustes
                     </span>
-                    <span class="version-text">LUSHIBOSCA build_296</span>
+                    <span class="version-text">LUSHIBOSCA build_297</span>
                 </h3>
             </div>
             <div class="modal-panel-body custom-scroll">
@@ -4187,24 +4187,35 @@
                     btn.disabled = true;
                     let usaHoraActual = false;
 
-                    const f = S.sanitizeString($('fecha').value, 10);
+                    // --- cambiamos 'const' por 'let' para reescribir la fecha si es necesario ---
+                    let f = S.sanitizeString($('fecha').value, 10);
                     let e = S.sanitizeString($('entrada').value.trim(), 5);
                     let s = S.sanitizeString($('salida').value.trim(), 5);
 
-                    // --- VALIDACIÓN DE FUTURO PARA NORMALES ---
-                    const hoy = UILogic.obtenerFechaHoy();
-                    if (f > hoy) {
-                        // Verificamos si es un registro especial (estos SÍ se permiten en el futuro)
-                        const esEspecial = TiposRegistro.esRegistroEspecial(e, s);
+                    // --- MODIFICADO: Interceptar si no hay entrada (incluso si llenó la salida manual) ---
+                    if (!e) {
+                        const ayerObj = S.parsearFechaLocal(UILogic.obtenerFechaHoy());
+                        ayerObj.setDate(ayerObj.getDate() - 1);
+                        const ayer = S.formatearFechaLocal(ayerObj);
 
-                        if (!esEspecial) {
-                            UILogic.resetearBoton(btn);
-                            UILogic.mostrarToast('Fecha futura no permitida en registro regular', 'warning');
-                            return;
+                        const regAyer = registros.find(r => r.fecha === ayer);
+                        const regHoy = registros.find(r => r.fecha === f);
+
+                        // Si ayer está incompleto, hoy está vacío, Y no pasaron 24hs
+                        if (regAyer && regAyer.entrada && !regAyer.salida && !regHoy) {
+                            const [hE, mE] = regAyer.entrada.split(':').map(Number);
+                            const fechaEntrada = S.parsearFechaLocal(ayer);
+                            fechaEntrada.setHours(hE, mE, 0, 0);
+
+                            if ((new Date() - fechaEntrada) <= 86400000) {
+                                f = ayer;
+                                $('fecha').value = f; // Sincronizamos la UI con ayer
+                            }
                         }
                     }
 
-                    const registroExistente = registros.find(r => r.fecha === f);
+                    // --- cambiamos 'const' por 'let' ---
+                    let registroExistente = registros.find(r => r.fecha === f);
 
                     if (!e && !s) {
                         const now = new Date();
@@ -5054,6 +5065,22 @@
                     let fechaIteracion = S.parsearFechaLocal(inicioSemana);
                     let fechaLimite = S.parsearFechaLocal(fechaHoy);
 
+                    // --- NUEVO: Detectar si ayer quedó en Standby ---
+                    const ayerObj = S.parsearFechaLocal(fechaHoy);
+                    ayerObj.setDate(ayerObj.getDate() - 1);
+                    const ayerStr = S.formatearFechaLocal(ayerObj);
+                    const regAyer = registrosMap.get(ayerStr);
+                    let ayerAbierto = false;
+
+                    if (regAyer && regAyer.entrada && !regAyer.salida) {
+                        const [hE, mE] = regAyer.entrada.split(':').map(Number);
+                        const fechaEntrada = S.parsearFechaLocal(ayerStr);
+                        fechaEntrada.setHours(hE, mE, 0, 0);
+                        if ((new Date() - fechaEntrada) <= 86400000) {
+                            ayerAbierto = true; // Turno activo (menor a 24hs)
+                        }
+                    }
+
                     while (fechaIteracion <= fechaLimite) {
                         const y = fechaIteracion.getFullYear();
                         const m = String(fechaIteracion.getMonth() + 1).padStart(2, '0');
@@ -5066,18 +5093,25 @@
                         let horasHechasDia = 0;
                         const esEspecial = r && TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
                         const tieneSalida = r && r.salida && !esEspecial;
-                        const esDiaPasado = isoDate < fechaHoy;
                         const esRemoto = esEspecial && TiposRegistro.obtenerTipoPorCodigo(r?.entrada, r?.salida)?.id === 'remoto';
 
+                        // --- NUEVO: ¿El día está cerrado para contabilizarlo? ---
+                        let diaTerminado = false;
+                        if (isoDate === fechaHoy) {
+                            diaTerminado = tieneSalida;
+                        } else if (ayerAbierto && isoDate === ayerStr) {
+                            diaTerminado = false; // ¡Standby!
+                        } else {
+                            diaTerminado = true; // Pasado normal
+                        }
+
                         if (esRemoto) {
-                            // Remoto: neutro en día hábil, extra en día no hábil
-                            if (esDiaLaboralConfigurado) {
-                                horasObjetivoDia = horasDiariasLocal;
-                            }
+                            if (esDiaLaboralConfigurado) horasObjetivoDia = horasDiariasLocal;
                             horasHechasDia = horasDiariasLocal;
                         } else {
                             if (esDiaLaboralConfigurado && !esEspecial) {
-                                if (esDiaPasado || (isoDate === fechaHoy && tieneSalida)) {
+                                // Solo sumamos el objetivo si el día ya se dio por terminado
+                                if (diaTerminado) {
                                     horasObjetivoDia = horasDiariasLocal;
                                 }
                             }
@@ -5087,8 +5121,6 @@
                         }
 
                         buffer += (horasHechasDia - horasObjetivoDia);
-
-                        // Sumar 1 día
                         fechaIteracion.setDate(fechaIteracion.getDate() + 1);
                     }
                     return buffer;
@@ -5759,6 +5791,9 @@
 
                 function resetearBoton(btn) {
                     btn.disabled = false;
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    btn.style.borderColor = '';
                     btn.innerHTML = '<svg class="icon"><use href="#icon-save"/></svg> <span id="btn-registrar-texto">Fichar</span>';
                 }
 
@@ -6367,6 +6402,22 @@
                         const diasHabilesConfig = D.diasHabiles();
                         const regsPorFecha = new Map(registrosRango.map(r => [r.fecha, r]));
                         const hoy = obtenerFechaHoy();
+
+                        // --- NUEVO: Standby para estadísticas ---
+                        const ayerObj = S.parsearFechaLocal(hoy);
+                        ayerObj.setDate(ayerObj.getDate() - 1);
+                        const ayerStr = S.formatearFechaLocal(ayerObj);
+                        const regAyer = regsPorFecha.get(ayerStr);
+                        let ayerAbierto = false;
+                        if (regAyer && regAyer.entrada && !regAyer.salida) {
+                            const [hE, mE] = regAyer.entrada.split(':').map(Number);
+                            const fechaEntrada = S.parsearFechaLocal(ayerStr);
+                            fechaEntrada.setHours(hE, mE, 0, 0);
+                            if ((new Date() - fechaEntrada) <= 86400000) {
+                                ayerAbierto = true;
+                            }
+                        }
+
                         let objetivo = 0;
                         let hechas = 0;
                         let fechaIt = S.parsearFechaLocal(opciones.desde);
@@ -6378,8 +6429,16 @@
                             const r = regsPorFecha.get(iso);
                             const esEspecial = r && TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
                             const esHoy = iso === hoy;
-                            const diaTerminado = esHoy ? (r && r.salida) : true;
                             const esRemoto = esEspecial && TiposRegistro.obtenerTipoPorCodigo(r?.entrada, r?.salida)?.id === 'remoto';
+
+                            // --- NUEVO: Evaluar terminación ---
+                            let diaTerminado = true;
+                            if (esHoy) {
+                                diaTerminado = (r && r.salida);
+                            } else if (ayerAbierto && iso === ayerStr) {
+                                diaTerminado = false; // ¡Standby!
+                            }
+
                             if (esDiaHabil && (!esEspecial || esRemoto) && diaTerminado) {
                                 objetivo += horasDiariasObj;
                             }
@@ -6588,6 +6647,24 @@
                     const horasDiarias = D.horasDiarias();
                     const horasSemanales = D.horasSemanales();
                     const diasHabiles = D.diasHabiles();
+                    const ayerObj = S.parsearFechaLocal(hoy);
+                    ayerObj.setDate(ayerObj.getDate() - 1);
+                    const ayer = S.formatearFechaLocal(ayerObj);
+                    const regAyer = registros.find(r => r.fecha === ayer);
+
+                    let ayerAbierto = false;
+                    if (regAyer && regAyer.entrada && !regAyer.salida) {
+                        // Construir un objeto Date con la fecha y hora de la entrada de ayer
+                        const [hE, mE] = regAyer.entrada.split(':').map(Number);
+                        const fechaEntrada = S.parsearFechaLocal(ayer);
+                        fechaEntrada.setHours(hE, mE, 0, 0);
+
+                        // Si pasaron menos o igual a 24 horas (24 * 60 * 60 * 1000 ms)
+                        if ((new Date() - fechaEntrada) <= 86400000) {
+                            ayerAbierto = true;
+                        }
+                    }
+
 
                     // --- Día hábil hoy (compatible array v6.63 y fallback numérico) ---
                     const diaSemanaHoy = new Date().getDay();
@@ -6665,7 +6742,13 @@
 
                     // --- Tiempo transcurrido hoy ---
                     let tiempoHoy = 0;
-                    if (regHoy && regHoy.entrada && !tipoEspecialHoy) {
+                    if (ayerAbierto && !regHoy) {
+                        // Si ayer está abierto y hoy no hay nada, el timer sigue contando desde la entrada de ayer
+                        const ahora = new Date();
+                        const horaActual = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
+                        const t = D.calcularHoras(regAyer.entrada, horaActual, regAyer.tiempoFuera || null, null, true);
+                        tiempoHoy = t ? t.total : 0;
+                    } else if (regHoy && regHoy.entrada && !tipoEspecialHoy) {
                         if (regHoy.salida) {
                             tiempoHoy = regHoy.total;
                         } else {
@@ -6680,11 +6763,12 @@
                         hoy, ini, fn,
                         registros, regHoy,
                         horasDiarias, horasSemanales,
-                        diasHabiles, esDiaHabil,
+                        diasHabiles, esDiaHabil, // Asegurate de que esDiaHabil esté definido como en tu código
                         semanaAbierta, bufferSemanal,
                         totalSemana, objetivoSemana,
                         tipoEspecialHoy, tiempoHoy,
                         todosEspeciales,
+                        ayerAbierto // <-- NUEVO: exportamos este estado
                     };
                 }
 
@@ -6747,8 +6831,94 @@
                     const { regHoy, tiempoHoy, horasDiarias, esDiaHabil, tipoEspecialHoy, bufferSemanal, diasHabiles } = est;
                     const objetivoDiario = horasDiarias;
 
-                    // SIN REGISTRO
+                    // SIN REGISTRO HOY
                     if (!regHoy || !regHoy.entrada) {
+
+                        // --- NUEVO: Mostrar tarjeta contando el turno de ayer ---
+                        if (est.ayerAbierto) {
+                            const prog = objetivoDiario > 0 ? Math.min((tiempoHoy / objetivoDiario) * 100, 100) : 100;
+                            const cumplido = objetivoDiario === 0 || tiempoHoy >= objetivoDiario;
+
+                            let colorBarra = cumplido ? 'green' : 'blue';
+                            let colorBorde = cumplido ? 'green' : 'blue';
+                            let mensaje = '';
+
+                            if (objetivoDiario === 0) {
+                                mensaje = 'En curso (cruce de medianoche)';
+                            } else if (cumplido) {
+                                const extra = tiempoHoy - objetivoDiario;
+                                if (bufferSemanal < 0 && Math.abs(bufferSemanal) > extra) {
+                                    mensaje = 'Te podes ir, pero debés tiempo';
+                                } else {
+                                    mensaje = extra > 0 ? `Te podes ir (+${horasATexto(extra)})` : 'Te podes ir';
+                                }
+                            } else {
+                                const faltante = objetivoDiario - tiempoHoy;
+                                const faltanteTexto = `Faltan ${horasATexto(faltante)}`;
+                                mensaje = bufferSemanal >= faltante ? `${faltanteTexto}, pero te podés ir` : faltanteTexto;
+                            }
+
+                            // --- CALCULAR NOMBRE DEL DÍA DE AYER ---
+                            const ayerObj = S.parsearFechaLocal(UILogic.obtenerFechaHoy());
+                            ayerObj.setDate(ayerObj.getDate() - 1);
+                            const ayer = S.formatearFechaLocal(ayerObj);
+                            const nombreDiaAyer = obtenerNombreDia(ayer);
+
+                            // --- CALCULAR SALIDA ESTIMADA PARA AYER ---
+                            let hint = 'Toca Fichar para registrar salida';
+                            let hintEsHTML = false;
+
+                            const regAyer = est.registros.find(r => r.fecha === ayer);
+
+                            if (regAyer && regAyer.entrada && objetivoDiario > 0 && !TiposRegistro.esRegistroEspecial(regAyer.entrada, regAyer.salida)) {
+                                const [hE, mE] = regAyer.entrada.split(':').map(Number);
+                                let minutosTotal = (hE * 60) + mE + (objetivoDiario * 60);
+
+                                if (regAyer.tiempoFuera && !D.getIgnorarTiempoFuera()) {
+                                    const [hF, mF] = regAyer.tiempoFuera.split(':').map(Number);
+                                    minutosTotal += (hF * 60) + mF;
+                                }
+
+                                const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
+                                const inicioBreak = localStorage.getItem(`breakStartTime_${perfilId}`);
+                                if (inicioBreak && !D.getIgnorarTiempoFuera()) {
+                                    const mins = Math.floor((Date.now() - parseInt(inicioBreak)) / 60000);
+                                    if (mins > 0) minutosTotal += mins;
+                                }
+
+                                let hS = Math.floor(minutosTotal / 60) % 24;
+                                const mS = Math.round(minutosTotal % 60);
+                                const horaSalida = `${String(hS).padStart(2, '0')}:${String(mS).padStart(2, '0')}`;
+
+                                const esLaborable = Array.isArray(diasHabiles) && diasHabiles.includes(new Date().getDay());
+                                const mostrarBuffer = Math.abs(bufferSemanal) > 0.01 && esLaborable;
+
+                                if (mostrarBuffer) {
+                                    const minutosConBuffer = minutosTotal - (bufferSemanal * 60);
+                                    let hSB = Math.floor(minutosConBuffer / 60) % 24;
+                                    const mSB = Math.round(minutosConBuffer % 60);
+                                    const horaBuf = `${String(hSB).padStart(2, '0')}:${String(mSB).padStart(2, '0')}`;
+                                    const colorBuffer = bufferSemanal > 0 ? 'var(--c-green)' : bufferSemanal < 0 ? 'var(--c-red)' : 'var(--text-main)';
+                                    hint = `Salida estimada: <strong>${horaSalida}</strong> <span style="color: ${colorBuffer};">(<strong>${horaBuf}</strong>)</span>`;
+                                } else {
+                                    hint = `Salida estimada: <strong>${horaSalida}</strong>`;
+                                }
+                                hintEsHTML = true;
+                            }
+
+                            return {
+                                titulo: `<svg class="icon"><use href="#icon-clock" /></svg>${nombreDiaAyer} (ayer)`,
+                                stats: horasATexto(tiempoHoy),
+                                mensaje: mensaje,
+                                mostrarMensaje: true,
+                                colorBarra: colorBarra, anchoBarra: prog,
+                                colorBorde: colorBorde, estadoFondo: 'en_curso', estadoFondoColor: null,
+                                hint: hint,
+                                hintEsHTML: hintEsHTML,
+                            };
+                        }
+
+                        // DIA NORMAL SIN REGISTRO
                         return {
                             titulo: `<svg class="icon"><use href="#icon-clock" /></svg>${obtenerNombreDia(obtenerFechaHoy())}`,
                             stats: esDiaHabil ? '🎒' : '🌞',
@@ -6762,7 +6932,7 @@
                         };
                     }
 
-                    // DÍA ESPECIAL
+                    // DÍA ESPECIAL HOY
                     if (tipoEspecialHoy) {
                         return {
                             titulo: `<svg class="icon"><use href="#icon-clock" /></svg>${obtenerNombreDia(obtenerFechaHoy())}`,
@@ -6776,7 +6946,7 @@
                         };
                     }
 
-                    // DÍA NORMAL
+                    // DÍA NORMAL CON REGISTRO (HOY)
                     const dayClosed = !!regHoy.salida;
                     const prog = objetivoDiario > 0 ? Math.min((tiempoHoy / objetivoDiario) * 100, 100) : 100;
                     const cumplido = objetivoDiario === 0 || tiempoHoy >= objetivoDiario;
@@ -6795,7 +6965,6 @@
                         mensaje = dif >= 0 ? `${horasATexto(dif)} extras` : `Faltaron ${horasATexto(Math.abs(dif))}`;
                         mostrarMensaje = true;
                     } else {
-                        // Día abierto con objetivo
                         colorBarra = cumplido ? 'green' : 'blue';
                         colorBorde = cumplido ? 'green' : 'blue';
                         estadoFondo = 'en_curso';
@@ -6814,7 +6983,6 @@
                         }
                     }
 
-                    // --- Hint: salida estimada ---
                     let hint = 'Toca para ver la Semana';
                     let hintEsHTML = false;
                     if (regHoy.entrada && !dayClosed && objetivoDiario > 0 && !TiposRegistro.esRegistroEspecial(regHoy.entrada, regHoy.salida)) {
@@ -8820,10 +8988,7 @@ Generado por Sistema Lushibosca
                         setTimeout(() => {
                             modoNormal.style.display = 'none';
                             modoLote.style.display = 'block';
-
-                            // Forzar reflow
                             modoLote.offsetHeight;
-
                             modoLote.classList.remove('fade-out');
 
                             // Limpiar campos
@@ -8850,16 +9015,10 @@ Generado por Sistema Lushibosca
                         setTimeout(() => {
                             modoLote.style.display = 'none';
                             modoNormal.style.display = 'block';
-
-                            // Forzar reflow
                             modoNormal.offsetHeight;
-
                             modoNormal.classList.remove('fade-out');
-
-                            btnTexto.textContent = 'Fichar';
-                            btn.style.color = '';
+                            UILogic.resetearBoton(btn);
                             btnTimer.style.opacity = '1';
-
                             actualizarEstadoBotonTimerMain();
                         }, 300);
                     }
@@ -11421,11 +11580,11 @@ Generado por Sistema Lushibosca
 </html>
 
 <!--// ====================================================================
-    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 296
+    //                 NOTAS SISTEMA LUSHIBOSCA VERSION 297
     // ====================================================================
     
       - CAMBIOS:
-    1) Refactor de @media
+    1) Se agrega deteccion de dia anterior incompleto
 
      - BUGS CONOCIDOS:
     1)
