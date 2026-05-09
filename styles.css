@@ -1,5 +1,5 @@
 :root {
-    /* --- Variables de Color (Tema Claro) --- */
+
     --bg-body: #f5f6fa;
     --bg-card: #ffffff;
     --bg-header: #ffffffee;
@@ -25,10 +25,13 @@
     --hover: brightness(0.9);
     --transition-anim: opacity 0.3s ease, transform 0.3s ease;
     --transition-collapse: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    --modal-overlay: rgba(0, 0, 0, 0.5);
+    --touch-target: 44px;
+    --input-height: 48px;
 }
 
 body.dark-mode {
-    /* --- Variables de Color (Tema Oscuro) --- */
+
     --bg-body: #131314;
     --bg-card: #1e1f20;
     --bg-header: #131314f6;
@@ -69,7 +72,6 @@ body {
     overflow-y: auto;
 }
 
-/* --- Layout & Contenedores --- */
 .container {
     max-width: 1400px;
     margin: 0 auto;
@@ -128,7 +130,6 @@ body {
     margin-bottom: 0;
 }
 
-/* --- Scrollbar Reutilizable (Clase Utilitaria) --- */
 .custom-scroll {
     overflow-y: auto;
     overflow-x: hidden;
@@ -152,7 +153,6 @@ body {
     background: var(--text-muted);
 }
 
-/* --- Iconos --- */
 .icon {
     width: 1.2em;
     height: 1.2em;
@@ -167,7 +167,6 @@ body {
     fill: none;
 }
 
-/* --- Formularios --- */
 .form-group {
     margin-bottom: 1rem;
 
@@ -194,8 +193,7 @@ select {
     font-size: 1rem;
     background: var(--input-bg);
     color: var(--text-main);
-    height: 48px;
-    transition: border-color 0.2s, transform 0.3s, background 0.3s;
+    height: var(--input-height);
 }
 
 input:disabled,
@@ -204,7 +202,7 @@ select:disabled {
     color: var(--text-disabled);
     opacity: 1;
     -webkit-text-fill-color: var(--text-disabled);
-    /* Corrección para Safari/iOS */
+
     cursor: not-allowed;
 }
 
@@ -240,7 +238,6 @@ input.error {
     text-align: center;
 }
 
-/* --- Botones --- */
 button {
     width: 100%;
     padding: 0.875rem;
@@ -269,7 +266,6 @@ button:disabled {
     color: var(--text-disabled);
 }
 
-/* Variantes de botones */
 .btn-register {
     width: auto;
     padding: 17px;
@@ -283,10 +279,10 @@ button:disabled {
     transform-origin: bottom;
 }
 
-#btn-toggle-ignorar-tf,
+:where(#btn-toggle-ignorar-tf,
 #btn-toggle-fondo,
 #btn-toggle-gist-backup,
-#btn-toggle-gist-merge {
+#btn-toggle-gist-merge) {
     justify-content: center;
     padding: 0.875rem 1rem;
     border: 1px solid var(--border);
@@ -300,8 +296,8 @@ button:disabled {
 .filter-btn {
     width: auto;
     padding: 0.5rem;
-    min-width: 44px;
-    height: 44px;
+    min-width: var(--touch-target);
+    height: var(--touch-target);
     color: var(--text-main);
     touch-action: manipulation;
 }
@@ -316,7 +312,6 @@ button:disabled {
     border-color: var(--c-red);
 }
 
-/* --- Colapsables (base compartida) --- */
 .collapsible {
     max-height: 0;
     overflow: hidden;
@@ -352,9 +347,6 @@ button:disabled {
     margin-bottom: -0.5rem;
 }
 
-/* --- Stats & Progreso --- */
-/* Fondo abstracto stats-card */
-
 .stats-card {
     cursor: pointer;
     border: 1px solid transparent;
@@ -384,7 +376,6 @@ button:disabled {
     transition: var(--transition-anim);
 }
 
-/* Estados del borde lateral — especificidad aumentada para evitar !important */
 .stats-card.border-blue {
     border-left-color: var(--c-blue);
 }
@@ -492,7 +483,6 @@ button:disabled {
     animation: shimmer 5s ease-in-out infinite;
 }
 
-/* --- Lista de Registros --- */
 .registro-item {
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -542,6 +532,15 @@ button:disabled {
     padding: 0.1rem 1rem;
 }
 
+.calendario-titulo {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+    text-transform: capitalize;
+    cursor: pointer;
+    padding-left: 1rem;
+}
+
 .registro-total.green-text,
 .calendario-dia.dia-normal,
 .toast.success {
@@ -582,7 +581,6 @@ button:disabled {
     background: var(--c-blue);
 }
 
-/* --- Modal & Utilidades --- */
 .modal {
     display: flex;
     visibility: hidden;
@@ -593,12 +591,12 @@ button:disabled {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--modal-overlay);
     z-index: 100;
     align-items: center;
     justify-content: center;
     padding: 0.25rem;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(2px);
     transition: opacity 0.3s, visibility 0.3s;
 }
 
@@ -621,7 +619,6 @@ button:disabled {
     opacity: 1;
 }
 
-/* Modales con scroll interno: header/footer sticky, body scrollable */
 .modal-scrollable>.modal-content {
     display: flex;
     flex-direction: column;
@@ -690,8 +687,6 @@ button:disabled {
     pointer-events: auto;
 }
 
-/* --- Selector de Meses Calendario --- */
-
 #calendario-selector-meses {
     display: none;
     grid-template-columns: repeat(3, 1fr);
@@ -735,7 +730,6 @@ button:disabled {
     margin-bottom: 0.1rem;
 }
 
-/* --- Animaciones y Textos --- */
 @keyframes slideDownFade {
     from {
         opacity: 0;
@@ -769,22 +763,17 @@ button:disabled {
         transform: scale(1.25, 0.75);
     }
 
-    /* Se aplasta */
     10% {
         transform: scale(0.75, 1.25);
     }
 
-    /* Se estira */
     15% {
         transform: scale(1.15, 0.85);
     }
 
-    /* Rebote suave */
     20% {
         transform: scale(1, 1);
     }
-
-    /* Normal */
 
     100% {
         transform: scale(1, 1);
@@ -795,7 +784,6 @@ button:disabled {
     from {
         opacity: 0;
         filter: blur(5px);
-        background-color: var(--c-green)
     }
 
     to {
@@ -852,7 +840,6 @@ button:disabled {
     color: var(--text-muted);
 }
 
-/* --- Estadísticas Grid --- */
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -860,8 +847,6 @@ button:disabled {
     margin-top: 1rem;
 }
 
-/* --- Colapso de formulario --- */
-/* CALENDARIO */
 .calendario-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -911,7 +896,6 @@ button:disabled {
     color: var(--text-muted);
 }
 
-/* --- Popup quick-view calendario --- */
 .cal-popup {
     position: fixed;
     z-index: 90;
@@ -926,7 +910,7 @@ button:disabled {
     flex-direction: column;
     gap: 0.4rem;
     pointer-events: none;
-    /* Deshabilitado durante la animación para evitar ciclo hover */
+
     transform: translateY(24px) scale(0.96);
     opacity: 0;
     animation: calPopupIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -934,7 +918,7 @@ button:disabled {
 
 .cal-popup.listo {
     pointer-events: all;
-    /* Habilitado al terminar la animación */
+
 }
 
 .cal-popup-fecha {
@@ -965,19 +949,9 @@ button:disabled {
 
 .cal-popup-btn-edit {
     margin-top: 0.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    width: 100%;
     padding: 0.5rem 0.75rem;
     background: var(--c-gray-btn);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
     font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    color: var(--text-main);
 }
 
 .calendario-nav {
@@ -999,11 +973,8 @@ button:disabled {
     justify-content: center;
     padding: 4px;
     flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-}
-
-.calendario-titulo {
+    width: var(--touch-target);
+    height: var(--touch-target);
     font-size: 1rem;
     font-weight: 600;
     color: var(--text-main);
@@ -1020,7 +991,6 @@ button:disabled {
     opacity: 1;
 }
 
-/* Animación al crear y eliminar registro */
 .nuevo-registro-animacion {
     animation: fade-blur 0.5s ease-out forwards;
     transform-origin: center;
@@ -1028,14 +998,12 @@ button:disabled {
     position: relative;
 }
 
-/* Animación del boton tiempo fuera*/
 .timer-btn.running {
     color: var(--c-red);
     border-color: var(--c-red);
     animation: pulse 2s infinite;
 }
 
-/* Estilos para cabeceras colapsables */
 .card-header-clickable {
     cursor: pointer;
     display: flex;
@@ -1056,7 +1024,6 @@ button:disabled {
     transform: rotate(180deg);
 }
 
-/* Estilos para meses colapsables */
 .registro-mes-container {
     margin: 0;
     scroll-margin-top: 5rem;
@@ -1097,7 +1064,6 @@ button:disabled {
     order: 1;
 }
 
-/* Botón de perfil en el Header */
 .header-profile-btn {
     background: transparent;
     border: 1px solid var(--border);
@@ -1121,7 +1087,6 @@ button:disabled {
     display: block;
 }
 
-/* Lista de perfiles en el modal */
 .perfil-list-container {
     display: flex;
     flex-direction: column;
@@ -1153,10 +1118,10 @@ button:disabled {
 }
 
 .btn-activo {
-    background: var(--c-green-bg) !important;
-    color: var(--c-green) !important;
-    border-color: var(--c-green) !important;
-    font-weight: bold !important;
+    background: var(--c-green-bg);
+    color: var(--c-green);
+    border-color: var(--c-green);
+    font-weight: bold;
 }
 
 .btn-perfil-info {
@@ -1199,13 +1164,11 @@ button:disabled {
     font-size: 18px;
 }
 
-/* Transición suave entre modos */
 #modo-normal,
 #modo-lote {
     transition: var(--transition-anim);
 }
 
-/* Transición suave entre meses en estadísticas */
 #form-stats,
 #calendario-grid,
 #lista-registros,
@@ -1228,7 +1191,6 @@ button:disabled {
     width: 100%;
 }
 
-/* --- Selector de Días Semanales --- */
 .week-selector {
     display: flex;
     justify-content: space-between;
@@ -1274,7 +1236,6 @@ button:disabled {
     transform: scale(1.1);
 }
 
-/* Estado colapsado de botones histórico */
 #botones-historico {
     transition: var(--transition-collapse), padding 0.3s ease-out, margin 0.3s ease-out;
     padding-top: 0;
@@ -1288,19 +1249,17 @@ button:disabled {
     margin-bottom: 0.5rem;
 }
 
-/* Histórico necesita más altura que las otras tarjetas */
 #contenido-historico.expanded {
     max-height: 5000px;
 }
 
-/* Animación de feedback en inputs de registro */
 .input-agregado-animacion {
     animation: fade-blur 0.5s ease-out forwards;
 }
 
 #btn-toggle-periodo {
     width: 100px;
-    height: 48px;
+    height: var(--input-height);
     padding: 0.25rem 0;
     font-size: 0.8rem;
     gap: 0.25rem;
@@ -1308,13 +1267,10 @@ button:disabled {
     justify-content: center;
 }
 
-/* --- Clases utilitarias (reemplazo de inline styles) --- */
-/* Ocultar elementos — JS usa classList.add/remove('hidden') */
 .hidden {
     display: none !important;
 }
 
-/* SVG sprite oculto */
 .svg-sprite,
 #btn-timer-main:disabled,
 #btn-install,
@@ -1323,26 +1279,22 @@ button:disabled {
     display: none;
 }
 
-/* Header botones contenedor */
 .header-actions {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-/* progress-bar fill: width se setea por JS, sólo definimos el estado inicial */
 #progress-bar {
     width: 0%;
 }
 
-/* stats-buffer */
 #stats-buffer {
     font-size: 0.85rem;
     margin-top: 0.5rem;
     min-height: 1.2rem;
 }
 
-/* Card registrar: h2 con botones de timer y chevron */
 .card-registrar-header {
     display: flex;
     justify-content: center;
@@ -1350,21 +1302,18 @@ button:disabled {
     position: relative;
 }
 
-/* Botón timer dentro del header de la card registrar */
 #btn-timer-main {
     padding: 0.5rem;
     position: absolute;
     left: 0;
 }
 
-/* Chevron indicador de formulario */
 #icon-indicator-form {
     position: absolute;
     right: 0;
     cursor: pointer;
 }
 
-/* Modos del formulario */
 #modo-normal,
 #campos-rango-exportar,
 #gist-limite-sync,
@@ -1373,38 +1322,31 @@ button:disabled {
     display: block;
 }
 
-/* Padding top en primer form-group de cada modo */
 .form-group-pt {
-    padding-top: 1rem;
     padding-top: 1rem;
 }
 
-/* Botones con flex-shrink-0 */
 .flex-shrink-0 {
     flex-shrink: 0;
 }
 
-/* Spans de cabecera de cards (icon + texto) */
 .card-section-title {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-/* Selector de período de stats */
 .stats-periodo-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-/* Icono pequeño del btn periodo */
 #btn-toggle-periodo .icon {
     width: 14px;
     height: 14px;
 }
 
-/* Botones histórico: layout interno */
 .botones-historico-inner {
     display: flex;
     justify-content: space-between;
@@ -1418,20 +1360,17 @@ button:disabled {
     gap: 0.5rem;
 }
 
-/* Contenedor nav botones calendario */
 #calendario-nav-botones {
     display: flex;
     gap: 0.5rem;
     align-items: center;
 }
 
-/* Botón "Hoy" del calendario */
 .btn-hoy-calendario {
     width: auto;
     font-size: 0.8rem;
 }
 
-/* Chevrons del calendario (rotados) */
 .icon-rotate-90 {
     transform: rotate(90deg);
 }
@@ -1440,44 +1379,37 @@ button:disabled {
     transform: rotate(-90deg);
 }
 
-/* Lista orden cards */
 #lista-orden-cards {
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
 }
 
-/* Fila flex con gap estándar — usada en gist y otros lugares */
 .flex-row {
     display: flex;
     gap: 0.5rem;
 }
 
-/* flex:1 genérico — reemplaza flex-1, flex-1, flex-1 */
 .flex-1,
 .stats-periodo-row select,
 .registro-info {
     flex: 1;
 }
 
-/* form-group con margin-top media */
 .form-group-mt-half {
     margin-top: 0.5rem;
 }
 
-/* form-group con margin-bottom */
 .form-group-mb-half {
     margin-bottom: 0.5rem;
 }
 
-/* Gist merge resumen */
 #gist-merge-resumen {
     font-size: 0.9rem;
     color: var(--text-muted);
     line-height: 1.8;
 }
 
-/* Hint resumen edición */
 #edit-hint-resumen,
 #edit-grupo-hint {
     margin-left: auto;
@@ -1485,7 +1417,6 @@ button:disabled {
     min-height: 1.2em;
 }
 
-/* Nombre archivo seleccionado */
 #nombre-archivo-seleccionado {
     text-align: center;
     margin-top: 0.5rem;
@@ -1493,14 +1424,12 @@ button:disabled {
     display: none;
 }
 
-/* HR separador en modal importar */
 .modal-hr {
     border: 0;
     border-top: 1px solid var(--border);
     margin: 1rem 0;
 }
 
-/* Contenedor botones importar */
 .importar-btns {
     display: flex;
     flex-direction: column;
@@ -1508,14 +1437,12 @@ button:disabled {
     margin-top: 1rem;
 }
 
-/* Form-group con borde superior (separador en modal perfiles) */
 .form-group-border-top {
     margin-top: 1rem;
     border-top: 1px solid var(--border);
     padding-top: 1rem;
 }
 
-/* Modal confirmar texto */
 #modal-confirmar-texto {
     color: var(--text-muted);
     font-size: 0.95rem;
@@ -1523,33 +1450,39 @@ button:disabled {
     margin: 0.5rem 0;
 }
 
-/* --- Hovers de botones --- */
 @media (hover: hover) and (pointer: fine) {
-    /* Grupo 1: Elementos con estado disabled (Buttons e IDs de control) */
-    :is([id^="btn-toggle-"],
-        #btn-reporte, .icon-btn, .time-btn, .btn-increment, .filter-btn,
+
+    :is(
+        [id^="btn-toggle-"],
+        #btn-reporte,
+        .icon-btn, .time-btn, .btn-increment, .filter-btn,
         .btn-delete, .btn-cancel, .btn-export, .btn-backup, .btn-edit,
-        .calendario-nav button):hover:not(:disabled),
+        .calendario-nav button
+    ):hover:not(:disabled) {
+        filter: var(--hover);
+    }
 
-    /* Grupo 2: Elementos simples (Items, headers, etc.) */
-    :is(.registro-item, .header-profile-btn, .btn-perfil-select,
-        .btn-perfil-edit, .registro-mes-header, .btn-mes-calendario,
-        .calendario-titulo):hover,
+    :is(
+        .registro-item, .header-profile-btn,
+        .btn-perfil-select, .btn-perfil-edit,
+        .registro-mes-header, .btn-mes-calendario,
+        .calendario-titulo
+    ):hover {
+        filter: var(--hover);
+    }
 
-    /* Grupo 3: Casos especiales (Selectores anidados) */
     .day-checkbox:hover span {
         filter: var(--hover);
     }
 
-    /* Refactor de Calendario Día */
     .calendario-dia:not(.vacio, .dia-sin-registro) {
         transition: filter 0.3s ease;
+    }
 
-        &:hover {
-            filter: var(--hover);
-            z-index: 2;
-            position: relative;
-        }
+    .calendario-dia:not(.vacio, .dia-sin-registro):hover {
+        filter: var(--hover);
+        z-index: 2;
+        position: relative;
     }
 }
 
