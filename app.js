@@ -411,12 +411,6 @@
                 }
             }
 
-            setTimeout(() => {
-                document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-                document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-            }, 10);
-            // -----------------------------------------------------------------------------
-
             setTimeout(() => { _navegandoHaciaAtras = false; }, 50);
         });
 
