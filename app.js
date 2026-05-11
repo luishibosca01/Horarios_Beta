@@ -371,8 +371,6 @@
 
         let _navegandoHaciaAtras = false;
         let _ignorandoPopstate = false;
-
-        // Banderas para saber en qué dirección nos movemos por los modales
         let _enAlternanciaHaciaAdelante = false;
         let _enAlternanciaHaciaAtras = false;
 
@@ -413,6 +411,12 @@
                 }
             }
 
+            setTimeout(() => {
+                document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                document.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            }, 10);
+            // -----------------------------------------------------------------------------
+
             setTimeout(() => { _navegandoHaciaAtras = false; }, 50);
         });
 
@@ -442,7 +446,6 @@
             modal.classList.add('show');
             document.body.classList.add('modal-open');
 
-            // Sólo agregamos un "paso" al historial si es una apertura nueva o vamos hacia adelante (sub-modal)
             if (!_navegandoHaciaAtras && !_enAlternanciaHaciaAtras) {
                 history.pushState({ modalId: modalId }, "");
             }
@@ -468,8 +471,6 @@
             modal.removeEventListener('mousedown', _handleOverlayMousedown);
             modal.removeEventListener('click', handleOutsideClick);
 
-            // Consumimos el historial SÓLO si es un cierre definitivo, 
-            // no si estamos cerrando este para abrir un sub-modal inmediatamente
             if (!_navegandoHaciaAtras && !_enAlternanciaHaciaAdelante) {
                 _ignorandoPopstate = true;
                 history.back();
@@ -479,16 +480,15 @@
         }
 
         function alternar(modalIdCerrar, modalIdAbrir, callbackCerrar = null, callbackAbrir = null) {
-            // Detectamos si estamos volviendo a un modal anterior
             const esHaciaAtras = (_padres[modalIdCerrar] === modalIdAbrir);
 
             if (esHaciaAtras) {
                 _enAlternanciaHaciaAtras = true;
-                delete _padres[modalIdCerrar]; // Limpiamos la referencia
+                delete _padres[modalIdCerrar]; 
             } else {
                 _enAlternanciaHaciaAdelante = true;
                 if (modalIdCerrar && modalIdAbrir) {
-                    _padres[modalIdAbrir] = modalIdCerrar; // Registramos quién abrió a quién
+                    _padres[modalIdAbrir] = modalIdCerrar;
                 }
             }
 
@@ -4456,9 +4456,6 @@
         function cerrarEdicion() {
             ModalManager.cerrar('modal-editar', () => {
                 D.setEditandoId(null);
-                if (document.activeElement) {
-                    document.activeElement.blur();
-                }
             });
         }
 
@@ -8030,10 +8027,7 @@ Generado por Sistema Lushibosca
 
         function cerrarEdicionGrupo() {
             ModalManager.cerrar('modal-editar-grupo', () => {
-                D.setGrupoEnEdicion(null);
-                if (document.activeElement) {
-                    document.activeElement.blur();
-                }
+                D.setGrupoEnEdicion(null);                
             });
         }
 
