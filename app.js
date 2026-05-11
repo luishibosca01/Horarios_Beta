@@ -509,13 +509,13 @@
             }
         }
 
-        function _onPopState(event) {            const modalAbierto = _getModalActualAbierto();
+        function _onPopState(event) {
+            const modalAbierto = _getModalActualAbierto();
 
             if (modalAbierto) {
-                // Reponemos el centinela ANTES de cerrar para que cuando
-                // _sincronizarCentinela detecte el cierre, no haga otro history.back()
-                _centinelaActivo = true;
-                history.pushState({ modal: true }, '');
+                // Marcamos centinela inactivo ANTES de cerrar para que
+                // _sincronizarCentinela evalúe correctamente si quedan más modales.
+                _centinelaActivo = false;
 
                 const accion = _getAccionVolverPublica(modalAbierto);
                 if (accion) {
@@ -553,17 +553,17 @@
 
         function _getAccionVolverPublica(modalId) {
             const acciones = {
-                'modal-gist':              () => window.UILogic?.cerrarModalGist(),
-                'modal-gist-merge':        () => window.UILogic?.gistMergeCancelar(),
-                'modal-config':            () => window.UILogic?.cerrarConfig(),
+                'modal-gist': () => window.UILogic?.cerrarModalGist(),
+                'modal-gist-merge': () => window.UILogic?.gistMergeCancelar(),
+                'modal-config': () => window.UILogic?.cerrarConfig(),
                 'modal-selector-perfiles': () => window.UILogic?.cerrarSelectorPerfiles(),
-                'modal-editar':            () => window.UILogic?.cerrarEdicion(),
-                'modal-importar':          () => window.UILogic?.cerrarImportar(),
-                'modal-exportar':          () => window.UILogic?.cerrarExportar(),
-                'modal-filtros':           () => window.UILogic?.cerrarFiltros(),
-                'modal-editar-perfil':     () => window.UILogic?.cerrarEditorPerfil(),
-                'modal-editar-grupo':      () => window.UILogic?.cerrarEdicionGrupo(),
-                'modal-confirmar':         () => document.getElementById('modal-confirmar-cancel')?.click(),
+                'modal-editar': () => window.UILogic?.cerrarEdicion(),
+                'modal-importar': () => window.UILogic?.cerrarImportar(),
+                'modal-exportar': () => window.UILogic?.cerrarExportar(),
+                'modal-filtros': () => window.UILogic?.cerrarFiltros(),
+                'modal-editar-perfil': () => window.UILogic?.cerrarEditorPerfil(),
+                'modal-editar-grupo': () => window.UILogic?.cerrarEdicionGrupo(),
+                'modal-confirmar': () => document.getElementById('modal-confirmar-cancel')?.click(),
             };
             return acciones[modalId] || null;
         }
@@ -1313,7 +1313,7 @@
 
                 if (ayerAbierto && !regHoy) {
                     f = ayer;
-                    $('fecha').value = f; 
+                    $('fecha').value = f;
                 }
             }
 
@@ -1556,7 +1556,7 @@
 
                     const diferencia = horasObjetivo - horasTrabajadas;
 
-                    if (diferencia > 0.01) { 
+                    if (diferencia > 0.01) {
                         let h = Math.floor(diferencia);
                         let m = Math.round((diferencia - h) * 60);
                         if (m === 60) { h++; m = 0; }
@@ -2048,7 +2048,7 @@
             const storageKey = `breakStartTime_${perfilId}`;
             const storedStart = localStorage.getItem(storageKey);
 
-            if (!storedStart) return false; 
+            if (!storedStart) return false;
 
             const start = parseInt(storedStart);
             const end = Date.now();
@@ -2069,7 +2069,7 @@
 
             localStorage.removeItem(storageKey);
 
-            return true; 
+            return true;
         }
 
         function detectarAyerAbierto(fechaHoy, regs) {
@@ -2122,9 +2122,9 @@
                 if (isoDate === fechaHoy) {
                     diaTerminado = tieneSalida;
                 } else if (ayerAbierto && isoDate === ayerStr) {
-                    diaTerminado = false; 
+                    diaTerminado = false;
                 } else {
-                    diaTerminado = true; 
+                    diaTerminado = true;
                 }
 
                 if (esRemoto) {
@@ -2391,7 +2391,7 @@
     const GistSync = (function (S) {
 
         const GIST_FILENAME = 'horarios_backup.json';
-        const KEY_TOKEN = 'gistToken'; 
+        const KEY_TOKEN = 'gistToken';
 
         const GIST_ID_REGEX = /^[a-f0-9]{20,40}$/i;
 
@@ -2498,7 +2498,7 @@
 
         function superaLimite(tipo) {
             const limite = getSyncLimite(tipo);
-            if (limite === 0) return false; 
+            if (limite === 0) return false;
             return getSyncCount(tipo) >= limite;
         }
 
@@ -2895,7 +2895,7 @@
             if (!registro) return null;
 
             const tipo = TiposRegistro.obtenerTipoPorCodigo(registro.entrada, registro.salida);
-            return tipo ? tipo.id : null; 
+            return tipo ? tipo.id : null;
         }
 
         function esFechaConsecutiva(fechaActual, fechaSiguiente) {
@@ -3361,7 +3361,7 @@
                     if (esHoy) {
                         diaTerminado = (r && r.salida);
                     } else if (ayerAbierto && iso === ayerStr) {
-                        diaTerminado = false; 
+                        diaTerminado = false;
                     }
 
                     if (esDiaHabil && (!esEspecial || esRemoto) && diaTerminado) {
@@ -3479,7 +3479,7 @@
             return window.PerfilManager ? PerfilManager.perfilKey(base) : base + '_default';
         }
 
-        let _fondoCard = 'golden-gate'; 
+        let _fondoCard = 'golden-gate';
 
         function setFondoCard(valor) {
             _fondoCard = valor;
@@ -3646,7 +3646,7 @@
                 hoy, ini, fn,
                 registros, regHoy,
                 horasDiarias, horasSemanales,
-                diasHabiles, esDiaHabil, 
+                diasHabiles, esDiaHabil,
                 semanaAbierta, bufferSemanal,
                 totalSemana, objetivoSemana,
                 tipoEspecialHoy, tiempoHoy,
@@ -3914,7 +3914,7 @@
 
         function _iniciarCicloStats() {
             _detenerCicloStats();
-            if (!_cicloStatsEntrada) return; 
+            if (!_cicloStatsEntrada) return;
 
             const fases = [
                 _cicloStatsValorHoras,
@@ -3932,7 +3932,7 @@
 
                 setTimeout(() => {
                     idx++;
-                    if (idx >= fases.length) { 
+                    if (idx >= fases.length) {
                         el.classList.remove('ciclo-fade-out');
                         el.classList.add('ciclo-fade-in');
                         el.textContent = _cicloStatsValorHoras;
@@ -4153,14 +4153,14 @@
                     localStorage.setItem('vistaActual', vistaActual);
                 } catch (e) { }
 
-                _detenerCicloStats(); 
-                actualizarUI(); 
+                _detenerCicloStats();
+                actualizarUI();
 
                 if (content) content.classList.remove('fade-out');
 
                 if (card) card.classList.remove('cambiando-vista');
 
-            }, 300); 
+            }, 300);
         }
 
         function pegarHoraActual(id) {
@@ -4387,7 +4387,7 @@
             let startY = 0;
             let initialYOffset = 0;
             let dragTimer = null;
-            const DRAG_DELAY = 150; 
+            const DRAG_DELAY = 150;
 
             function getCardFromItem(el) {
                 const handle = el?.classList?.contains('drag-handle') ? el : el?.querySelector('.drag-handle');
@@ -4406,7 +4406,7 @@
                 dragClone.style.width = `${rect.width}px`;
                 dragClone.style.height = `${rect.height}px`;
                 dragClone.style.zIndex = '999999';
-                dragClone.style.pointerEvents = 'none'; 
+                dragClone.style.pointerEvents = 'none';
                 dragClone.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
                 dragClone.style.margin = '0';
                 dragClone.style.transform = 'scale(1.02)';
@@ -4481,7 +4481,7 @@
                     if (Math.abs(e.touches[0].clientY - startY) > 10) clearTimeout(dragTimer);
                     return;
                 }
-                e.preventDefault(); 
+                e.preventDefault();
                 moveDrag(e.touches[0].clientY);
             }, { passive: false });
 
@@ -5274,7 +5274,7 @@ Generado por Sistema Lushibosca
                 HistoryManager.saveState(D.registros());
 
                 localStorage.removeItem(storageKey);
-                await D.guardarYActualizar(registroHoy.id); 
+                await D.guardarYActualizar(registroHoy.id);
 
                 const mensaje = minutosTranscurridos === 1
                     ? 'Se descontó 1 minuto al registro de hoy'
@@ -5464,7 +5464,7 @@ Generado por Sistema Lushibosca
                 titulo.textContent = 'Selector de mes';
                 selector.style.display = 'grid';
                 selector.classList.add('fade-out');
-                selector.offsetHeight; 
+                selector.offsetHeight;
                 selector.classList.remove('fade-out');
             }, 300);
         }
@@ -5529,7 +5529,7 @@ Generado por Sistema Lushibosca
             perfiles[id] = {
                 nombre: nombre,
                 registros: [],
-                diasHabiles: [1, 2, 3, 4, 5], 
+                diasHabiles: [1, 2, 3, 4, 5],
                 horasDiarias: 7
             };
 
@@ -5647,7 +5647,7 @@ Generado por Sistema Lushibosca
 
             const nombreNormalizado = nuevoNombre.toLowerCase().trim();
             const nombreExiste = Object.entries(perfiles).some(([id, perfil]) =>
-                id !== perfilEnEdicion && 
+                id !== perfilEnEdicion &&
                 perfil.nombre.toLowerCase().trim() === nombreNormalizado
             );
 
@@ -6805,8 +6805,8 @@ Generado por Sistema Lushibosca
                 const el = document.getElementById(id);
                 if (el) {
                     el.addEventListener('input', (e) => {
-                        formatearInput(e); 
-                        verificarBloqueCreditoDebounced(); 
+                        formatearInput(e);
+                        verificarBloqueCreditoDebounced();
                     });
 
                     el.addEventListener('change', verificarBloqueoCredito);
@@ -6923,11 +6923,11 @@ Generado por Sistema Lushibosca
                 editTiempoFuera.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
-                        editTiempoFuera.blur(); 
+                        editTiempoFuera.blur();
 
                         const btnGuardar = document.querySelector('#modal-editar .btn-edit');
                         if (btnGuardar && !btnGuardar.disabled) {
-                            btnGuardar.click(); 
+                            btnGuardar.click();
                         }
                     }
                 });
@@ -6954,7 +6954,7 @@ Generado por Sistema Lushibosca
 
                         const btnGuardarPerfil = document.querySelector('#modal-editar-perfil .btn-edit');
                         if (btnGuardarPerfil && !btnGuardarPerfil.disabled) {
-                            btnGuardarPerfil.click(); 
+                            btnGuardarPerfil.click();
                         }
                     }
                 });
@@ -7340,8 +7340,8 @@ Generado por Sistema Lushibosca
 
             const agregarListenersFecha = (el) => {
                 if (!el) return;
-                el.addEventListener('change', () => actualizarBotonLote()); 
-                el.addEventListener('input', () => actualizarBotonLoteDebounced()); 
+                el.addEventListener('change', () => actualizarBotonLote());
+                el.addEventListener('input', () => actualizarBotonLoteDebounced());
             };
             agregarListenersFecha(loteDesde);
             agregarListenersFecha(loteHasta);
@@ -7473,7 +7473,7 @@ Generado por Sistema Lushibosca
 
                 $('entrada').value = '';
                 $('salida').value = '';
-                $('fecha').value = obtenerFechaHoy(); 
+                $('fecha').value = obtenerFechaHoy();
 
                 const loteDesde = $('lote-fecha-desde');
                 const loteHasta = $('lote-fecha-hasta');
@@ -7481,7 +7481,7 @@ Generado por Sistema Lushibosca
 
                 if (loteDesde) loteDesde.value = '';
                 if (loteHasta) loteHasta.value = '';
-                if (loteTipo) loteTipo.value = 'feriado'; 
+                if (loteTipo) loteTipo.value = 'feriado';
 
                 if (modoLoteActivo) {
                     toggleModoLote();
@@ -7508,8 +7508,8 @@ Generado por Sistema Lushibosca
                 if (!contenidoExpandido) {
                     contenido.classList.add('expanded');
                     if (icon) {
-                        icon.style.transform = ''; 
-                        icon.classList.add('rotated'); 
+                        icon.style.transform = '';
+                        icon.classList.add('rotated');
                     }
                     localStorage.setItem('historicoExpandido', 'meses');
                     tiempoExpansionBotones = null;
@@ -7529,7 +7529,7 @@ Generado por Sistema Lushibosca
                     botones.classList.add('expanded');
                     if (icon) {
                         icon.classList.remove('rotated');
-                        icon.style.transform = 'rotate(-90deg)'; 
+                        icon.style.transform = 'rotate(-90deg)';
                     }
                     localStorage.setItem('historicoExpandido', 'completo');
                     tiempoExpansionBotones = Date.now();
@@ -7541,8 +7541,8 @@ Generado por Sistema Lushibosca
                     if (history_toggle_timer) {
                         botones.classList.remove('expanded');
                         if (icon) {
-                            icon.style.transform = ''; 
-                            icon.classList.add('rotated'); 
+                            icon.style.transform = '';
+                            icon.classList.add('rotated');
                         }
                         localStorage.setItem('historicoExpandido', 'meses');
                         tiempoExpansionBotones = null;
@@ -7550,8 +7550,8 @@ Generado por Sistema Lushibosca
                         botones.classList.remove('expanded');
                         contenido.classList.remove('expanded');
                         if (icon) {
-                            icon.classList.remove('rotated'); 
-                            icon.style.transform = ''; 
+                            icon.classList.remove('rotated');
+                            icon.style.transform = '';
                         }
                         localStorage.setItem('historicoExpandido', 'cerrado');
                         tiempoExpansionBotones = null;
@@ -7577,7 +7577,7 @@ Generado por Sistema Lushibosca
                     botones.classList.remove('expanded');
 
                     if (icon) {
-                        icon.style.transform = ''; 
+                        icon.style.transform = '';
                         icon.classList.add('rotated');
                     }
 
@@ -7601,7 +7601,7 @@ Generado por Sistema Lushibosca
             }
         }
 
-        let _calendarioMes = null; 
+        let _calendarioMes = null;
 
         function _renderizarCalendario(idResaltar = null) {
             const grid = document.getElementById('calendario-grid');
@@ -7630,7 +7630,7 @@ Generado por Sistema Lushibosca
                 if (!r) return 'dia-sin-registro';
                 if (TiposRegistro.esRegistroEspecial(r.entrada, r.salida)) {
                     const tipo = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-                    return `dia-especial-${tipo ? tipo.color : 'purple'}`; 
+                    return `dia-especial-${tipo ? tipo.color : 'purple'}`;
                 }
                 if (r.entrada && !r.salida) {
                     const fechaHoy = obtenerFechaHoy();
@@ -7694,7 +7694,7 @@ Generado por Sistema Lushibosca
                 if (entrante) {
                     entrante.classList.remove('hidden');
                     entrante.classList.add('fade-out');
-                    entrante.offsetHeight; 
+                    entrante.offsetHeight;
                     entrante.classList.remove('fade-out');
                 }
 
@@ -7884,7 +7884,7 @@ Generado por Sistema Lushibosca
 
                 popup.style.top = top + 'px';
                 popup.style.left = left + 'px';
-                popup.style.visibility = ''; 
+                popup.style.visibility = '';
 
                 setTimeout(() => popup.classList.add('listo'), 350);
             });
