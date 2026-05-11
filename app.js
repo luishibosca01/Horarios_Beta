@@ -455,7 +455,6 @@
         }
 
         function cerrarTodos() {
-            const cantidadAbiertos = document.querySelectorAll('.modal.show').length;
             document.querySelectorAll('.modal.show').forEach(modal => {
                 modal.classList.remove('show');
                 modal.removeEventListener('mousedown', _handleOverlayMousedown);
@@ -463,10 +462,8 @@
             });
             Object.keys(_padres).forEach(k => delete _padres[k]);
             document.body.classList.remove('modal-open');
-            // Sincronizar el historial: retroceder tantos estados como modales había
-            for (let i = 0; i < cantidadAbiertos; i++) {
-                BackNavigationManager.onModalCerrado();
-            }
+            // Retirar el centinela del historial si estaba activo
+            BackNavigationManager.onModalCerrado();
         }
 
         return { abrir, cerrar, alternar, cerrarTodos };
@@ -479,58 +476,61 @@
     // ====================================================================
     const BackNavigationManager = (function () {
 
-        // Cuántos pushState hicimos — representa la profundidad de modales abiertos
-        let _profundidad = 0;
+        // Estrategia: un único estado centinela {modal: true} en el historial.
+        // Si hay al menos un modal abierto → el centinela está arriba.
+        // Si no hay modales → estamos en el estado raíz.
+        // Así, alternar() (cerrar+abrir) no desincroniza nada porque
+        // solo miramos el DOM, no un contador.
+
+        let _centinelaActivo = false;
 
         // Control del "presioná de nuevo para salir"
         let _esperandoSegundoBack = false;
         let _timerSalida = null;
         const TIEMPO_SALIDA_MS = 2500;
 
-        // Estado base en el historial: lo empujamos al init para tener
-        // siempre un estado "raíz" al que volver sin cerrar la pestaña.
         function init() {
-            // Reemplazamos el estado actual con nuestro estado raíz
-            history.replaceState({ modalDepth: 0 }, '');
-
+            history.replaceState({ modal: false }, '');
             window.addEventListener('popstate', _onPopState);
         }
 
-        // Se llama desde ModalManager.abrir() — empuja un estado al historial
+        // Llamado desde ModalManager.abrir() — asegura que el centinela esté activo
         function onModalAbierto() {
-            _profundidad++;
-            history.pushState({ modalDepth: _profundidad }, '');
+            if (!_centinelaActivo) {
+                _centinelaActivo = true;
+                history.pushState({ modal: true }, '');
+            }
+            // Si ya estaba activo (ej: alternar abrió otro modal) no hace nada
         }
 
-        // Se llama desde ModalManager.cerrar() — si el cierre fue programático
-        // (no desde el botón atrás) necesitamos consumir el estado que habíamos empujado.
+        // Llamado desde ModalManager.cerrar() — si ya no quedan modales, retira el centinela
         function onModalCerrado() {
-            if (_profundidad > 0) {
-                _profundidad--;
-                // history.back() dispararía otro popstate; usamos go(-1) de forma
-                // silenciosa bloqueando temporalmente el listener.
-                _ignorarProximoPopstate = true;
-                history.back();
-            }
+            // Usamos setTimeout(0) para esperar a que el DOM refleje el cierre
+            // antes de contar los modales restantes
+            setTimeout(() => {
+                const quedanModales = document.querySelectorAll('.modal.show').length > 0;
+                if (!quedanModales && _centinelaActivo) {
+                    _centinelaActivo = false;
+                    _ignorarProximoPopstate = true;
+                    history.back();
+                }
+            }, 0);
         }
 
         let _ignorarProximoPopstate = false;
 
         function _onPopState(event) {
-            // Si el cierre fue programático, lo ignoramos y reseteamos la bandera
             if (_ignorarProximoPopstate) {
                 _ignorarProximoPopstate = false;
                 return;
             }
 
-            const depth = event.state?.modalDepth ?? 0;
-
-            // Hay modales abiertos: cerrar el más reciente usando la acción correcta
+            // El botón atrás del sistema disparó este evento
             const modalAbierto = _getModalActualAbierto();
+
             if (modalAbierto) {
-                // Volvemos a empujar el estado para que el historial no quede desincronizado
-                // (el cierre programático del modal se encargará de hacer history.back() limpio)
-                history.pushState({ modalDepth: _profundidad }, '');
+                // Hay modal visible: reponemos el centinela y cerramos el modal actual
+                history.pushState({ modal: true }, '');
                 const accion = _getAccionVolverPublica(modalAbierto);
                 if (accion) {
                     accion();
@@ -540,18 +540,16 @@
                 return;
             }
 
-            // No hay modales: lógica de "presioná de nuevo para salir"
+            // No hay modales: lógica "presioná de nuevo para salir"
             if (_esperandoSegundoBack) {
-                // Segundo back dentro del tiempo → salir
                 clearTimeout(_timerSalida);
                 _esperandoSegundoBack = false;
-                // Dejamos que el navegador siga su curso normal (cierra la pestaña/app)
+                // Segundo back → dejamos que el navegador cierre la app
                 return;
             }
 
-            // Primer back: mostrar aviso y volver a pushear el estado raíz
-            // para que la app no se cierre todavía
-            history.pushState({ modalDepth: 0 }, '');
+            // Primer back: frenar la salida y mostrar aviso
+            history.pushState({ modal: false }, '');
             _esperandoSegundoBack = true;
 
             if (window.UILogic?.mostrarToast) {
@@ -563,28 +561,27 @@
             }, TIEMPO_SALIDA_MS);
         }
 
-        // Devuelve el id del modal con clase .show más "profundo" (el último abierto)
+        // Devuelve el id del modal .show más reciente (el que está encima visualmente)
         function _getModalActualAbierto() {
             const abiertos = document.querySelectorAll('.modal.show');
             if (!abiertos.length) return null;
-            // El último en el DOM con .show es el que está encima
             return abiertos[abiertos.length - 1].id;
         }
 
-        // Espejo público de _getAccionVolver del ModalManager
+        // Mapa de acciones de cierre — idéntico al _getAccionVolver interno del ModalManager
         function _getAccionVolverPublica(modalId) {
             const acciones = {
-                'modal-gist': () => window.UILogic?.cerrarModalGist(),
-                'modal-gist-merge': () => window.UILogic?.gistMergeCancelar(),
-                'modal-config': () => window.UILogic?.cerrarConfig(),
+                'modal-gist':            () => window.UILogic?.cerrarModalGist(),
+                'modal-gist-merge':      () => window.UILogic?.gistMergeCancelar(),
+                'modal-config':          () => window.UILogic?.cerrarConfig(),
                 'modal-selector-perfiles': () => window.UILogic?.cerrarSelectorPerfiles(),
-                'modal-editar': () => window.UILogic?.cerrarEdicion(),
-                'modal-importar': () => window.UILogic?.cerrarImportar(),
-                'modal-exportar': () => window.UILogic?.cerrarExportar(),
-                'modal-filtros': () => window.UILogic?.cerrarFiltros(),
-                'modal-editar-perfil': () => window.UILogic?.cerrarEditorPerfil(),
-                'modal-editar-grupo': () => window.UILogic?.cerrarEdicionGrupo(),
-                'modal-confirmar': () => document.getElementById('modal-confirmar-cancel')?.click(),
+                'modal-editar':          () => window.UILogic?.cerrarEdicion(),
+                'modal-importar':        () => window.UILogic?.cerrarImportar(),
+                'modal-exportar':        () => window.UILogic?.cerrarExportar(),
+                'modal-filtros':         () => window.UILogic?.cerrarFiltros(),
+                'modal-editar-perfil':   () => window.UILogic?.cerrarEditorPerfil(),
+                'modal-editar-grupo':    () => window.UILogic?.cerrarEdicionGrupo(),
+                'modal-confirmar':       () => document.getElementById('modal-confirmar-cancel')?.click(),
             };
             return acciones[modalId] || null;
         }
