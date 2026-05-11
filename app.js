@@ -470,21 +470,23 @@
     // ====================================================================
     const BackNavigationManager = (function () {
 
-        // Estrategia: MutationObserver observa cambios de clase .show en los modales.
-        // Es la única fuente de verdad — no depende de hooks en abrir/cerrar/alternar.
-        // Mantenemos un único pushState centinela mientras haya algún modal visible.
-        // _onPopState solo mira el DOM, nunca contadores.
+        // Estrategia: siempre hay UNA sola entrada centinela activa en el historial
+        // mientras la app esté corriendo. No se acumulan entradas.
+        // - Con modales abiertos: el centinela tiene { modal: true }
+        // - Sin modales: el centinela tiene { modal: false }
+        // _sincronizarCentinela actualiza el estado actual con replaceState,
+        // nunca pushState, para evitar acumulación.
+        // La única excepción es la inicialización, que usa pushState una sola vez.
 
         let _centinelaActivo = false;
-
         let _esperandoSegundoBack = false;
         let _timerSalida = null;
         const TIEMPO_SALIDA_MS = 2500;
 
         function init() {
+            // Empujamos la única entrada centinela de la app
             history.replaceState({ modal: false }, '');
 
-            // Observar todos los .modal del DOM para detectar cambios en .show
             const observer = new MutationObserver(_sincronizarCentinela);
             document.querySelectorAll('.modal').forEach(m => {
                 observer.observe(m, { attributes: true, attributeFilter: ['class'] });
@@ -493,18 +495,18 @@
             window.addEventListener('popstate', _onPopState);
         }
 
-        // Dispara cada vez que un .modal gana o pierde la clase .show
         function _sincronizarCentinela() {
             const hayModales = document.querySelectorAll('.modal.show').length > 0;
 
             if (hayModales && !_centinelaActivo) {
                 _centinelaActivo = true;
+                // pushState solo cuando pasamos de sin-centinela a con-centinela
                 history.pushState({ modal: true }, '');
+            } else if (hayModales && _centinelaActivo) {
+                // Sigue habiendo modales (cerró hijo, queda padre): actualizamos sin acumular
+                history.replaceState({ modal: true }, '');
             } else if (!hayModales && _centinelaActivo) {
                 _centinelaActivo = false;
-                // Reemplazamos el centinela con el estado raíz sin consumir
-                // ninguna entrada del historial — así siempre queda algo que
-                // interceptar cuando el usuario toque atrás desde la pantalla principal
                 history.replaceState({ modal: false }, '');
             }
         }
@@ -513,9 +515,9 @@
             const modalAbierto = _getModalActualAbierto();
 
             if (modalAbierto) {
-                // Marcamos centinela inactivo ANTES de cerrar para que
-                // _sincronizarCentinela evalúe correctamente si quedan más modales.
-                _centinelaActivo = false;
+                // El popstate consumió el centinela; lo reponemos de inmediato
+                // con replaceState para no acumular, ANTES de cerrar el modal.
+                history.pushState({ modal: true }, '');
 
                 const accion = _getAccionVolverPublica(modalAbierto);
                 if (accion) {
@@ -526,16 +528,19 @@
                 return;
             }
 
-            // Sin modales: "presioná de nuevo para salir"
+            // Sin modales abiertos: lógica "presioná de nuevo para salir"
+            // Reponemos el centinela con replaceState para no acumular entradas
+            history.pushState({ modal: false }, '');
+
             if (_esperandoSegundoBack) {
                 clearTimeout(_timerSalida);
                 _esperandoSegundoBack = false;
-                return; // deja que el navegador cierre la app
+                // Segundo back confirmado: navegamos hacia atrás de verdad
+                history.back();
+                return;
             }
 
-            history.pushState({ modal: false }, '');
             _esperandoSegundoBack = true;
-
             if (window.UILogic?.mostrarToast) {
                 UILogic.mostrarToast('Presioná atrás de nuevo para salir', 'info');
             }
@@ -553,17 +558,17 @@
 
         function _getAccionVolverPublica(modalId) {
             const acciones = {
-                'modal-gist': () => window.UILogic?.cerrarModalGist(),
-                'modal-gist-merge': () => window.UILogic?.gistMergeCancelar(),
-                'modal-config': () => window.UILogic?.cerrarConfig(),
+                'modal-gist':              () => window.UILogic?.cerrarModalGist(),
+                'modal-gist-merge':        () => window.UILogic?.gistMergeCancelar(),
+                'modal-config':            () => window.UILogic?.cerrarConfig(),
                 'modal-selector-perfiles': () => window.UILogic?.cerrarSelectorPerfiles(),
-                'modal-editar': () => window.UILogic?.cerrarEdicion(),
-                'modal-importar': () => window.UILogic?.cerrarImportar(),
-                'modal-exportar': () => window.UILogic?.cerrarExportar(),
-                'modal-filtros': () => window.UILogic?.cerrarFiltros(),
-                'modal-editar-perfil': () => window.UILogic?.cerrarEditorPerfil(),
-                'modal-editar-grupo': () => window.UILogic?.cerrarEdicionGrupo(),
-                'modal-confirmar': () => document.getElementById('modal-confirmar-cancel')?.click(),
+                'modal-editar':            () => window.UILogic?.cerrarEdicion(),
+                'modal-importar':          () => window.UILogic?.cerrarImportar(),
+                'modal-exportar':          () => window.UILogic?.cerrarExportar(),
+                'modal-filtros':           () => window.UILogic?.cerrarFiltros(),
+                'modal-editar-perfil':     () => window.UILogic?.cerrarEditorPerfil(),
+                'modal-editar-grupo':      () => window.UILogic?.cerrarEdicionGrupo(),
+                'modal-confirmar':         () => document.getElementById('modal-confirmar-cancel')?.click(),
             };
             return acciones[modalId] || null;
         }
