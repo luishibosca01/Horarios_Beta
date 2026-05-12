@@ -1,4 +1,4 @@
-const CACHE_NAME = 'horarios-260511-v2-cache';
+const CACHE_NAME = 'horarios-260511-v3-cache';
 const urlsToCache = [
   './',
   './index.html',
@@ -63,5 +63,24 @@ self.addEventListener('fetch', event => {
             }
           });
       })
+    );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // Si la app ya está abierta, hacerle focus
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes(self.registration.scope) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Si no estaba abierta, la abrimos
+      if (clients.openWindow) {
+        return clients.openWindow('./');
+      }
+    })
   );
 });
