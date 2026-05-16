@@ -192,6 +192,8 @@ select {
     font-size: 1rem;
     background: var(--input-bg);
     color: var(--text-main);
+    appearance: none; /* Agrega esto */
+    -webkit-appearance: none; /* Soporte para Safari/iOS */
 }
 
 input:disabled,
