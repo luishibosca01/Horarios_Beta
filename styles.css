@@ -194,6 +194,7 @@ select {
     background: var(--input-bg);
     color: var(--text-main);
     height: var(--input-height);
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 input:disabled,
@@ -202,7 +203,6 @@ select:disabled {
     color: var(--text-disabled);
     opacity: 1;
     -webkit-text-fill-color: var(--text-disabled);
-
     cursor: not-allowed;
 }
 
@@ -246,7 +246,7 @@ button {
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;
-    transition: transform 0.2s, background 0.2s;
+    transition: transform 0.2s, background 0.3s ease, color 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -264,6 +264,7 @@ button:disabled {
     cursor: not-allowed;
     transform: none;
     color: var(--text-disabled);
+    transition: opacity 0.3s ease, color 0.3s ease, background 0.3s ease;
 }
 
 .btn-register {
@@ -322,6 +323,13 @@ button:disabled {
 #gist-rango-horario,
 #gist-limite-sync {
     margin-top: 0.5rem;
+    transition: opacity 0.3s ease;
+}
+
+#gist-rango-horario.disabled,
+#gist-limite-sync.disabled {
+    opacity: 0.35;
+    pointer-events: none;
 }
 
 #gist-rango-horario {

@@ -5229,7 +5229,8 @@ Generado por Sistema Lushibosca
                 const icon = btnLock.querySelector('use');
                 icon.setAttribute('href', bloqueado ? '#icon-lock' : '#icon-lock-open');
                 btnLock.title = bloqueado ? "Desbloquear edición" : "Bloquear edición";
-                btnLock.style.color = bloqueado ? 'var(--c-red)' : 'var(--text-main)';
+                btnLock.style.color = 'var(--text-main)';
+                btnLock.style.background = bloqueado ? 'var(--c-red)' : 'var(--c-green)';
             }
 
             const inputs = ['edit-fecha', 'edit-entrada', 'edit-salida', 'edit-tiempo-fuera', 'edit-notas'];
@@ -6520,9 +6521,8 @@ Generado por Sistema Lushibosca
                 if (hint) { hint.textContent = c.hint; hint.style.color = c.color; }
 
                 if (rangoEl) {
-                    const mostrar = estado === 1 || estado === 2;
-                    rangoEl.style.maxHeight = mostrar ? '60px' : '0';
-                    rangoEl.style.opacity = mostrar ? '1' : '0';
+                    const activo = estado === 1 || estado === 2;
+                    rangoEl.classList.toggle('disabled', !activo);
                 }
             }
 
@@ -6551,8 +6551,7 @@ Generado por Sistema Lushibosca
                 const contenedor = document.getElementById('gist-limite-sync');
                 if (!contenedor) return;
                 if (!tipo) {
-                    contenedor.style.maxHeight = '0';
-                    contenedor.style.opacity = '0';
+                    contenedor.classList.add('disabled');
                     return;
                 }
                 const limite = _gistLimitesTemp ? _gistLimitesTemp[tipo] : GistSync.getSyncLimite(tipo);
@@ -6560,8 +6559,7 @@ Generado por Sistema Lushibosca
                 const label = document.getElementById('gist-limite-label');
                 if (input) input.value = limite;
                 if (label) label.textContent = tipo === 'bajar' ? 'Límite bajadas por hora (0 = sin límite)' : 'Límite subidas por hora (0 = sin límite)';
-                contenedor.style.maxHeight = '80px';
-                contenedor.style.opacity = '1';
+                contenedor.classList.remove('disabled');
             }
 
             function cambiarLimiteSync(delta) {
@@ -8064,7 +8062,8 @@ Generado por Sistema Lushibosca
                 const icon = btnLock.querySelector('use');
                 icon.setAttribute('href', bloqueado ? '#icon-lock' : '#icon-lock-open');
                 btnLock.title = bloqueado ? "Desbloquear edición" : "Bloquear edición";
-                btnLock.style.color = bloqueado ? 'var(--c-red)' : 'var(--text-main)';
+                btnLock.style.color = 'var(--text-main)';
+                btnLock.style.background = bloqueado ? 'var(--c-red)' : 'var(--c-green)';
             }
 
             const inputs = ['edit-grupo-tipo', 'edit-grupo-desde', 'edit-grupo-hasta'];
