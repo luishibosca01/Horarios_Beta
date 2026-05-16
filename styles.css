@@ -683,6 +683,11 @@ button:disabled {
     margin-top: 1rem;
 }
 
+#vista-calendario-historico {
+    min-height: 635px; /* Ajusta este valor al tamaño ideal de tu tarjeta */
+    transition: var(--transition-collapse), transform 0.3s ease;
+}
+
 .btn-mes-calendario {
     display: flex;
     flex-direction: column;
@@ -696,7 +701,7 @@ button:disabled {
     font-family: inherit;
     cursor: pointer;
     transition: transform 0.2s, background 0.2s, border-color 0.2s;
-    height: 50px;
+    height: 44px;
     font-size: 0.9rem;
 }
 
