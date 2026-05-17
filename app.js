@@ -3447,13 +3447,11 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(svgStr, 'image/svg+xml');
 
-            // Tags no permitidos en un SVG decorativo
             const TAGS_BLOQUEADOS = ['script', 'foreignObject', 'use', 'iframe', 'object', 'embed', 'link'];
             TAGS_BLOQUEADOS.forEach(tag => {
                 doc.querySelectorAll(tag).forEach(el => el.remove());
             });
 
-            // Atributos peligrosos en cualquier elemento
             const ATTRS_BLOQUEADOS = /^on|^xlink:href$|^href$/i;
             doc.querySelectorAll('*').forEach(el => {
                 [...el.attributes].forEach(attr => {
@@ -3461,7 +3459,6 @@
                 });
             });
 
-            // Bloquear @import y url() externos en estilos inline
             doc.querySelectorAll('[style]').forEach(el => {
                 const safe = el.getAttribute('style').replace(/@import|url\s*\(/gi, '');
                 el.setAttribute('style', safe);
@@ -8321,10 +8318,4 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('#modal-editar-grupo .btn-cancel')?.addEventListener('click', () => UILogic.cerrarEdicionGrupo());
 });
 
-/* lushibosca version 260516
-    
-    CAMBIOS:
-    
-    BUGS:
-
-    */ 
+    // lushibosca version 260517.1739

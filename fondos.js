@@ -21,4 +21,26 @@ window.FONDOS_SVG = [
         label: 'Skyline BA',
         svg: (color) => `<svg viewBox="0 0 800 200" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg" class="card-bg-svg card-bg-svg--left"><g fill="${color}"><rect x="0" y="148" width="800" height="52"/><rect x="0" y="110" width="18" height="40"/><rect x="20" y="100" width="22" height="50"/><rect x="44" y="118" width="14" height="32"/><rect x="580" y="108" width="20" height="42"/><rect x="604" y="95" width="16" height="55"/><rect x="624" y="112" width="22" height="38"/><rect x="650" y="100" width="18" height="50"/><rect x="672" y="115" width="25" height="35"/><rect x="700" y="105" width="20" height="45"/><rect x="724" y="118" width="16" height="32"/><rect x="744" y="98" width="22" height="52"/><rect x="770" y="110" width="30" height="40"/><rect x="62" y="90" width="5" height="58"/><rect x="46" y="92" width="38" height="4"/><rect x="84" y="94" width="4" height="30"/><rect x="105" y="98" width="5" height="50"/><rect x="90" y="100" width="36" height="4"/><rect x="125" y="102" width="4" height="24"/><rect x="145" y="108" width="4" height="40"/><rect x="133" y="110" width="28" height="3"/><rect x="160" y="111" width="3" height="18"/><rect x="185" y="130" width="38" height="18"/><rect x="188" y="95" width="32" height="36"/><rect x="191" y="75" width="26" height="22"/><rect x="194" y="60" width="20" height="17"/><rect x="197" y="48" width="14" height="14"/><rect x="200" y="38" width="8" height="12"/><rect x="203" y="28" width="2" height="12"/><rect x="258" y="118" width="42" height="30"/><rect x="260" y="75" width="38" height="44"/><rect x="270" y="55" width="18" height="22"/><rect x="273" y="44" width="12" height="13"/><ellipse cx="279" cy="44" rx="8" ry="6"/><rect x="277" y="32" width="4" height="14"/><ellipse cx="279" cy="32" rx="4" ry="3"/><polygon points="348,22 354,22 358,118 344,118" opacity="0.5"/><polygon points="348,22 354,22 351,10" opacity="0.5"/><rect x="168" y="120" width="16" height="28"/><rect x="238" y="115" width="18" height="33"/><rect x="304" y="108" width="14" height="40"/><rect x="322" y="115" width="20" height="33"/><rect x="370" y="100" width="16" height="48"/><rect x="390" y="112" width="14" height="36"/><rect x="406" y="118" width="12" height="30"/><rect x="420" y="120" width="60" height="28"/><rect x="422" y="90" width="56" height="32"/><rect x="428" y="78" width="44" height="14"/><rect x="434" y="60" width="32" height="20"/><path d="M434,60 Q450,30 466,60 Z"/><rect x="447" y="28" width="6" height="14"/><ellipse cx="450" cy="28" rx="5" ry="4"/><rect x="484" y="110" width="20" height="38"/><rect x="508" y="102" width="16" height="46"/><rect x="528" y="115" width="18" height="33"/><rect x="550" y="108" width="14" height="40"/></g></svg>`
     },
+    {
+        id: 'cordillera-himalaya',
+        label: 'Montañas Himalaya',
+        svg: (color) => `<svg viewBox="0 0 800 200" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg" class="card-bg-svg card-bg-svg--bottom"><g fill="${color}"><rect x="0" y="148" width="800" height="52"/>
+        <path d="M 50 80 Q 200 65, 380 75 T 750 60" fill="none" stroke="${color}" stroke-width="2" opacity="0.15"/>
+        <polygon points="40,150 190,45 270,150" opacity="0.2"/>
+        <polygon points="270,150 190,45 340,150" opacity="0.1"/>
+        <polygon points="450,150 610,30 690,150" opacity="0.25"/>
+        <polygon points="690,150 610,30 780,150" opacity="0.12"/>
+        <polygon points="180,150 360,25 440,150" opacity="0.65"/> <polygon points="440,150 360,25 550,150" opacity="0.35"/> <polygon points="320,150 480,50 540,150" opacity="0.55"/>
+        <polygon points="540,150 480,50 640,150" opacity="0.28"/>
+        <polygon points="-20,150 110,55 190,150" opacity="0.5"/>
+        <polygon points="190,150 110,55 280,150" opacity="0.25"/>
+        <rect x="0" y="130" width="800" height="20" opacity="0.2" fill="none"/>
+        <g opacity="0.88">
+            <path d="M 0 150 L 0 135 L 12 120 L 6 120 L 18 105 L 10 105 L 24 90 L 38 105 L 30 105 L 42 120 L 36 120 L 50 138 L 45 138 L 58 122 L 52 122 L 66 108 L 78 122 L 72 122 L 88 142 L 120 130 L 132 112 L 126 112 L 140 95 L 154 112 L 148 112 L 162 132 L 190 140 L 205 110 L 220 140 L 260 135 L 278 100 L 294 135 L 340 142 L 355 115 L 370 142 Z Z Z Z"/>
+            <path d="M 360 150 L 380 125 L 374 125 L 392 105 L 410 125 L 404 125 L 424 145 L 460 130 L 478 102 L 496 130 L 540 140 L 555 118 L 570 140 L 620 132 L 638 92 L 656 132 L 700 138 L 715 115 L 730 138 L 760 125 L 774 105 L 790 125 L 800 135 L 800 150 Z" />
+        </g>
+        <path d="M 280 142 Q 300 140, 320 142" fill="none" stroke="${color}" stroke-width="1" opacity="0.5"/>
+        <path d="M 500 145 Q 520 143, 540 145" fill="none" stroke="${color}" stroke-width="1" opacity="0.5"/>
+        </g></svg>`
+    },
 ];
