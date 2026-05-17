@@ -7,7 +7,7 @@ const urlsToCache = [
   './app.js',
   './styles.css',
   './fondos.js',
-  './tema.js',
+  './flash.js',
 ];
 
 // Instalación
