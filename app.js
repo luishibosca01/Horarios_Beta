@@ -8025,12 +8025,10 @@ Generado por Sistema Lushibosca
 
             const _bloquear = () => {
                 btnCredito.disabled = true;
-                btnCredito.style.opacity = '0.5';
                 btnCredito.style.cursor = 'not-allowed';
             };
             const _habilitar = () => {
                 btnCredito.disabled = false;
-                btnCredito.style.opacity = '1';
                 btnCredito.style.cursor = 'pointer';
             };
 
@@ -8304,4 +8302,10 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('#modal-editar-grupo .btn-cancel')?.addEventListener('click', () => UILogic.cerrarEdicionGrupo());
 });
 
-// lushibosca version 260516
+/* lushibosca version 260516
+    
+    CAMBIOS:
+    
+    BUGS:
+
+    */ 
