@@ -509,6 +509,18 @@ button:disabled {
     flex-direction: column;
 }
 
+#modal-config .modal-panel-body button {
+    justify-content: flex-start;
+    padding-left: 1.2rem;
+    padding-right: 1.2rem; 
+}
+
+/* Empujamos el chevron hacia el final */
+#modal-config .modal-panel-body button svg:last-child {
+    margin-left: auto;
+    opacity: 0.4;
+}
+
 .stats-inner .btn-group {
     margin-top: auto;
 }
