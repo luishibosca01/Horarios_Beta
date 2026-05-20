@@ -504,21 +504,9 @@ button:disabled {
 }
 
 .stats-inner {
-    min-height: 33rem;
+    min-height: 30rem;
     display: flex;
     flex-direction: column;
-}
-
-#modal-config .modal-panel-body button {
-    justify-content: flex-start;
-    padding-left: 1.2rem;
-    padding-right: 1.2rem; 
-}
-
-/* Empujamos el chevron hacia el final */
-#modal-config .modal-panel-body button svg:last-child {
-    margin-left: auto;
-    opacity: 0.4;
 }
 
 .stats-inner .btn-group {
