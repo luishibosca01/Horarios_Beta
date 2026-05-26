@@ -56,6 +56,74 @@
     })();
 
     // ====================================================================
+    // TIME AND DATE UTILITIES MODULE (TimeUtils)
+    // ====================================================================
+    const TimeUtils = (function () {
+        'use strict';
+
+        const REGEX_PATTERNS = {
+            FECHA: /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
+            HORA: /^([01]\d|2[0-3]):([0-5]\d)$/
+        };
+
+        function validarFecha(f) {
+            if (!f || !REGEX_PATTERNS.FECHA.test(f)) return false;
+            try {
+                const [y, m, d] = f.split('-').map(Number);
+                const fecha = new Date(y, m - 1, d);
+                if (fecha.getFullYear() !== y || fecha.getMonth() !== m - 1 || fecha.getDate() !== d) return false;
+                const ahora = new Date();
+                const hace20Anos = new Date(ahora.getFullYear() - 20, 0, 1);
+                const en2Anos = new Date(ahora.getFullYear() + 2, 11, 31);
+                return fecha >= hace20Anos && fecha <= en2Anos && !isNaN(fecha.getTime());
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function validarHora(h) {
+            return !!(h && REGEX_PATTERNS.HORA.test(h));
+        }
+
+        function parsearFechaLocal(fechaStr) {
+            return new Date(fechaStr.replace(/-/g, '/') + ' 00:00:00');
+        }
+
+        function formatearFechaLocal(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function obtenerFechaHoy() {
+            return formatearFechaLocal(new Date());
+        }
+
+        function fechaLocalISOFull() {
+            const d = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        }
+
+        function horaAMinutos(h) {
+            if (!h || !h.includes(':')) return 0;
+            const [hr, mn] = h.split(':').map(Number);
+            return (hr * 60) + mn;
+        }
+
+        function sumarMinutosAHora(horaString, minutosASumar) {
+            let totalMinutos = minutosASumar + horaAMinutos(horaString);
+            let horas = Math.floor(totalMinutos / 60);
+            let mins = Math.round(totalMinutos % 60);
+            if (horas > 23) { horas = 23; mins = 59; }
+            return `${String(horas).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+        }
+
+        return {
+            validarFecha, validarHora, parsearFechaLocal, formatearFechaLocal,
+            obtenerFechaHoy, fechaLocalISOFull, horaAMinutos, sumarMinutosAHora
+        };
+    })();
+
+    // ====================================================================
     // SECURITY AND UTILS MODULE
     // ====================================================================
     const SecurityAndUtils = (function () {
@@ -68,15 +136,12 @@
         };
 
         const REGEX_PATTERNS = {
-            FECHA: /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/,
-            HORA: /^([01]\d|2[0-3]):([0-5]\d)$/,
             ID: /^[a-zA-Z0-9-_]{10,100}$/,
             NOTAS: /[^a-zA-Z0-9áéíóúÁÉÍÓÚüÜñÑ ]/g
         };
 
         function sanitizeString(str, maxLength = SECURITY_LIMITS.MAX_STRING_LENGTH) {
             if (typeof str !== 'string') return '';
-
             return str
                 .replace(/[<>"'`]/g, '')
                 .replace(/javascript:/gi, '')
@@ -95,32 +160,6 @@
             if (typeof str !== 'string') return '';
             const r = str.replace(REGEX_PATTERNS.NOTAS, '').substring(0, SECURITY_LIMITS.MAX_NOTAS_LENGTH);
             return trim ? r.trim() : r;
-        }
-
-        function validarFechaSegura(f) {
-            if (!f || !REGEX_PATTERNS.FECHA.test(f)) return false;
-
-            try {
-                const [y, m, d] = f.split('-').map(Number);
-                const fecha = new Date(y, m - 1, d);
-                if (fecha.getFullYear() !== y ||
-                    fecha.getMonth() !== m - 1 ||
-                    fecha.getDate() !== d) {
-                    return false;
-                }
-
-                const ahora = new Date();
-                const hace20Anos = new Date(ahora.getFullYear() - 20, 0, 1);
-                const en2Anos = new Date(ahora.getFullYear() + 2, 11, 31);
-
-                return fecha >= hace20Anos && fecha <= en2Anos && !isNaN(fecha.getTime());
-            } catch (e) {
-                return false;
-            }
-        }
-
-        function validarHoraSegura(h) {
-            return h && REGEX_PATTERNS.HORA.test(h);
         }
 
         function generarIDSeguro() {
@@ -147,49 +186,32 @@
             if (!r || typeof r !== 'object') return false;
             if (Array.isArray(r) || r instanceof Date) return false;
             if (typeof r.id !== 'string' || !REGEX_PATTERNS.ID.test(r.id)) return false;
-            if (typeof r.fecha !== 'string' || !REGEX_PATTERNS.FECHA.test(r.fecha)) return false;
-            if (!validarFechaSegura(r.fecha)) return false;
+            if (typeof r.fecha !== 'string' || !TimeUtils.validarFecha(r.fecha)) return false;
             if (r.entrada !== null) {
-                if (typeof r.entrada !== 'string' || !REGEX_PATTERNS.HORA.test(r.entrada)) return false;
+                if (typeof r.entrada !== 'string' || !TimeUtils.validarHora(r.entrada)) return false;
             }
             if (r.salida !== null) {
-                if (typeof r.salida !== 'string' || !REGEX_PATTERNS.HORA.test(r.salida)) return false;
+                if (typeof r.salida !== 'string' || !TimeUtils.validarHora(r.salida)) return false;
             }
-
             if (r.tiempoFuera !== null && r.tiempoFuera !== '') {
-                if (typeof r.tiempoFuera !== 'string' || !REGEX_PATTERNS.HORA.test(r.tiempoFuera)) return false;
+                if (typeof r.tiempoFuera !== 'string' || !TimeUtils.validarHora(r.tiempoFuera)) return false;
             }
-
             if (r.credito !== null && r.credito !== undefined && r.credito !== '') {
-                if (typeof r.credito !== 'string' || !REGEX_PATTERNS.HORA.test(r.credito)) return false;
+                if (typeof r.credito !== 'string' || !TimeUtils.validarHora(r.credito)) return false;
             }
-
             if (r.notas !== null && r.notas !== undefined && r.notas !== '') {
                 if (typeof r.notas !== 'string' || r.notas.length > SECURITY_LIMITS.MAX_NOTAS_LENGTH) return false;
             }
-
             if (!Number.isFinite(r.horas) || r.horas < 0 || r.horas > 24) return false;
             if (!Number.isFinite(r.minutos) || r.minutos < 0 || r.minutos > 59) return false;
             if (!Number.isFinite(r.total) || r.total < 0 || r.total > 24) return false;
 
-            const propiedadesPermitidas = ['id', 'fecha', 'entrada', 'salida', 'tiempoFuera', 'horas', 'minutos', 'total', 'credito', 'notas']; const propiedadesActuales = Object.keys(r);
+            const propiedadesPermitidas = ['id', 'fecha', 'entrada', 'salida', 'tiempoFuera', 'horas', 'minutos', 'total', 'credito', 'notas'];
+            const propiedadesActuales = Object.keys(r);
             const tienePropiedadesSospechosas = propiedadesActuales.some(prop => !propiedadesPermitidas.includes(prop));
             if (tienePropiedadesSospechosas) return false;
 
             return true;
-        }
-        function fechaLocalISO() {
-            const d = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-        }
-
-        function formatearFechaLocal(date) {
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        }
-
-        function parsearFechaLocal(fechaStr) {
-            return new Date(fechaStr.replace(/-/g, '/') + ' 00:00:00');
         }
 
         return {
@@ -197,14 +219,15 @@
             REGEX_PATTERNS,
             sanitizeString,
             sanitizeNotas,
-            validarFechaSegura,
-            validarHoraSegura,
             generarIDSeguro,
             calcularHashSHA256,
             validarRegistroSeguro,
-            fechaLocalISO,
-            formatearFechaLocal,
-            parsearFechaLocal
+            // Proxies a TimeUtils para retrocompatibilidad interna
+            validarFechaSegura: TimeUtils.validarFecha,
+            validarHoraSegura: TimeUtils.validarHora,
+            fechaLocalISO: TimeUtils.fechaLocalISOFull,
+            formatearFechaLocal: TimeUtils.formatearFechaLocal,
+            parsearFechaLocal: TimeUtils.parsearFechaLocal
         };
     })();
 
@@ -854,6 +877,10 @@
     const DataManagement = (function (S) {
         let registros = [], diasHabiles = [1, 2, 3, 4, 5], horasDiarias = 7, editandoId = null; let vistaActual = 'diaria'; let ignorarTiempoFuera = false;
         let filtroActivo = false;
+        let filtroDesde = null;
+        let filtroHasta = null;
+        let filtroTipo = null;
+        let grupoEnEdicion = null;
 
         function ordenarRegistros() {
             registros.sort((a, b) => {
@@ -861,147 +888,84 @@
                 return (b.entrada || '').localeCompare(a.entrada || '');
             });
         }
-        let filtroDesde = null;
-        let filtroHasta = null;
-        let filtroTipo = null;
-        let grupoEnEdicion = null;
 
         function editarGrupo(grupo) {
             if (grupoEnEdicion !== null) return;
-
             grupoEnEdicion = {
                 registros: grupo.registros,
                 subtipo: grupo.subtipo,
                 fechaDesde: grupo.registros[grupo.registros.length - 1].fecha,
                 fechaHasta: grupo.registros[0].fecha
             };
-
             $('edit-grupo-tipo').value = grupo.subtipo;
             $('edit-grupo-desde').value = grupoEnEdicion.fechaDesde;
             $('edit-grupo-hasta').value = grupoEnEdicion.fechaHasta;
-
             UILogic.actualizarHintGrupo();
-
             ModalManager.abrir('modal-editar-grupo');
             UILogic.setBloqueoEdicionGrupo(true);
         }
 
         async function guardarEdicionGrupo() {
             if (!grupoEnEdicion) return;
-
             const modal = $('modal-editar-grupo');
             const btnGuardar = modal.querySelector('.btn-edit');
             btnGuardar.disabled = true;
-
             try {
                 const nuevoTipo = S.sanitizeString($('edit-grupo-tipo').value.trim(), 20);
                 const nuevaDesde = S.sanitizeString($('edit-grupo-desde').value.trim(), 10);
                 const nuevaHasta = S.sanitizeString($('edit-grupo-hasta').value.trim(), 10);
 
-                if (!nuevaDesde || !nuevaHasta) {
-                    UILogic.mostrarToast('Verifica ambas fechas', 'error');
-                    return;
-                }
-                if (!S.validarFechaSegura(nuevaDesde)) {
-                    UILogic.mostrarToast('Fecha "Desde" inválida', 'error');
-                    return;
-                }
-                if (!S.validarFechaSegura(nuevaHasta)) {
-                    UILogic.mostrarToast('Fecha "Hasta" inválida', 'error');
-                    return;
-                }
-                if (nuevaDesde > nuevaHasta) {
-                    UILogic.mostrarToast('La fecha inicial debe ser inferior a la final', 'error');
-                    return;
-                }
+                if (!nuevaDesde || !nuevaHasta) { UILogic.mostrarToast('Verifica ambas fechas', 'error'); return; }
+                if (!TimeUtils.validarFecha(nuevaDesde)) { UILogic.mostrarToast('Fecha "Desde" inválida', 'error'); return; }
+                if (!TimeUtils.validarFecha(nuevaHasta)) { UILogic.mostrarToast('Fecha "Hasta" inválida', 'error'); return; }
+                if (nuevaDesde > nuevaHasta) { UILogic.mostrarToast('La fecha inicial debe ser inferior a la final', 'error'); return; }
 
                 const hoy = new Date();
-                const fechaInicioObj = S.parsearFechaLocal(nuevaDesde);
-                const fechaFinObj = S.parsearFechaLocal(nuevaHasta);
+                const fechaInicioObj = TimeUtils.parsearFechaLocal(nuevaDesde);
+                const fechaFinObj = TimeUtils.parsearFechaLocal(nuevaHasta);
+                const dosPasado = new Date(hoy); dosPasado.setFullYear(hoy.getFullYear() - 2);
+                const dosFuturo = new Date(hoy); dosFuturo.setFullYear(hoy.getFullYear() + 2);
 
-                const dosPasado = new Date(hoy);
-                dosPasado.setFullYear(hoy.getFullYear() - 2);
-                const dosFuturo = new Date(hoy);
-                dosFuturo.setFullYear(hoy.getFullYear() + 2);
-
-                if (fechaInicioObj < dosPasado || fechaFinObj > dosFuturo) {
-                    UILogic.mostrarToast('El rango debe estar entre 2 años atrás y 2 años adelante', 'error');
-                    return;
-                }
-
-                if (!TiposRegistro.validarTipoPermitido(nuevoTipo)) {
-                    UILogic.mostrarToast('Tipo de registro inválido', 'error');
-                    return;
-                }
+                if (fechaInicioObj < dosPasado || fechaFinObj > dosFuturo) { UILogic.mostrarToast('El rango debe estar entre 2 años atrás y 2 años adelante', 'error'); return; }
+                if (!TiposRegistro.validarTipoPermitido(nuevoTipo)) { UILogic.mostrarToast('Tipo de registro inválido', 'error'); return; }
 
                 const diffDays = Math.ceil(Math.abs(fechaFinObj - fechaInicioObj) / (1000 * 60 * 60 * 24)) + 1;
-                if (diffDays > 60) {
-                    UILogic.mostrarToast(`El rango contiene ${diffDays} días.\n Máximo: 60 días por operación.`, 'error');
-                    return;
-                }
+                if (diffDays > 60) { UILogic.mostrarToast(`El rango contiene ${diffDays} días.\n Máximo: 60 días por operación.`, 'error'); return; }
 
-                const huboCambios =
-                    nuevoTipo !== grupoEnEdicion.subtipo ||
-                    nuevaDesde !== grupoEnEdicion.fechaDesde ||
-                    nuevaHasta !== grupoEnEdicion.fechaHasta;
-
-                if (!huboCambios) {
-                    UILogic.mostrarToast('Sin cambios', 'info');
-                    UILogic.cerrarEdicionGrupo();
-                    return;
-                }
+                const huboCambios = nuevoTipo !== grupoEnEdicion.subtipo || nuevaDesde !== grupoEnEdicion.fechaDesde || nuevaHasta !== grupoEnEdicion.fechaHasta;
+                if (!huboCambios) { UILogic.mostrarToast('Sin cambios', 'info'); UILogic.cerrarEdicionGrupo(); return; }
 
                 const fechasNuevas = [];
-                let checkFecha = S.parsearFechaLocal(nuevaDesde);
-                const checkFin = S.parsearFechaLocal(nuevaHasta);
-
+                let checkFecha = TimeUtils.parsearFechaLocal(nuevaDesde);
+                const checkFin = TimeUtils.parsearFechaLocal(nuevaHasta);
                 while (checkFecha <= checkFin) {
-                    fechasNuevas.push(S.formatearFechaLocal(checkFecha));
+                    fechasNuevas.push(TimeUtils.formatearFechaLocal(checkFecha));
                     checkFecha.setDate(checkFecha.getDate() + 1);
                 }
 
                 const idsDelGrupo = new Set(grupoEnEdicion.registros.map(r => r.id));
                 const fechasSet = new Set(fechasNuevas);
                 const conflictos = registros.filter(r => fechasSet.has(r.fecha) && !idsDelGrupo.has(r.id));
-
                 if (conflictos.length > 0) {
-                    const diasConflicto = conflictos
-                        .map(r => r.fecha.substring(8, 10))
-                        .sort((a, b) => a - b)
-                        .join(', ');
+                    const diasConflicto = conflictos.map(r => r.fecha.substring(8, 10)).sort((a, b) => a - b).join(', ');
                     UILogic.mostrarToast(`Conflicto en día(s): ${diasConflicto}\n Ya existen registros en esas fechas.`, 'error');
                     return;
                 }
 
                 registros = registros.filter(r => !idsDelGrupo.has(r.id));
-
                 const codigosTipo = TiposRegistro.obtenerCodigosPorTipo(nuevoTipo);
                 const { entrada, salida } = codigosTipo;
 
                 const nuevosRegistros = fechasNuevas.map(fechaISO => {
                     const t = calcularHoras(entrada, salida, null);
-                    return {
-                        id: S.generarIDSeguro(),
-                        fecha: fechaISO,
-                        entrada,
-                        salida,
-                        tiempoFuera: null,
-                        horas: t?.horas || 0,
-                        minutos: t?.minutos || 0,
-                        total: t?.total || 0
-                    };
+                    return { id: S.generarIDSeguro(), fecha: fechaISO, entrada, salida, tiempoFuera: null, horas: t?.horas || 0, minutos: t?.minutos || 0, total: t?.total || 0 };
                 });
 
                 registros.push(...nuevosRegistros);
                 ordenarRegistros();
-
                 HistoryManager.saveState(registros);
                 const saved = await guardarYActualizar(nuevosRegistros.map(r => r.id));
-
-                if (saved) {
-                    UILogic.mostrarToast('Grupo actualizado', 'success');
-                    UILogic.cerrarEdicionGrupo();
-                }
+                if (saved) { UILogic.mostrarToast('Grupo actualizado', 'success'); UILogic.cerrarEdicionGrupo(); }
             } finally {
                 btnGuardar.disabled = false;
             }
@@ -1009,95 +973,57 @@
 
         async function eliminarGrupoActual() {
             if (!grupoEnEdicion) return;
-
             if (grupoEnEdicion.registros.length > 60) {
                 UILogic.mostrarToast(`Este grupo contiene ${grupoEnEdicion.registros.length} registros.\nMáximo permitido: 60 registros por operación.`, 'error');
                 return;
             }
-
             const idsAEliminar = grupoEnEdicion.registros.map(r => r.id);
             registros = registros.filter(r => !idsAEliminar.includes(r.id));
-
             HistoryManager.saveState(registros);
             const saved = await guardarYActualizar();
-
-            if (saved) {
-                UILogic.mostrarToast('Grupo eliminado', 'success');
-                UILogic.cerrarEdicionGrupo();
-            }
+            if (saved) { UILogic.mostrarToast('Grupo eliminado', 'success'); UILogic.cerrarEdicionGrupo(); }
         }
 
         function setGrupoEnEdicion(val) { grupoEnEdicion = val; }
 
         async function registrarDiaEspecial(fecha, tipo) {
             const registroExistente = registros.find(r => r.fecha === fecha);
-
-            if (registroExistente) {
-                UILogic.mostrarToast('Ya existe un registro para hoy', 'warning');
-                throw new Error('Registro ya existe');
-            }
+            if (registroExistente) { UILogic.mostrarToast('Ya existe un registro para hoy', 'warning'); throw new Error('Registro ya existe'); }
 
             const tipoConfig = TiposRegistro.obtenerTipoPorId(tipo);
-            if (!tipoConfig) {
-                UILogic.mostrarToast('Tipo inválido', 'error');
-                throw new Error('Tipo inválido');
-            }
+            if (!tipoConfig) { UILogic.mostrarToast('Tipo inválido', 'error'); throw new Error('Tipo inválido'); }
 
             const entrada = tipoConfig.codigo;
             const salida = tipoConfig.codigo;
             const tipoTexto = `${tipoConfig.emoji} ${tipoConfig.label}`;
 
-            if (registros.length >= S.SECURITY_LIMITS.MAX_REGISTROS) {
-                UILogic.mostrarToast('Límite de registros alcanzado', 'error');
-                throw new Error('Límite alcanzado');
-            }
+            if (registros.length >= S.SECURITY_LIMITS.MAX_REGISTROS) { UILogic.mostrarToast('Límite de registros alcanzado', 'error'); throw new Error('Límite alcanzado'); }
 
             const nuevoId = S.generarIDSeguro();
             const t = calcularHoras(entrada, salida, null);
-
             registros.push({
-                id: nuevoId,
-                fecha: fecha,
-                entrada: entrada,
-                salida: salida,
-                tiempoFuera: null,
-                horas: t?.horas || 0,
-                minutos: t?.minutos || 0,
-                total: t?.total || 0
+                id: nuevoId, fecha: fecha, entrada: entrada, salida: salida, tiempoFuera: null,
+                horas: t?.horas || 0, minutos: t?.minutos || 0, total: t?.total || 0
             });
 
             ordenarRegistros();
-
             HistoryManager.saveState(registros);
             const saved = await guardarYActualizar(nuevoId);
-
-            if (saved) {
-                UILogic.mostrarToast(`Registro agregado como ${tipoTexto}`, 'success');
-            } else {
-                throw new Error('Error al guardar');
-            }
+            if (saved) { UILogic.mostrarToast(`Registro agregado como ${tipoTexto}`, 'success'); }
+            else { throw new Error('Error al guardar'); }
         }
-
 
         async function guardarYActualizar(idNuevo = null, animarCard = false) {
             let saveSuccessful = false;
-
             try {
-                if (window.PerfilManager) {
-                    saveSuccessful = PerfilManager.guardarDatosPerfilActual();
-                } else {
-                    saveSuccessful = true;
-                }
+                if (window.PerfilManager) { saveSuccessful = PerfilManager.guardarDatosPerfilActual(); }
+                else { saveSuccessful = true; }
             } catch (e) {
                 console.error('Error crítico al guardar:', e);
                 saveSuccessful = false;
             }
-
-            if (saveSuccessful) {
-                UILogic.actualizarUI(idNuevo, false, animarCard);
-            } else {
-                UILogic.mostrarToast('Error al guardar. Almacenamiento lleno o bloqueado.', 'error');
-            }
+            if (saveSuccessful) { UILogic.actualizarUI(idNuevo, false, animarCard); }
+            else { UILogic.mostrarToast('Error al guardar. Almacenamiento lleno o bloqueado.', 'error'); }
             return saveSuccessful;
         }
 
@@ -1105,40 +1031,27 @@
             try {
                 let d = JSON.parse(localStorage.getItem('diasHabiles'));
                 const hd = parseFloat(localStorage.getItem('horasDiarias'));
-
                 const diasFinal = Array.isArray(d) ? d : [1, 2, 3, 4, 5];
-
                 let t = localStorage.getItem('temaOscuro') === 'true';
                 if (localStorage.getItem('temaOscuro') === null) t = true;
                 const v = localStorage.getItem('vistaActual');
-
                 const horasFinal = (!isNaN(hd) && Number.isFinite(hd) && hd >= 0 && hd <= 24) ? hd : 7;
-
                 return {
-                    diasHabiles: diasFinal,
-                    horasDiarias: horasFinal,
-                    temaOscuro: t,
+                    diasHabiles: diasFinal, horasDiarias: horasFinal, temaOscuro: t,
                     vistaActual: (v === 'semana' || v === 'diaria') ? v : 'diaria',
                     ignorarTiempoFuera: localStorage.getItem(window.PerfilManager ? PerfilManager.perfilKey('ignorarTiempoFuera') : 'ignorarTiempoFuera_default') === 'true',
                     modoEstadisticas: localStorage.getItem('modoEstadisticas') || 'mensual',
                     fondoCard: localStorage.getItem(window.PerfilManager ? PerfilManager.perfilKey('fondoCard') : 'fondoCard_default') || 'golden-gate'
                 };
             } catch (e) {
-                console.error('Error config:', e);
                 return { diasHabiles: [1, 2, 3, 4, 5], horasDiarias: 7, temaOscuro: true, vistaActual: 'diaria' };
             }
         }
 
-        function tiempoEnMinutos(h) {
-            if (!h || !h.includes(':')) return 0;
-            const [hr, mn] = h.split(':').map(Number);
-            return (hr * 60) + mn;
-        }
-
         function calcularHoras(e, s, tf = null, cr = null, esCalculoTemporal = false) {
             const tfEfectivo = ignorarTiempoFuera ? null : tf;
-            const tfMinutos = tfEfectivo ? tiempoEnMinutos(tfEfectivo) : 0;
-            const crMinutos = cr ? tiempoEnMinutos(cr) : 0;
+            const tfMinutos = tfEfectivo ? TimeUtils.horaAMinutos(tfEfectivo) : 0;
+            const crMinutos = cr ? TimeUtils.horaAMinutos(cr) : 0;
 
             if (!esCalculoTemporal) {
                 const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(e, s);
@@ -1150,22 +1063,16 @@
             }
 
             if (!e || !s || !e.includes(':') || !s.includes(':')) return null;
-
             const [hE, mE] = e.split(':').map(Number);
             const [hS, mS] = s.split(':').map(Number);
 
-            if (!Number.isFinite(hE) || !Number.isFinite(mE) || !Number.isFinite(hS) || !Number.isFinite(mS)) {
-                return null;
-            }
+            if (!Number.isFinite(hE) || !Number.isFinite(mE) || !Number.isFinite(hS) || !Number.isFinite(mS)) return null;
 
             const minutosEntrada = hE * 60 + mE;
             const minutosSalida = hS * 60 + mS;
-
             let minTotal = minutosSalida - minutosEntrada;
             if (minTotal < 0) minTotal += 24 * 60;
-
             let minNeto = (minTotal - tfMinutos) + crMinutos;
-
             if (minNeto < 0) minNeto = 0;
 
             return { horas: Math.floor(minNeto / 60), minutos: minNeto % 60, total: minNeto / 60 };
@@ -1178,18 +1085,11 @@
 
             registros.forEach(r => {
                 const tipoEspecial = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-
                 if (r.fecha >= inicio && r.fecha <= fin && tipoEspecial) {
-                    if (tipoEspecial.id === 'remoto') {
-                        return;
-                    }
-
-                    const fechaObj = S.parsearFechaLocal(r.fecha);
+                    if (tipoEspecial.id === 'remoto') return;
+                    const fechaObj = TimeUtils.parsearFechaLocal(r.fecha);
                     const diaSemana = fechaObj.getDay();
-
-                    if (diasHabilesConfig.includes(diaSemana)) {
-                        horasDescontar += horasDiariasLocal;
-                    }
+                    if (diasHabilesConfig.includes(diaSemana)) horasDescontar += horasDiariasLocal;
                 }
             });
             return horasDescontar;
@@ -1205,26 +1105,14 @@
             UILogic.limpiarError('entrada', 'error-entrada');
             UILogic.limpiarError('salida', 'error-salida');
 
-            if (!fecha || !S.validarFechaSegura(fecha)) {
-                UILogic.mostrarError('fecha', 'error-fecha');
-                valido = false;
-            }
-            if (entrada && !S.validarHoraSegura(entrada)) {
-                UILogic.mostrarError('entrada', 'error-entrada');
-                valido = false;
-            }
-            if (salida && !S.validarHoraSegura(salida)) {
-                UILogic.mostrarError('salida', 'error-salida');
-                valido = false;
-            }
+            if (!fecha || !TimeUtils.validarFecha(fecha)) { UILogic.mostrarError('fecha', 'error-fecha'); valido = false; }
+            if (entrada && !TimeUtils.validarHora(entrada)) { UILogic.mostrarError('entrada', 'error-entrada'); valido = false; }
+            if (salida && !TimeUtils.validarHora(salida)) { UILogic.mostrarError('salida', 'error-salida'); valido = false; }
             return valido;
         }
 
         async function agregarRegistro() {
-            if (!validarFormulario()) {
-                UILogic.mostrarToast('Verifica los campos', 'error');
-                return;
-            }
+            if (!validarFormulario()) { UILogic.mostrarToast('Verifica los campos', 'error'); return; }
 
             const btn = $('btn-agregar');
             btn.disabled = true;
@@ -1235,57 +1123,31 @@
             let s = S.sanitizeString($('salida').value.trim(), 5);
 
             if (!e) {
-                const { ayerStr: ayer, ayerAbierto } = detectarAyerAbierto(UILogic.obtenerFechaHoy(), registros);
+                const { ayerStr: ayer, ayerAbierto } = detectarAyerAbierto(TimeUtils.obtenerFechaHoy(), registros);
                 const regHoy = registros.find(r => r.fecha === f);
-
-                if (ayerAbierto && !regHoy) {
-                    f = ayer;
-                    $('fecha').value = f;
-                }
+                if (ayerAbierto && !regHoy) { f = ayer; $('fecha').value = f; }
             }
 
             let registroExistente = registros.find(r => r.fecha === f);
 
             if (!e && !s) {
                 const now = new Date();
-                const h = String(now.getHours()).padStart(2, '0');
-                const m = String(now.getMinutes()).padStart(2, '0');
-                const horaActual = `${h}:${m}`;
-
+                const horaActual = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                 if (registroExistente && registroExistente.entrada && !registroExistente.salida) {
-                    s = horaActual;
-                    $('salida').value = s;
-                    usaHoraActual = true;
+                    s = horaActual; $('salida').value = s; usaHoraActual = true;
                 } else {
-                    e = horaActual;
-                    $('entrada').value = e;
-                    usaHoraActual = true;
+                    e = horaActual; $('entrada').value = e; usaHoraActual = true;
                 }
             }
 
             if (!e && s) {
-                if (!registroExistente) {
-                    UILogic.resetearBoton(btn);
-                    UILogic.mostrarToast('Debes fichar una entrada primero', 'error');
-                    return;
-                }
-
-                if (registroExistente.salida) {
-                    UILogic.resetearBoton(btn);
-                    UILogic.mostrarToast('Ya existe un registro completo para esta fecha', 'error');
-                    return;
-                }
-
-                if (!registroExistente.entrada) {
-                    UILogic.resetearBoton(btn);
-                    UILogic.mostrarToast('Debes fichar una entrada primero', 'error');
-                    return;
-                }
+                if (!registroExistente) { UILogic.resetearBoton(btn); UILogic.mostrarToast('Debes fichar una entrada primero', 'error'); return; }
+                if (registroExistente.salida) { UILogic.resetearBoton(btn); UILogic.mostrarToast('Ya existe un registro completo para esta fecha', 'error'); return; }
+                if (!registroExistente.entrada) { UILogic.resetearBoton(btn); UILogic.mostrarToast('Debes fichar una entrada primero', 'error'); return; }
             }
 
             if (registroExistente && !e && s && registroExistente.entrada && !registroExistente.salida) {
                 const timerDetenido = detenerYRegistrarTimer(registroExistente);
-
                 registroExistente.salida = s;
                 let t = calcularHoras(registroExistente.entrada, s, registroExistente.tiempoFuera || null);
                 registroExistente.horas = t?.horas || 0;
@@ -1293,7 +1155,6 @@
                 registroExistente.total = t?.total || 0;
 
                 HistoryManager.saveState(registros);
-
                 const saved = await guardarYActualizar(registroExistente.id);
                 if (saved) {
                     const salidaManual = !usaHoraActual;
@@ -1303,7 +1164,6 @@
                             { id: 'salida', fallback: 'Salida', mostrar: true }
                         ]);
                     }
-
                     let mensaje;
                     if (timerDetenido && usaHoraActual) {
                         const tiempoFuera = registroExistente.tiempoFuera || '00:00';
@@ -1313,10 +1173,9 @@
                     } else {
                         mensaje = `Salida ${s} agregada \n(entrada: ${registroExistente.entrada})`;
                     }
-
                     UILogic.mostrarToast(mensaje, 'success');
                     UILogic.resetearBoton(btn);
-                    $('fecha').value = UILogic.obtenerFechaHoy();
+                    $('fecha').value = TimeUtils.obtenerFechaHoy();
                     $('salida').value = '';
                 }
                 return;
@@ -1324,9 +1183,7 @@
 
             if (registroExistente) {
                 UILogic.resetearBoton(btn);
-                if (usaHoraActual) {
-                    $('entrada').value = '';
-                }
+                if (usaHoraActual) { $('entrada').value = ''; }
                 UILogic.mostrarToast('Ya existe un registro para esta fecha', 'error');
                 return;
             }
@@ -1338,44 +1195,32 @@
             }
 
             const nuevoId = S.generarIDSeguro();
-
             const t = calcularHoras(e || null, s || null, null);
             registros.push({
-                id: nuevoId,
-                fecha: f,
-                entrada: e || null,
-                salida: s || null,
-                tiempoFuera: null,
-                horas: t?.horas || 0,
-                minutos: t?.minutos || 0,
-                total: t?.total || 0
+                id: nuevoId, fecha: f, entrada: e || null, salida: s || null, tiempoFuera: null,
+                horas: t?.horas || 0, minutos: t?.minutos || 0, total: t?.total || 0
             });
 
             ordenarRegistros();
-
             HistoryManager.saveState(registros);
 
             const saved = await guardarYActualizar(nuevoId);
-
             if (saved) {
                 const entradaManual = e && !usaHoraActual;
                 const salidaManual = s && !usaHoraActual;
-
                 if (entradaManual || salidaManual) {
                     UILogic.aplicarFeedbackCampos([
                         { id: 'entrada', fallback: 'Entrada', mostrar: entradaManual },
                         { id: 'salida', fallback: 'Salida', mostrar: salidaManual }
                     ]);
                 }
-
                 const mensaje = usaHoraActual ? 'Registro agregado con hora actual' : 'Registro agregado';
                 UILogic.mostrarToast(mensaje, 'success');
                 UILogic.resetearBoton(btn);
-                $('fecha').value = UILogic.obtenerFechaHoy();
+                $('fecha').value = TimeUtils.obtenerFechaHoy();
                 $('entrada').value = '';
                 $('salida').value = '';
             }
-
         }
 
         async function eliminarRegistroActual() {
@@ -1384,7 +1229,7 @@
                 const btnEliminar = modal.querySelector('.btn-delete');
                 btnEliminar.disabled = true;
                 const registroABorrar = registros.find(r => r.id === editandoId);
-                const hoy = UILogic.obtenerFechaHoy();
+                const hoy = TimeUtils.obtenerFechaHoy();
 
                 if (registroABorrar && registroABorrar.fecha === hoy) {
                     const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
@@ -1406,7 +1251,6 @@
                     UILogic.mostrarToast('Registro eliminado', 'success');
                     UILogic.cerrarEdicion();
                     UILogic.actualizarEstadoBotonTimerMain();
-
                     if (window.UILogic && window.UILogic.actualizarBotonLote) {
                         window.UILogic.actualizarBotonLote();
                     }
@@ -1427,7 +1271,6 @@
             $('edit-notas').value = r.notas || '';
 
             const btnCredito = document.getElementById('btn-toggle-credito');
-
             btnCredito.style.background = '';
             btnCredito.style.color = '';
             btnCredito.style.border = '';
@@ -1441,21 +1284,18 @@
             }
 
             ModalManager.abrir('modal-editar');
-
             UILogic.setBloqueoEdicion(true);
 
             requestAnimationFrame(() => {
                 UILogic.verificarBloqueoCredito();
                 const hintEl = document.getElementById('edit-hint-resumen');
-                if (hintEl) hintEl.dispatchEvent ?
-                    document.getElementById('edit-entrada').dispatchEvent(new Event('input')) : null;
+                if (hintEl) hintEl.dispatchEvent ? document.getElementById('edit-entrada').dispatchEvent(new Event('input')) : null;
             });
         }
 
         async function guardarEdicion() {
             const r = registros.find(x => x.id === editandoId);
             if (!r) return;
-
             const modal = $('modal-editar');
             const btnGuardar = modal.querySelector('.btn-edit');
             btnGuardar.disabled = true;
@@ -1476,13 +1316,10 @@
 
             if (btnCredito && btnCredito.dataset.activo === "true") {
                 const calcTemp = calcularHoras(e, s, tf, null);
-
                 if (calcTemp) {
                     const horasTrabajadas = calcTemp.total;
                     const horasObjetivo = horasDiarias;
-
                     const diferencia = horasObjetivo - horasTrabajadas;
-
                     if (diferencia > 0.01) {
                         let h = Math.floor(diferencia);
                         let m = Math.round((diferencia - h) * 60);
@@ -1491,10 +1328,9 @@
                     }
                 }
             }
-            const hoy = UILogic.obtenerFechaHoy();
+            const hoy = TimeUtils.obtenerFechaHoy();
             if (f > hoy) {
                 const esEspecial = TiposRegistro.esRegistroEspecial(e, s);
-
                 if (!esEspecial) {
                     UILogic.restaurarBotonGuardarEdicion(btnGuardar);
                     UILogic.mostrarToast('Fecha futura no permitida en registro regular', 'warning');
@@ -1502,66 +1338,26 @@
                 }
             }
 
-            const actualEntrada = r.entrada || '';
-            const nuevaEntrada = e || '';
-            const actualSalida = r.salida || '';
-            const nuevaSalida = s || '';
-            const actualTF = r.tiempoFuera || '';
-            const nuevoTF = tf || '';
-            const actualCR = r.credito || '';
-            const nuevoCR = cr || '';
-            const actualNotas = r.notas || '';
-            const nuevasNotas = notas || '';
-
-            if (r.fecha === f &&
-                actualEntrada === nuevaEntrada &&
-                actualSalida === nuevaSalida &&
-                actualTF === nuevoTF &&
-                actualCR === nuevoCR &&
-                actualNotas === nuevasNotas) {
-
+            if (r.fecha === f && (r.entrada || '') === (e || '') && (r.salida || '') === (s || '') &&
+                (r.tiempoFuera || '') === (tf || '') && (r.credito || '') === (cr || '') && (r.notas || '') === (notas || '')) {
                 UILogic.mostrarToast('Sin cambios', 'info');
                 UILogic.restaurarBotonGuardarEdicion(btnGuardar);
                 UILogic.cerrarEdicion();
                 return;
             }
 
-            if (!S.validarFechaSegura(f)) {
-                UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                UILogic.mostrarToast('Fecha inválida', 'error');
-                return;
-            }
+            if (!TimeUtils.validarFecha(f)) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Fecha inválida', 'error'); return; }
+            if (e && !TimeUtils.validarHora(e)) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Hora de entrada inválida', 'error'); return; }
+            if (s && !TimeUtils.validarHora(s)) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Hora de salida inválida', 'error'); return; }
+            if (tf && !TimeUtils.validarHora(tf)) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Tiempo fuera inválido', 'error'); return; }
 
-            if (e && !S.validarHoraSegura(e)) {
-                UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                UILogic.mostrarToast('Hora de entrada inválida', 'error');
-                return;
-            }
-
-            if (s && !S.validarHoraSegura(s)) {
-                UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                UILogic.mostrarToast('Hora de salida inválida', 'error');
-                return;
-            }
-
-            if (tf && !S.validarHoraSegura(tf)) {
-                UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                UILogic.mostrarToast('Tiempo fuera inválido', 'error');
-                return;
-            }
-
-            if (!e && s) {
-                UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                UILogic.mostrarToast('Debes fichar una entrada', 'error');
-                return;
-            }
+            if (!e && s) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Debes fichar una entrada', 'error'); return; }
 
             if (!e && !s) {
                 const registroABorrar = registros.find(r => r.id === editandoId);
-                if (registroABorrar && registroABorrar.fecha === UILogic.obtenerFechaHoy()) {
+                if (registroABorrar && registroABorrar.fecha === TimeUtils.obtenerFechaHoy()) {
                     const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-                    const storageKey = `breakStartTime_${perfilId}`;
-                    localStorage.removeItem(storageKey);
+                    localStorage.removeItem(`breakStartTime_${perfilId}`);
                     UILogic.actualizarEstadoBotonTimerMain();
                 }
                 registros = registros.filter(r => r.id !== editandoId);
@@ -1578,71 +1374,43 @@
             }
 
             const existeFecha = registros.some(reg => reg.fecha === f && reg.id !== editandoId);
-            if (existeFecha) {
-                UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                UILogic.mostrarToast('Ya existe otro registro para esa fecha', 'error');
-                return;
-            }
+            if (existeFecha) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Ya existe otro registro para esa fecha', 'error'); return; }
 
             if (e && tf) {
                 const [hE, mE] = e.split(':').map(Number);
                 const [hF, mF] = tf.split(':').map(Number);
                 const minutosEntrada = hE * 60 + mE;
                 const minutosFuera = hF * 60 + mF;
-
-                let minutosLimite;
-                if (s) {
-                    const [hS, mS] = s.split(':').map(Number);
-                    minutosLimite = hS * 60 + mS;
-                } else {
-                    const ahora = new Date();
-                    minutosLimite = ahora.getHours() * 60 + ahora.getMinutes();
-                }
+                let minutosLimite = s ? (Number(s.split(':')[0]) * 60 + Number(s.split(':')[1])) : (new Date().getHours() * 60 + new Date().getMinutes());
 
                 let tiempoTranscurrido = minutosLimite - minutosEntrada;
                 if (tiempoTranscurrido < 0) tiempoTranscurrido += 24 * 60;
 
                 if (minutosFuera > tiempoTranscurrido) {
                     UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                    const msg = s
-                        ? 'El tiempo fuera no puede superar el tiempo efectivo'
-                        : 'El tiempo fuera no puede superar el tiempo transcurrido desde la entrada';
-                    UILogic.mostrarToast(msg, 'error');
+                    UILogic.mostrarToast(s ? 'El tiempo fuera no puede superar el tiempo efectivo' : 'El tiempo fuera no puede superar el tiempo transcurrido desde la entrada', 'error');
                     return;
                 }
             }
 
-            r.fecha = f;
-            r.entrada = e || null;
-
-            if (s && !actualSalida) {
+            r.fecha = f; r.entrada = e || null;
+            if (s && !(r.salida || '')) {
                 const timerDetenido = detenerYRegistrarTimer(r);
                 if (timerDetenido) tf = r.tiempoFuera;
             }
 
-            r.salida = s || null;
-            r.tiempoFuera = tf;
-            r.credito = cr;
-            r.notas = notas;
+            r.salida = s || null; r.tiempoFuera = tf; r.credito = cr; r.notas = notas;
 
             const t = calcularHoras(r.entrada, r.salida, r.tiempoFuera, r.credito);
-
-            r.horas = t?.horas || 0;
-            r.minutos = t?.minutos || 0;
-            r.total = t?.total || 0;
+            r.horas = t?.horas || 0; r.minutos = t?.minutos || 0; r.total = t?.total || 0;
 
             ordenarRegistros();
-
             HistoryManager.saveState(registros);
-
             const saved = await guardarYActualizar(null, true);
 
             if (saved) {
-                if (cr) {
-                    UILogic.mostrarToast(`Guardado con Salida Temprano (+${cr})`, 'success');
-                } else {
-                    UILogic.mostrarToast('Registro actualizado', 'success');
-                }
+                if (cr) UILogic.mostrarToast(`Guardado con Salida Temprano (+${cr})`, 'success');
+                else UILogic.mostrarToast('Registro actualizado', 'success');
                 UILogic.restaurarBotonGuardarEdicion(btnGuardar);
                 UILogic.cerrarEdicion();
             } else {
@@ -1650,97 +1418,62 @@
             }
         }
 
-
         async function borrarTodoHistorial() {
             const totalRegistros = registros.length;
-
             const confirmar = await confirmarModal(`Esto restablecerá el perfil activo: se eliminarán ${totalRegistros} registro${totalRegistros !== 1 ? 's' : ''} y la configuración volverá a los valores por defecto. No afecta otros perfiles.`, 'Restablecer');
-
             if (!confirmar) return;
 
             const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-
             diasHabiles = [1, 2, 3, 4, 5];
             horasDiarias = 7;
             registros.splice(0, registros.length);
             ignorarTiempoFuera = false;
 
-            localStorage.removeItem(`breakStartTime_${perfilId}`);
-            localStorage.removeItem(`history_${perfilId}`);
-            localStorage.removeItem(`fondoCard_${perfilId}`);
-            localStorage.removeItem(`ignorarTiempoFuera_${perfilId}`);
-            localStorage.removeItem(`cardVisible_registrar_${perfilId}`);
-            localStorage.removeItem(`cardVisible_estadisticas_${perfilId}`);
-            localStorage.removeItem(`cardVisible_historico_${perfilId}`);
-            localStorage.removeItem(`ordenCards_${perfilId}`);
+            const keys = ['breakStartTime', 'history', 'fondoCard', 'ignorarTiempoFuera', 'cardVisible_registrar', 'cardVisible_estadisticas', 'cardVisible_historico', 'ordenCards'];
+            keys.forEach(k => localStorage.removeItem(`${k}_${perfilId}`));
 
             if (window.PerfilManager) {
                 const perfil = PerfilManager.obtenerDatosPerfil();
                 if (perfil) {
-                    delete perfil.gistId;
-                    delete perfil.gistLastSync;
-                    delete perfil.gistAutoSync;
-                    delete perfil.gistRangoDesde;
-                    delete perfil.gistRangoHasta;
-                    delete perfil.gistSyncFecha_subir;
-                    delete perfil.gistSyncCount_subir;
-                    delete perfil.gistSyncFecha_bajar;
-                    delete perfil.gistSyncCount_bajar;
-                    delete perfil.gistMergeBehavior;
+                    ['gistId', 'gistLastSync', 'gistAutoSync', 'gistRangoDesde', 'gistRangoHasta', 'gistSyncFecha_subir', 'gistSyncCount_subir', 'gistSyncFecha_bajar', 'gistSyncCount_bajar', 'gistMergeBehavior'].forEach(k => delete perfil[k]);
                 }
             }
 
             HistoryManager.saveState(registros);
-
-            if (await guardarYActualizar()) {
-                location.reload();
-            }
+            if (await guardarYActualizar()) location.reload();
         }
 
         function normalizarRegistrosImportados(rawList, calcularHorasFn) {
-            const validarHora = (h) => h && S.REGEX_PATTERNS.HORA.test(h) ? S.sanitizeString(h, 5) : null;
-
+            const validarHora = (h) => TimeUtils.validarHora(h) ? S.sanitizeString(h, 5) : null;
             const normalizados = rawList
                 .filter(r => S.validarRegistroSeguro(r))
                 .map(r => ({
                     id: (r.id && S.REGEX_PATTERNS.ID.test(r.id)) ? r.id : S.generarIDSeguro(),
                     fecha: S.sanitizeString(r.fecha, 10),
-                    entrada: validarHora(r.entrada),
-                    salida: validarHora(r.salida),
-                    tiempoFuera: validarHora(r.tiempoFuera),
+                    entrada: validarHora(r.entrada), salida: validarHora(r.salida), tiempoFuera: validarHora(r.tiempoFuera),
                     horas: Math.max(0, Math.min(24, parseFloat(r.horas) || 0)),
                     minutos: Math.max(0, Math.min(59, parseFloat(r.minutos) || 0)),
                     total: Math.max(0, Math.min(24, parseFloat(r.total) || 0)),
                     credito: validarHora(r.credito),
-                    notas: (r.notas && typeof r.notas === 'string')
-                        ? S.sanitizeString(r.notas, S.SECURITY_LIMITS.MAX_NOTAS_LENGTH) || null
-                        : null,
+                    notas: (r.notas && typeof r.notas === 'string') ? S.sanitizeString(r.notas, S.SECURITY_LIMITS.MAX_NOTAS_LENGTH) || null : null,
                 }));
 
             normalizados.forEach(r => {
                 const t = calcularHorasFn(r.entrada, r.salida, r.tiempoFuera || null, r.credito || null);
-                r.horas = t?.horas || 0;
-                r.minutos = t?.minutos || 0;
-                r.total = t?.total || 0;
+                r.horas = t?.horas || 0; r.minutos = t?.minutos || 0; r.total = t?.total || 0;
             });
-
             return normalizados;
         }
 
         async function exportarJSON() {
             const data = {
-                registros,
-                diasHabiles,
-                horasDiarias,
-                fecha: S.fechaLocalISO(),
-                version: S.SECURITY_LIMITS.SCHEMA_VERSION,
-                hash: await S.calcularHashSHA256(registros),
-                timestamp: Date.now()
+                registros, diasHabiles, horasDiarias,
+                fecha: TimeUtils.fechaLocalISOFull(), version: S.SECURITY_LIMITS.SCHEMA_VERSION,
+                hash: await S.calcularHashSHA256(registros), timestamp: Date.now()
             };
-
             try {
                 const nombreSafe = window.UILogic.obtenerNombrePerfilSafe();
-                const fechaHoy = S.fechaLocalISO().slice(0, 10);
+                const fechaHoy = TimeUtils.fechaLocalISOFull().slice(0, 10);
                 window.UILogic.descargarJSON(data, `Horarios_${nombreSafe}_${fechaHoy}.json`);
                 window.UILogic.mostrarToast('Datos exportados', 'success');
                 ModalManager.cerrarTodos();
@@ -1753,172 +1486,69 @@
         function importarDatos(modo = 'replace') {
             const fileInput = $('file-import');
             const file = fileInput.files[0];
-
-            if (!file) {
-                UILogic.mostrarToast('Selecciona un archivo primero', 'error');
-                return;
-            }
-            if (file.size > S.SECURITY_LIMITS.MAX_JSON_SIZE) {
-                UILogic.mostrarToast('Archivo muy grande', 'error');
-                return;
-            }
-
-            if (!file.type || file.type !== 'application/json') {
-                UILogic.mostrarToast('Solo se permiten archivos JSON', 'error');
-                return;
-            }
+            if (!file) { UILogic.mostrarToast('Selecciona un archivo primero', 'error'); return; }
+            if (file.size > S.SECURITY_LIMITS.MAX_JSON_SIZE) { UILogic.mostrarToast('Archivo muy grande', 'error'); return; }
+            if (!file.type || file.type !== 'application/json') { UILogic.mostrarToast('Solo se permiten archivos JSON', 'error'); return; }
 
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
                     const contenido = e.target.result;
-                    if (!contenido || contenido.trim().length === 0) {
-                        UILogic.mostrarToast('Archivo vacío', 'error');
-                        return;
-                    }
-
-                    if (contenido.length > S.SECURITY_LIMITS.MAX_JSON_SIZE) {
-                        UILogic.mostrarToast('Contenido del archivo demasiado grande', 'error');
-                        return;
-                    }
+                    if (!contenido || contenido.trim().length === 0) { UILogic.mostrarToast('Archivo vacío', 'error'); return; }
+                    if (contenido.length > S.SECURITY_LIMITS.MAX_JSON_SIZE) { UILogic.mostrarToast('Contenido del archivo demasiado grande', 'error'); return; }
 
                     const data = JSON.parse(contenido, (key, value) => {
-                        if (['__proto__', 'constructor', 'prototype'].includes(key)) {
-                            console.warn('⚠️ Intento de prototype pollution bloqueado');
-                            return undefined;
-                        }
+                        if (['__proto__', 'constructor', 'prototype'].includes(key)) return undefined;
                         return value;
                     });
 
-                    const allowedRootKeys = [
-                        'registros',
-                        'diasHabiles',
-                        'horasDiarias',
-                        'fecha',
-                        'version',
-                        'hash',
-                        'timestamp',
-                        'rangoExportado'
-                    ];
-                    const dataKeys = Object.keys(data);
-                    const hasInvalidKeys = dataKeys.some(k => !allowedRootKeys.includes(k));
-
-                    if (hasInvalidKeys) {
-                        UILogic.mostrarToast('Archivo con estructura sospechosa', 'error');
-                        return;
-                    }
-
-                    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-                        UILogic.mostrarToast('Estructura de archivo inválida', 'error');
-                        return;
-                    }
-
-                    if (!data.registros || !Array.isArray(data.registros)) {
-                        UILogic.mostrarToast('Archivo inválido o corrupto', 'error');
-                        return;
-                    }
-
+                    const allowedRootKeys = ['registros', 'diasHabiles', 'horasDiarias', 'fecha', 'version', 'hash', 'timestamp', 'rangoExportado'];
+                    if (Object.keys(data).some(k => !allowedRootKeys.includes(k))) { UILogic.mostrarToast('Archivo con estructura sospechosa', 'error'); return; }
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) { UILogic.mostrarToast('Estructura de archivo inválida', 'error'); return; }
+                    if (!data.registros || !Array.isArray(data.registros)) { UILogic.mostrarToast('Archivo inválido o corrupto', 'error'); return; }
                     if (data.version && data.version > S.SECURITY_LIMITS.SCHEMA_VERSION) {
-                        console.warn(`⚠️ Archivo exportado con schema v${data.version}, app en v${S.SECURITY_LIMITS.SCHEMA_VERSION}`);
                         UILogic.mostrarToast(`Archivo de versión más nueva (v${data.version}). Algunos datos pueden no importarse correctamente.`, 'warning');
                     }
-
                     if (data.rangoExportado !== undefined) {
                         const rangoSafe = S.sanitizeString(String(data.rangoExportado), 100);
-
-                        const regexRangoSeguro = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\-:]+$/;
-                        if (!regexRangoSeguro.test(rangoSafe)) {
-                            UILogic.mostrarToast('Metadatos de rango inválidos', 'error');
-                            return;
-                        }
-
-                        if (rangoSafe.includes('Mes')) {
-                            const mesMatch = rangoSafe.match(/(\d{4}-\d{2})/);
-                            if (mesMatch && data.registros.length > 0) {
-                                const mesEsperado = mesMatch[1];
-                                const todosDelMes = data.registros.every(r =>
-                                    r.fecha && r.fecha.startsWith(mesEsperado)
-                                );
-                                if (!todosDelMes) {
-                                    console.warn('⚠️ Advertencia: Registros no coinciden con el rango declarado');
-                                }
-                            }
-                        }
+                        if (!/^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s\-:]+$/.test(rangoSafe)) { UILogic.mostrarToast('Metadatos de rango inválidos', 'error'); return; }
                     }
-
                     if (data.hash) {
-                        const hashCalculado = await S.calcularHashSHA256(data.registros);
-                        if (hashCalculado !== data.hash) {
+                        if (await S.calcularHashSHA256(data.registros) !== data.hash) {
                             UILogic.mostrarToast('⚠️ El archivo puede estar corrupto o modificado', 'warning');
-                            const continuar = await confirmarModal('El hash de integridad no coincide. El archivo puede haber sido modificado o corrompido. ¿Restaurar de todas formas?', 'Restaurar', '#icon-upload');
-                            if (!continuar) return;
+                            if (!(await confirmarModal('El hash de integridad no coincide. ¿Restaurar de todas formas?', 'Restaurar', '#icon-upload'))) return;
                         }
                     } else {
-                        const continuar = await confirmarModal('Este archivo no tiene verificación de integridad. Puede ser un backup antiguo o haber sido modificado externamente. ¿Restaurar de todas formas?', 'Restaurar', '#icon-upload');
-                        if (!continuar) return;
+                        if (!(await confirmarModal('Este archivo no tiene verificación de integridad. ¿Restaurar de todas formas?', 'Restaurar', '#icon-upload'))) return;
                     }
-
-                    if (data.registros.length > S.SECURITY_LIMITS.MAX_REGISTROS) {
-                        UILogic.mostrarToast(`Máximo ${S.SECURITY_LIMITS.MAX_REGISTROS} registros permitidos`, 'error');
-                        return;
-                    }
+                    if (data.registros.length > S.SECURITY_LIMITS.MAX_REGISTROS) { UILogic.mostrarToast(`Máximo ${S.SECURITY_LIMITS.MAX_REGISTROS} registros permitidos`, 'error'); return; }
 
                     const registrosImportados = normalizarRegistrosImportados(data.registros, calcularHoras);
-
-                    if (registrosImportados.length === 0) {
-                        UILogic.mostrarToast('No se encontraron registros válidos', 'warning');
-                        return;
-                    }
+                    if (registrosImportados.length === 0) { UILogic.mostrarToast('No se encontraron registros válidos', 'warning'); return; }
 
                     if (modo === 'replace') {
                         registros = registrosImportados;
-
                         if (Array.isArray(data.diasHabiles)) {
-                            const diasValidos = data.diasHabiles.filter(d =>
-                                Number.isInteger(d) && d >= 0 && d <= 6
-                            );
+                            const diasValidos = data.diasHabiles.filter(d => Number.isInteger(d) && d >= 0 && d <= 6);
                             if (diasValidos.length > 0) diasHabiles = diasValidos;
                         }
-
                         if (data.horasDiarias !== undefined) {
-                            const horasParsed = typeof data.horasDiarias === 'string'
-                                ? parseFloat(data.horasDiarias)
-                                : data.horasDiarias;
-
-                            if (Number.isFinite(horasParsed) && horasParsed >= 0 && horasParsed <= 24) {
-                                horasDiarias = horasParsed;
-                            }
+                            const horasParsed = typeof data.horasDiarias === 'string' ? parseFloat(data.horasDiarias) : data.horasDiarias;
+                            if (Number.isFinite(horasParsed) && horasParsed >= 0 && horasParsed <= 24) horasDiarias = horasParsed;
                         }
-
-                        const mensaje = registrosImportados.length === 1
-                            ? 'Se reemplazaron los datos por 1 registro'
-                            : `Se reemplazaron los datos por ${registrosImportados.length} registros`;
-
-                        finalizarImportacionAndSave(mensaje);
-                    }
-
-                    else if (modo === 'merge') {
+                        finalizarImportacionAndSave(registrosImportados.length === 1 ? 'Se reemplazaron los datos por 1 registro' : `Se reemplazaron los datos por ${registrosImportados.length} registros`);
+                    } else if (modo === 'merge') {
                         const fechasExistentes = new Set(registros.map(r => r.fecha));
                         const nuevos = registrosImportados.filter(imp => !fechasExistentes.has(imp.fecha));
-
                         const complementarios = registrosImportados.filter(imp => {
                             if (!fechasExistentes.has(imp.fecha)) return false;
                             const local = registros.find(r => r.fecha === imp.fecha);
                             if (!local) return false;
-                            const aportaSalida = !local.salida && imp.salida;
-                            const aportaTF = !local.tiempoFuera && imp.tiempoFuera;
-                            return aportaSalida || aportaTF;
+                            return (!local.salida && imp.salida) || (!local.tiempoFuera && imp.tiempoFuera);
                         });
 
-                        if (nuevos.length === 0 && complementarios.length === 0) {
-                            UILogic.mostrarToast('No hay días nuevos ni datos para completar', 'info');
-                            return;
-                        }
-
-                        if (registros.length + nuevos.length > S.SECURITY_LIMITS.MAX_REGISTROS) {
-                            UILogic.mostrarToast(`Límite alcanzado. Solo se pueden agregar ${S.SECURITY_LIMITS.MAX_REGISTROS - registros.length} registros más`, 'error');
-                            return;
-                        }
+                        if (nuevos.length === 0 && complementarios.length === 0) { UILogic.mostrarToast('No hay días nuevos ni datos para completar', 'info'); return; }
+                        if (registros.length + nuevos.length > S.SECURITY_LIMITS.MAX_REGISTROS) { UILogic.mostrarToast(`Límite alcanzado. Solo se pueden agregar ${S.SECURITY_LIMITS.MAX_REGISTROS - registros.length} registros más`, 'error'); return; }
 
                         complementarios.forEach(imp => {
                             const local = registros.find(r => r.fecha === imp.fecha);
@@ -1928,42 +1558,27 @@
                             const t = calcularHoras(local.entrada, local.salida, local.tiempoFuera || null, local.credito || null);
                             if (t) { local.horas = t.horas; local.minutos = t.minutos; local.total = t.total; }
                         });
-
                         registros = registros.concat(nuevos);
-
                         const partes = [];
                         if (nuevos.length > 0) partes.push(`${nuevos.length} día${nuevos.length !== 1 ? 's' : ''} nuevo${nuevos.length !== 1 ? 's' : ''}`);
                         if (complementarios.length > 0) partes.push(`${complementarios.length} registro${complementarios.length !== 1 ? 's' : ''} completado${complementarios.length !== 1 ? 's' : ''}`);
                         finalizarImportacionAndSave(`Combinado: ${partes.join(', ')}`);
                     }
-
                 } catch (err) {
                     console.error('Error en importación:', err);
-                    if (err instanceof SyntaxError) {
-                        UILogic.mostrarToast('Archivo JSON mal formado', 'error');
-                    } else {
-                        UILogic.mostrarToast('Error al procesar el archivo', 'error');
-                    }
+                    UILogic.mostrarToast(err instanceof SyntaxError ? 'Archivo JSON mal formado' : 'Error al procesar el archivo', 'error');
                 }
             };
-
-            reader.onerror = () => {
-                UILogic.mostrarToast('Error al leer el archivo', 'error');
-            };
-
+            reader.onerror = () => { UILogic.mostrarToast('Error al leer el archivo', 'error'); };
             reader.readAsText(file);
         }
 
         async function finalizarImportacionAndSave(mensajeExito) {
             ordenarRegistros();
-
             HistoryManager.saveState(registros);
-
             if (await guardarYActualizar()) {
                 try {
-
                     const esPerfilDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
-
                     if (esPerfilDefault) {
                         localStorage.setItem('diasHabiles', JSON.stringify(diasHabiles));
                         localStorage.setItem('horasDiarias', horasDiarias);
@@ -1972,7 +1587,6 @@
                     console.error('Error guardando configuración:', ex);
                     UILogic.mostrarToast('Datos importados pero ajustes no guardados', 'warning');
                 }
-
                 UILogic.mostrarToast(mensajeExito, 'success');
                 UILogic.cerrarImportar();
                 $('file-import').value = '';
@@ -1983,100 +1597,66 @@
             const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
             const storageKey = `breakStartTime_${perfilId}`;
             const storedStart = localStorage.getItem(storageKey);
-
             if (!storedStart) return false;
 
-            const start = parseInt(storedStart);
-            const end = Date.now();
-            const diffMs = end - start;
+            const diffMs = Date.now() - parseInt(storedStart);
             const segundosTranscurridos = Math.floor(diffMs / 1000);
-
-            if (segundosTranscurridos < 30) {
-                localStorage.removeItem(storageKey);
-                return false;
-            }
+            if (segundosTranscurridos < 30) { localStorage.removeItem(storageKey); return false; }
 
             let minutosTranscurridos = Math.floor(segundosTranscurridos / 60);
-            const segundosRestantes = segundosTranscurridos % 60;
-            if (segundosRestantes >= 30) minutosTranscurridos += 1;
+            if ((segundosTranscurridos % 60) >= 30) minutosTranscurridos += 1;
 
             const tiempoActual = registro.tiempoFuera || '00:00';
-            registro.tiempoFuera = UILogic.sumarMinutosAHora(tiempoActual, minutosTranscurridos);
-
+            registro.tiempoFuera = TimeUtils.sumarMinutosAHora(tiempoActual, minutosTranscurridos);
             localStorage.removeItem(storageKey);
-
             return true;
         }
 
         function detectarAyerAbierto(fechaHoy, regs) {
-            const ayerObj = S.parsearFechaLocal(fechaHoy);
+            const ayerObj = TimeUtils.parsearFechaLocal(fechaHoy);
             ayerObj.setDate(ayerObj.getDate() - 1);
-            const ayerStr = S.formatearFechaLocal(ayerObj);
-
-            const regAyer = regs instanceof Map
-                ? (regs.get(ayerStr) ?? null)
-                : (regs.find(r => r.fecha === ayerStr) ?? null);
+            const ayerStr = TimeUtils.formatearFechaLocal(ayerObj);
+            const regAyer = regs instanceof Map ? (regs.get(ayerStr) ?? null) : (regs.find(r => r.fecha === ayerStr) ?? null);
 
             let ayerAbierto = false;
             if (regAyer?.entrada && !regAyer.salida) {
                 const [hE, mE] = regAyer.entrada.split(':').map(Number);
-                const fechaEntrada = S.parsearFechaLocal(ayerStr);
+                const fechaEntrada = TimeUtils.parsearFechaLocal(ayerStr);
                 fechaEntrada.setHours(hE, mE, 0, 0);
                 ayerAbierto = (Date.now() - fechaEntrada.getTime()) <= 86400000;
             }
-
             return { ayerStr, regAyer, ayerAbierto };
         }
 
         function calcularBufferSemanal(inicioSemana, fechaHoy) {
             const horasDiariasLocal = horasDiarias;
             let buffer = 0;
-
             const registrosRango = registros.filter(r => r.fecha >= inicioSemana && r.fecha <= fechaHoy);
             const registrosMap = new Map(registrosRango.map(r => [r.fecha, r]));
 
-            let fechaIteracion = S.parsearFechaLocal(inicioSemana);
-            let fechaLimite = S.parsearFechaLocal(fechaHoy);
-
+            let fechaIteracion = TimeUtils.parsearFechaLocal(inicioSemana);
+            let fechaLimite = TimeUtils.parsearFechaLocal(fechaHoy);
             const { ayerStr, ayerAbierto } = detectarAyerAbierto(fechaHoy, registrosMap);
 
             while (fechaIteracion <= fechaLimite) {
-                const y = fechaIteracion.getFullYear();
-                const m = String(fechaIteracion.getMonth() + 1).padStart(2, '0');
-                const d = String(fechaIteracion.getDate()).padStart(2, '0');
-                const isoDate = `${y}-${m}-${d}`;
+                const isoDate = TimeUtils.formatearFechaLocal(fechaIteracion);
                 const numDia = fechaIteracion.getDay();
                 const esDiaLaboralConfigurado = diasHabiles.includes(numDia);
                 const r = registrosMap.get(isoDate);
-                let horasObjetivoDia = 0;
-                let horasHechasDia = 0;
+                let horasObjetivoDia = 0, horasHechasDia = 0;
                 const esEspecial = r && TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
                 const tieneSalida = r && r.salida && !esEspecial;
                 const esRemoto = esEspecial && TiposRegistro.obtenerTipoPorCodigo(r?.entrada, r?.salida)?.id === 'remoto';
 
-                let diaTerminado = false;
-                if (isoDate === fechaHoy) {
-                    diaTerminado = tieneSalida;
-                } else if (ayerAbierto && isoDate === ayerStr) {
-                    diaTerminado = false;
-                } else {
-                    diaTerminado = true;
-                }
+                let diaTerminado = (isoDate === fechaHoy) ? tieneSalida : (ayerAbierto && isoDate === ayerStr ? false : true);
 
                 if (esRemoto) {
                     if (esDiaLaboralConfigurado) horasObjetivoDia = horasDiariasLocal;
                     horasHechasDia = horasDiariasLocal;
                 } else {
-                    if (esDiaLaboralConfigurado && !esEspecial) {
-                        if (diaTerminado) {
-                            horasObjetivoDia = horasDiariasLocal;
-                        }
-                    }
-                    if (r && !esEspecial && r.salida) {
-                        horasHechasDia = r.total;
-                    }
+                    if (esDiaLaboralConfigurado && !esEspecial && diaTerminado) horasObjetivoDia = horasDiariasLocal;
+                    if (r && !esEspecial && r.salida) horasHechasDia = r.total;
                 }
-
                 buffer += (horasHechasDia - horasObjetivoDia);
                 fechaIteracion.setDate(fechaIteracion.getDate() + 1);
             }
@@ -2084,14 +1664,8 @@
         }
 
         function limpiarFiltros() {
-            filtroActivo = false;
-            filtroDesde = null;
-            filtroHasta = null;
-            filtroTipo = null;
-            $('filtro-fecha-desde').value = '';
-            $('filtro-fecha-hasta').value = '';
-            $('filtro-tipo').value = '';
-
+            filtroActivo = false; filtroDesde = null; filtroHasta = null; filtroTipo = null;
+            $('filtro-fecha-desde').value = ''; $('filtro-fecha-hasta').value = ''; $('filtro-tipo').value = '';
             guardarYActualizar();
             UILogic.cerrarFiltros();
             UILogic.mostrarToast('Filtro eliminado', 'info');
@@ -2100,16 +1674,10 @@
 
         function aplicarFiltrosInmediato(desde, hasta, tipo) {
             if (!desde && !hasta && !tipo) {
-                filtroActivo = false;
-                filtroDesde = null;
-                filtroHasta = null;
-                filtroTipo = null;
+                filtroActivo = false; filtroDesde = null; filtroHasta = null; filtroTipo = null;
                 document.getElementById('btn-filtro').classList.remove('filtro-activo');
             } else {
-                filtroActivo = true;
-                filtroDesde = desde || null;
-                filtroHasta = hasta || null;
-                filtroTipo = tipo || null;
+                filtroActivo = true; filtroDesde = desde || null; filtroHasta = hasta || null; filtroTipo = tipo || null;
                 document.getElementById('btn-filtro').classList.add('filtro-activo');
             }
             guardarYActualizar();
@@ -2117,96 +1685,56 @@
 
         function obtenerRegistrosFiltrados() {
             if (!filtroActivo) return registros;
-
             return registros.filter(r => {
                 if (filtroDesde && r.fecha < filtroDesde) return false;
                 if (filtroHasta && r.fecha > filtroHasta) return false;
-
                 if (filtroTipo) {
                     const tipoRegistro = TiposRegistro.obtenerTipoPorCodigo(r.entrada, r.salida);
-
-                    if (filtroTipo === 'normal') {
-                        if (tipoRegistro) return false;
-                    } else {
-                        if (!tipoRegistro || tipoRegistro.id !== filtroTipo) return false;
-                    }
+                    if (filtroTipo === 'normal') { if (tipoRegistro) return false; }
+                    else { if (!tipoRegistro || tipoRegistro.id !== filtroTipo) return false; }
                 }
-
                 return true;
             });
         }
 
         async function registrarVacacionesDirecto(desde, hasta, tipo) {
             const tipoConfig = TiposRegistro.obtenerTipoPorId(tipo);
-            if (!tipoConfig) {
-                UILogic.mostrarToast('Tipo inválido', 'error');
-                throw new Error('Tipo inválido');
-            }
-
+            if (!tipoConfig) { UILogic.mostrarToast('Tipo inválido', 'error'); throw new Error('Tipo inválido'); }
             const entrada = tipoConfig.codigo;
             const salida = tipoConfig.codigo;
 
-            let fechaActual = S.parsearFechaLocal(desde);
-            const fechaFin = S.parsearFechaLocal(hasta);
+            let fechaActual = TimeUtils.parsearFechaLocal(desde);
+            const fechaFin = TimeUtils.parsearFechaLocal(hasta);
             const fechasARegistrar = [];
 
             while (fechaActual <= fechaFin) {
-                const y = fechaActual.getFullYear();
-                const m = String(fechaActual.getMonth() + 1).padStart(2, '0');
-                const d = String(fechaActual.getDate()).padStart(2, '0');
-                fechasARegistrar.push(`${y}-${m}-${d}`);
+                fechasARegistrar.push(TimeUtils.formatearFechaLocal(fechaActual));
                 fechaActual.setDate(fechaActual.getDate() + 1);
             }
 
-            if (fechasARegistrar.length > 60) {
-                UILogic.mostrarToast(`El rango seleccionado contiene ${fechasARegistrar.length} días.\n Máximo permitido: 60 días por operación.`, 'error');
-                throw new Error('Límite de días excedido');
-            }
+            if (fechasARegistrar.length > 60) { UILogic.mostrarToast(`El rango seleccionado contiene ${fechasARegistrar.length} días.\n Máximo permitido: 60 días por operación.`, 'error'); throw new Error('Límite de días excedido'); }
 
             const nuevosRegistros = fechasARegistrar.filter(f => !registros.some(r => r.fecha === f));
-
-            if (nuevosRegistros.length === 0) {
-                UILogic.mostrarToast('Todas las fechas ya están registradas', 'warning');
-                throw new Error('Sin fechas nuevas');
-            }
+            if (nuevosRegistros.length === 0) { UILogic.mostrarToast('Todas las fechas ya están registradas', 'warning'); throw new Error('Sin fechas nuevas'); }
 
             const idsNuevosParaAnimar = [];
-
             nuevosRegistros.forEach(fecha => {
                 const t = calcularHoras(entrada, salida, null);
                 const nuevoId = S.generarIDSeguro();
-
                 idsNuevosParaAnimar.push(nuevoId);
-
                 registros.push({
-                    id: nuevoId,
-                    fecha: fecha,
-                    entrada: entrada,
-                    salida: salida,
-                    tiempoFuera: null,
-                    horas: t?.horas || 0,
-                    minutos: t?.minutos || 0,
-                    total: t?.total || 0
+                    id: nuevoId, fecha: fecha, entrada: entrada, salida: salida, tiempoFuera: null,
+                    horas: t?.horas || 0, minutos: t?.minutos || 0, total: t?.total || 0
                 });
             });
 
             ordenarRegistros();
-
             HistoryManager.saveState(registros);
-
             const saved = await guardarYActualizar(idsNuevosParaAnimar);
-
             if (saved) {
-                const mensaje = nuevosRegistros.length === 1
-                    ? '1 día registrado'
-                    : `${nuevosRegistros.length} días registrados`;
-                UILogic.mostrarToast(mensaje, 'success');
-                if (UILogic.actualizarBotonLote) {
-                    UILogic.actualizarBotonLote();
-                }
-            } else {
-                throw new Error('Error al guardar');
-            }
+                UILogic.mostrarToast(nuevosRegistros.length === 1 ? '1 día registrado' : `${nuevosRegistros.length} días registrados`, 'success');
+                if (UILogic.actualizarBotonLote) UILogic.actualizarBotonLote();
+            } else { throw new Error('Error al guardar'); }
         }
 
         function _aplicarEstadoHistorial(estado, mensaje) {
@@ -2222,58 +1750,32 @@
             UILogic.mostrarToast(mensaje, 'info');
             if (window.UILogic && window.UILogic.actualizarBotonLote) {
                 const modoLote = document.getElementById('modo-lote');
-                if (modoLote && getComputedStyle(modoLote).display !== 'none') {
-                    window.UILogic.actualizarBotonLote();
-                }
+                if (modoLote && getComputedStyle(modoLote).display !== 'none') window.UILogic.actualizarBotonLote();
             }
-            if (window.UILogic && window.UILogic.iniciarTimerAutoCierreBotones) {
-                window.UILogic.iniciarTimerAutoCierreBotones();
-            }
+            if (window.UILogic && window.UILogic.iniciarTimerAutoCierreBotones) window.UILogic.iniciarTimerAutoCierreBotones();
         }
 
         async function borrarPeriodoDirecto(desde, hasta) {
             const registrosAEliminar = registros.filter(r => {
                 if (r.fecha < desde || r.fecha > hasta) return false;
-
-                const esEspecial = TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
-
-                return !esEspecial;
+                return !TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
             });
-
-            if (registrosAEliminar.length > 60) {
-                UILogic.mostrarToast(`Máximo 60 registros. Encontrados: ${registrosAEliminar.length}`, 'error');
-                throw new Error('Límite excedido');
-            }
-
-            if (registrosAEliminar.length === 0) {
-                UILogic.mostrarToast('No hay registros de jornadas en ese período', 'info');
-                throw new Error('Sin registros');
-            }
+            if (registrosAEliminar.length > 60) { UILogic.mostrarToast(`Máximo 60 registros. Encontrados: ${registrosAEliminar.length}`, 'error'); throw new Error('Límite excedido'); }
+            if (registrosAEliminar.length === 0) { UILogic.mostrarToast('No hay registros de jornadas en ese período', 'info'); throw new Error('Sin registros'); }
 
             registros = registros.filter(r => !registrosAEliminar.includes(r));
             HistoryManager.saveState(registros);
-
             const saved = await guardarYActualizar();
             if (saved) {
-                const mensaje = registrosAEliminar.length === 1
-                    ? '1 registro eliminado'
-                    : `${registrosAEliminar.length} registros eliminados`;
-                UILogic.mostrarToast(mensaje, 'success');
+                UILogic.mostrarToast(registrosAEliminar.length === 1 ? '1 registro eliminado' : `${registrosAEliminar.length} registros eliminados`, 'success');
                 UILogic.actualizarBotonLote?.();
-            } else {
-                throw new Error('Error al guardar');
-            }
+            } else { throw new Error('Error al guardar'); }
         }
 
         return {
-            registros: () => registros,
-            horasSemanales: () => (horasDiarias * diasHabiles.length),
-            diasHabiles: () => diasHabiles,
-            horasDiarias: () => horasDiarias,
-            setDiasHabiles: (v) => diasHabiles = v,
-            setHorasDiarias: (v) => horasDiarias = v,
-            getIgnorarTiempoFuera: () => ignorarTiempoFuera,
-            setIgnorarTiempoFuera: (v) => { ignorarTiempoFuera = v; },
+            registros: () => registros, horasSemanales: () => (horasDiarias * diasHabiles.length), diasHabiles: () => diasHabiles,
+            horasDiarias: () => horasDiarias, setDiasHabiles: (v) => diasHabiles = v, setHorasDiarias: (v) => horasDiarias = v,
+            getIgnorarTiempoFuera: () => ignorarTiempoFuera, setIgnorarTiempoFuera: (v) => { ignorarTiempoFuera = v; },
             recalcularTotalesEnMemoria: function () {
                 registros.forEach(r => {
                     if (r.entrada && r.salida && !TiposRegistro.esRegistroEspecial(r.entrada, r.salida)) {
@@ -2282,43 +1784,15 @@
                     }
                 });
             },
-            editandoId: () => editandoId,
-            setEditandoId: (id) => editandoId = id,
-            vistaActual: () => vistaActual,
-            setVistaActual: (v) => vistaActual = v,
-            cargarConfiguracion,
-            calcularHoras,
-            calcularHorasFeriadoEnRango,
-            normalizarRegistrosImportados,
-            guardarYActualizar,
-            agregarRegistro,
-            eliminarRegistroActual,
-            editarRegistro,
-            guardarEdicion,
-            borrarTodoHistorial,
-            exportarJSON,
-            importarDatos,
-            calcularBufferSemanal,
-            detectarAyerAbierto,
-            aplicarFiltrosInmediato,
-            limpiarFiltros,
-            obtenerRegistrosFiltrados,
-            registrarVacacionesDirecto,
-            borrarPeriodoDirecto,
-            registrarDiaEspecial,
-            editarGrupo,
-            guardarEdicionGrupo,
-            eliminarGrupoActual,
-            setGrupoEnEdicion: (val) => grupoEnEdicion = val,
-            undoAction: function () {
-                _aplicarEstadoHistorial(HistoryManager.undo(), 'Deshecho');
-            },
-
-            redoAction: function () {
-                _aplicarEstadoHistorial(HistoryManager.redo(), 'Rehecho');
-            }
+            editandoId: () => editandoId, setEditandoId: (id) => editandoId = id, vistaActual: () => vistaActual, setVistaActual: (v) => vistaActual = v,
+            cargarConfiguracion, calcularHoras, calcularHorasFeriadoEnRango, normalizarRegistrosImportados, guardarYActualizar,
+            agregarRegistro, eliminarRegistroActual, editarRegistro, guardarEdicion, borrarTodoHistorial, exportarJSON, importarDatos,
+            calcularBufferSemanal, detectarAyerAbierto, aplicarFiltrosInmediato, limpiarFiltros, obtenerRegistrosFiltrados,
+            registrarVacacionesDirecto, borrarPeriodoDirecto, registrarDiaEspecial, editarGrupo, guardarEdicionGrupo,
+            eliminarGrupoActual, setGrupoEnEdicion: (val) => grupoEnEdicion = val,
+            undoAction: function () { _aplicarEstadoHistorial(HistoryManager.undo(), 'Deshecho'); },
+            redoAction: function () { _aplicarEstadoHistorial(HistoryManager.redo(), 'Rehecho'); }
         };
-
     })(SecurityAndUtils);
 
     // ====================================================================
@@ -8328,4 +7802,4 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelector('#modal-editar-grupo .btn-cancel')?.addEventListener('click', () => UILogic.cerrarEdicionGrupo());
 });
 
-// lushibosca version 260518.1033
+// lushibosca version 260525.2106
