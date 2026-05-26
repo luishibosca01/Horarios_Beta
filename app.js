@@ -104,7 +104,7 @@
         }
 
         function horaAMinutos(h) {
-            if (!h || !h.includes(':')) return 0;
+            if (!validarHora(h)) return 0; // FIX: antes solo chequeaba ':', ahora valida formato completo
             const [hr, mn] = h.split(':').map(Number);
             return (hr * 60) + mn;
         }
@@ -112,7 +112,7 @@
         function sumarMinutosAHora(horaString, minutosASumar) {
             let totalMinutos = minutosASumar + horaAMinutos(horaString);
             let horas = Math.floor(totalMinutos / 60);
-            let mins = Math.round(totalMinutos % 60);
+            let mins = Math.floor(totalMinutos % 60); // FIX: Math.round podía producir mins=60
             if (horas > 23) { horas = 23; mins = 59; }
             return `${String(horas).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
         }
@@ -636,14 +636,14 @@
             document.body.classList.remove('modal-open');
         }
 
-        return { abrir, cerrar, alternar, cerrarTodos };
+        return { abrir, cerrar, alternar, cerrarTodos, getPadre: (id) => _padres[id] || null, setPadre: (id, padreId) => { if (id && padreId) _padres[id] = padreId; } };
     })();
 
     // ====================================================================
     // HISTORY MANAGER MODULE
     // ====================================================================
     const HistoryManager = (function () {
-        let history = [];
+        let _stack = []; // FIX: renombrado de 'history' para no shadowear window.history
         let currentIndex = -1;
         const MAX_HISTORY = 20;
 
@@ -655,13 +655,13 @@
 
         function saveState(registros) {
             const copiaSegura = deepClone(registros);
-            if (currentIndex < history.length - 1) history.splice(currentIndex + 1);
-            history.push(copiaSegura);
-            if (history.length > MAX_HISTORY) {
-                history.shift();
+            if (currentIndex < _stack.length - 1) _stack.splice(currentIndex + 1);
+            _stack.push(copiaSegura);
+            if (_stack.length > MAX_HISTORY) {
+                _stack.shift();
                 currentIndex = MAX_HISTORY - 1;
             } else {
-                currentIndex = history.length - 1;
+                currentIndex = _stack.length - 1;
             }
             updateButtons();
             saveToLocalStorage();
@@ -672,23 +672,23 @@
                 currentIndex--;
                 updateButtons();
                 saveToLocalStorage();
-                return deepClone(history[currentIndex]);
+                return deepClone(_stack[currentIndex]);
             }
             return null;
         }
 
         function redo() {
-            if (currentIndex < history.length - 1) {
+            if (currentIndex < _stack.length - 1) {
                 currentIndex++;
                 updateButtons();
                 saveToLocalStorage();
-                return deepClone(history[currentIndex]);
+                return deepClone(_stack[currentIndex]);
             }
             return null;
         }
 
         function canUndo() { return currentIndex > 0; }
-        function canRedo() { return currentIndex < history.length - 1; }
+        function canRedo() { return currentIndex < _stack.length - 1; }
 
         function updateButtons() {
             const undoBtn = document.getElementById('btn-undo');
@@ -698,7 +698,7 @@
         }
 
         function saveToLocalStorage() {
-            const historyData = { history: history, currentIndex: currentIndex, timestamp: Date.now() };
+            const historyData = { history: _stack, currentIndex: currentIndex, timestamp: Date.now() };
             // El tercer parámetro `true` le dice al StorageHelper que lo guarde en el perfil activo
             StorageHelper.setItem('history', historyData, true);
         }
@@ -711,16 +711,16 @@
                 const limiteEnMs = 24 * 60 * 60 * 1000;
 
                 if (tiempoTranscurrido < limiteEnMs) {
-                    history = historyData.history || [];
+                    _stack = historyData.history || [];
                     currentIndex = historyData.currentIndex !== undefined ? historyData.currentIndex : -1;
-                    console.log(`✓ Historial restaurado: ${history.length} estados, índice actual: ${currentIndex}`);
-                    return history.length > 0 && currentIndex >= 0;
+                    console.log(`✓ Historial restaurado: ${_stack.length} estados, índice actual: ${currentIndex}`);
+                    return _stack.length > 0 && currentIndex >= 0;
                 } else {
                     console.log('Historial expirado (más de 24hs), limpiando...');
                     StorageHelper.removeItem('history', true);
                 }
             }
-            history = [];
+            _stack = [];
             currentIndex = -1;
             updateButtons();
             return false;
@@ -729,15 +729,15 @@
         function clearStorage() { StorageHelper.removeItem('history', true); }
 
         function clear() {
-            history = [];
+            _stack = [];
             currentIndex = -1;
             clearStorage();
             updateButtons();
         }
 
         function getCurrentState() {
-            if (currentIndex >= 0 && currentIndex < history.length) {
-                return deepClone(history[currentIndex]);
+            if (currentIndex >= 0 && currentIndex < _stack.length) {
+                return deepClone(_stack[currentIndex]);
             }
             return null;
         }
@@ -767,9 +767,20 @@
             function ok() { cleanup(); resolve(true); }
             function cancel() { cleanup(); resolve(false); }
 
-            function cleanup() {
+            // FIX: cleanup también al cerrar por navegación (popstate) para evitar memory leak
+            function onPopstate() {
+                _removeListeners();
+                resolve(false);
+            }
+
+            function _removeListeners() {
                 btnOk.removeEventListener('click', ok);
                 btnCancel.removeEventListener('click', cancel);
+                window.removeEventListener('popstate', onPopstate);
+            }
+
+            function cleanup() {
+                _removeListeners();
                 if (modalPadreId) {
                     ModalManager.alternar('modal-confirmar', modalPadreId);
                 } else {
@@ -779,6 +790,7 @@
 
             btnOk.addEventListener('click', ok);
             btnCancel.addEventListener('click', cancel);
+            window.addEventListener('popstate', onPopstate, { once: true });
             if (modalPadreId) {
                 ModalManager.alternar(modalPadreId, 'modal-confirmar');
             } else {
@@ -1079,9 +1091,18 @@
         }
 
         function cargarConfiguracion() {
+            // FIX: diasHabiles y horasDiarias se leen del perfil activo (gestionado por PerfilManager),
+            // no del storage global. Los valores del perfil son la fuente de verdad.
+            // Las claves globales 'diasHabiles' / 'horasDiarias' solo se usan como fallback
+            // para el perfil 'default' por retrocompatibilidad.
+            const perfilData = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
             return {
-                diasHabiles: StorageHelper.getObject('diasHabiles', [1, 2, 3, 4, 5]),
-                horasDiarias: StorageHelper.getNumber('horasDiarias', 7),
+                diasHabiles: (perfilData && Array.isArray(perfilData.diasHabiles))
+                    ? perfilData.diasHabiles
+                    : StorageHelper.getObject('diasHabiles', [1, 2, 3, 4, 5]),
+                horasDiarias: (perfilData && perfilData.horasDiarias !== undefined)
+                    ? perfilData.horasDiarias
+                    : StorageHelper.getNumber('horasDiarias', 7),
                 temaOscuro: StorageHelper.getBoolean('temaOscuro', true),
                 vistaActual: StorageHelper.getItem('vistaActual', 'diaria'),
                 ignorarTiempoFuera: StorageHelper.getBoolean('ignorarTiempoFuera', false, true),
@@ -1931,11 +1952,22 @@
         }
 
         function saveLastSync(gistId) {
-            const ahora = new Date().toLocaleString('es-AR');
+            // FIX: se guarda como ISO + display local separados; el display se genera al leer
+            const ahoraISO = new Date().toISOString();
             _conPerfil(perfil => {
-                perfil.gistLastSync = ahora;
+                perfil.gistLastSync = ahoraISO;
                 if (gistId && esGistIdValido(gistId)) perfil.gistId = gistId;
             });
+        }
+
+        // FIX: helper para formatear lastSync (soporta ISO nuevo y legacy toLocaleString)
+        function formatLastSync(isoOrLegacy) {
+            if (!isoOrLegacy) return null;
+            try {
+                const d = new Date(isoOrLegacy);
+                if (!isNaN(d.getTime())) return d.toLocaleString('es-AR');
+            } catch (e) { }
+            return isoOrLegacy; // fallback: devolver tal cual si no es ISO válido
         }
 
         async function subir(registros, diasHabiles, horasDiarias) {
@@ -1982,7 +2014,7 @@
             return data;
         }
 
-        return { getToken, getGistId, getLastSync, getMergeBehavior, setMergeBehavior, getAutoSync, setAutoSync, getRangoHorario, setRangoHorario, getSyncCount, marcarSync, superaLimite, getSyncLimite, setSyncLimite, dentroDelRangoHorario, saveCredentials, esGistIdValido, subir, bajar };
+        return { getToken, getGistId, getLastSync, formatLastSync, getMergeBehavior, setMergeBehavior, getAutoSync, setAutoSync, getRangoHorario, setRangoHorario, getSyncCount, marcarSync, superaLimite, getSyncLimite, setSyncLimite, dentroDelRangoHorario, saveCredentials, esGistIdValido, subir, bajar };
     })(SecurityAndUtils);
 
     window.GistSync = GistSync;
@@ -3771,7 +3803,12 @@
         }
 
         function cerrarConfig() {
-            ModalManager.cerrar('modal-config');
+            const padre = ModalManager.getPadre('modal-config');
+            if (padre) {
+                ModalManager.alternar('modal-config', padre);
+            } else {
+                ModalManager.cerrar('modal-config');
+            }
         }
 
         function _obtenerSemanas() {
@@ -5484,7 +5521,7 @@ Generado por Sistema Lushibosca
                 if (gistIdInput) gistIdInput.value = GistSync.getGistId();
                 if (lastSyncEl) {
                     const last = GistSync.getLastSync();
-                    lastSyncEl.textContent = last ? `Sincronizado: ${last}` : 'No sincronizado';
+                    lastSyncEl.textContent = last ? `Sincronizado: ${GistSync.formatLastSync(last)}` : 'No sincronizado';
                 }
 
                 const rango = GistSync.getRangoHorario();
@@ -5602,7 +5639,14 @@ Generado por Sistema Lushibosca
                 _gistLimitesTemp = null;
                 _gistLimitesOrig = null;
                 ModalManager.cerrar('modal-gist');
-                if (_gistModalPadre) ModalManager.abrir(_gistModalPadre);
+                if (_gistModalPadre) {
+                    ModalManager.abrir(_gistModalPadre);
+                    // FIX: restaurar la relación padre para que cerrar modal-config
+                    // sepa que debe volver a modal-selector-perfiles
+                    if (_gistModalPadre === 'modal-config') {
+                        ModalManager.setPadre('modal-config', 'modal-selector-perfiles');
+                    }
+                }
                 _gistModalPadre = null;
                 actualizarBotonesHistorico();
             }
@@ -5685,7 +5729,7 @@ Generado por Sistema Lushibosca
 
                 if (!modoAutomatico) ModalManager.cerrar('modal-gist-merge');
                 const lastSyncEl = document.getElementById('gist-ultima-sync');
-                if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.getLastSync()}`;
+                if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.formatLastSync(GistSync.getLastSync())}`;
                 mostrarToast(mensajeExito, 'success');
 
                 const btn = document.getElementById('btn-gist-bajar');
@@ -5825,7 +5869,7 @@ Generado por Sistema Lushibosca
                     const gistIdInput = document.getElementById('gist-id');
                     if (gistIdInput) gistIdInput.value = nuevoId;
                     const lastSyncEl = document.getElementById('gist-ultima-sync');
-                    if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.getLastSync()}`;
+                    if (lastSyncEl) lastSyncEl.textContent = `Última sync: ${GistSync.formatLastSync(GistSync.getLastSync())}`;
                     mostrarToast('Datos respaldados en Gist', 'success');
                 } catch (e) {
                     console.error('Gist subir error:', e);
@@ -7103,7 +7147,8 @@ Generado por Sistema Lushibosca
         function _popupCalendarioHover(event, registroId) {
             if (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents) return;
             if (!window.matchMedia('(hover: hover)').matches) return;
-            const stored = localStorage.getItem('hoverPopupCalendario');
+            // FIX: usar StorageHelper en lugar de localStorage directo
+            const stored = StorageHelper.getItem('hoverPopupCalendario', null);
             const esHover = window.matchMedia('(hover: hover)').matches;
             if (stored === null ? !esHover : stored !== 'true') return;
             if (_popupCalendarioEl && _popupCalendarioEl.dataset.registroId === registroId) return;
@@ -7117,7 +7162,8 @@ Generado por Sistema Lushibosca
 
         function _onclickCalendarioDia(event, registroId) {
             const esDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-            const stored = localStorage.getItem('hoverPopupCalendario');
+            // FIX: usar StorageHelper en lugar de localStorage directo
+            const stored = StorageHelper.getItem('hoverPopupCalendario', null);
             const hoverActivo = esDesktop && (stored === null ? true : stored === 'true');
 
             if (hoverActivo) {
