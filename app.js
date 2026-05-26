@@ -124,6 +124,89 @@
     })();
 
     // ====================================================================
+    // STORAGE HELPER MODULE
+    // ====================================================================
+    const StorageHelper = (function () {
+        'use strict';
+
+        // Obtiene la clave final dependiendo de si debe usar el perfil activo
+        function _getKey(key, useProfile) {
+            if (useProfile && window.PerfilManager) {
+                return window.PerfilManager.perfilKey(key);
+            }
+            // Fallback en caso de que PerfilManager no esté listo pero se pidió perfil
+            if (useProfile) return key + '_default';
+            return key;
+        }
+
+        function setItem(key, value, useProfile = false) {
+            try {
+                const finalKey = _getKey(key, useProfile);
+                const valueToStore = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                localStorage.setItem(finalKey, valueToStore);
+                return true;
+            } catch (e) {
+                console.error(`Error guardando en Storage (${key}):`, e);
+                if (e.name === 'QuotaExceededError' || e.code === 22) {
+                    if (window.UILogic) UILogic.mostrarToast('Almacenamiento lleno, no se pudo guardar', 'error');
+                }
+                return false;
+            }
+        }
+
+        function getItem(key, defaultValue = null, useProfile = false) {
+            try {
+                const value = localStorage.getItem(_getKey(key, useProfile));
+                return value !== null ? value : defaultValue;
+            } catch (e) {
+                return defaultValue;
+            }
+        }
+
+        function getBoolean(key, defaultValue = false, useProfile = false) {
+            const val = getItem(key, null, useProfile);
+            if (val === null) return defaultValue;
+            return val === 'true';
+        }
+
+        function getNumber(key, defaultValue = 0, useProfile = false) {
+            const val = getItem(key, null, useProfile);
+            if (val === null) return defaultValue;
+            const parsed = parseFloat(val);
+            return isNaN(parsed) ? defaultValue : parsed;
+        }
+
+        function getObject(key, defaultValue = null, useProfile = false) {
+            const val = getItem(key, null, useProfile);
+            if (!val) return defaultValue;
+            try {
+                return JSON.parse(val, (k, v) => {
+                    // Prevención de prototype pollution
+                    if (['__proto__', 'constructor', 'prototype'].includes(k)) return undefined;
+                    return v;
+                });
+            } catch (e) {
+                return defaultValue;
+            }
+        }
+
+        function removeItem(key, useProfile = false) {
+            try {
+                localStorage.removeItem(_getKey(key, useProfile));
+            } catch (e) { }
+        }
+
+        return {
+            setItem,
+            getItem,
+            getBoolean,
+            getNumber,
+            getObject,
+            removeItem
+        };
+    })();
+
+    // ====================================================================
     // SECURITY AND UTILS MODULE
     // ====================================================================
     const SecurityAndUtils = (function () {
@@ -246,49 +329,24 @@
         }
 
         function cargarPerfiles() {
-            try {
-                const storedPerfiles = localStorage.getItem('perfiles');
+            const defaultPerfil = {
+                'default': { nombre: 'Principal', registros: [], diasHabiles: [1, 2, 3, 4, 5], horasDiarias: 7 }
+            };
 
-                perfiles = storedPerfiles ? JSON.parse(storedPerfiles, (key, value) => {
-                    if (['__proto__', 'constructor', 'prototype'].includes(key)) return undefined;
-                    return value;
-                }) : {};
+            perfiles = StorageHelper.getObject('perfiles', defaultPerfil);
+            if (!perfiles['default']) perfiles['default'] = defaultPerfil['default'];
 
-                if (!perfiles['default']) {
-                    perfiles['default'] = {
-                        nombre: 'Principal',
-                        registros: [],
-                        diasHabiles: [1, 2, 3, 4, 5],
-                        horasDiarias: 7
-                    };
-                }
-
-                perfilActual = localStorage.getItem('perfilActivo') || 'default';
-                if (!perfiles[perfilActual]) {
-                    const availableIds = Object.keys(perfiles);
-                    perfilActual = availableIds.length > 0 ? availableIds[0] : 'default';
-                }
-
-            } catch (e) {
-                console.error('Error fatal cargando perfiles, reiniciando a estado seguro:', e);
-                perfiles = {
-                    'default': {
-                        nombre: 'Principal',
-                        registros: [],
-                        diasHabiles: [1, 2, 3, 4, 5],
-                        horasDiarias: 7
-                    }
-                };
-                perfilActual = 'default';
+            perfilActual = StorageHelper.getItem('perfilActivo', 'default');
+            if (!perfiles[perfilActual]) {
+                const availableIds = Object.keys(perfiles);
+                perfilActual = availableIds.length > 0 ? availableIds[0] : 'default';
             }
         }
 
         function guardarPerfiles() {
-            try {
-                localStorage.setItem('perfiles', JSON.stringify(perfiles));
-                localStorage.setItem('perfilActivo', perfilActual);
-                return true;
-            } catch (e) { return false; }
+            const savedPerfiles = StorageHelper.setItem('perfiles', perfiles);
+            const savedActivo = StorageHelper.setItem('perfilActivo', perfilActual);
+            return savedPerfiles && savedActivo;
         }
 
         function actualizarNombrePerfil() {
@@ -345,25 +403,16 @@
         }
 
         function cambiarPerfil(nuevoId) {
-            if (!nuevoId) return;
-            if (nuevoId === perfilActual) return;
-
+            if (!nuevoId || nuevoId === perfilActual) return;
             guardarDatosPerfilActual();
             perfilActual = nuevoId;
-            try {
-                localStorage.setItem('perfilActivo', perfilActual);
-            } catch (e) {
-                console.error('Error al guardar perfil activo:', e);
-                mostrarToast('Error al guardar: almacenamiento lleno', 'error');
-                return;
+            if (StorageHelper.setItem('perfilActivo', perfilActual)) {
+                location.reload();
             }
-            location.reload();
         }
 
         function obtenerPerfilActual() { return perfilActual; }
-
         function obtenerDatosPerfil() { return perfiles[perfilActual]; }
-
         function obtenerTodosPerfiles() { return perfiles; }
 
         function perfilKey(base) {
@@ -531,32 +580,20 @@
 
         function deepClone(obj) {
             if (obj === null || obj === undefined) return obj;
-
-            try {
-                return structuredClone(obj);
-
-            } catch (e) {
-                console.warn('Fallo en structuredClone. Usando fallback JSON.stringify.', e);
-                return JSON.parse(JSON.stringify(obj));
-            }
+            try { return structuredClone(obj); }
+            catch (e) { return JSON.parse(JSON.stringify(obj)); }
         }
 
         function saveState(registros) {
             const copiaSegura = deepClone(registros);
-
-            if (currentIndex < history.length - 1) {
-                history.splice(currentIndex + 1);
-            }
-
+            if (currentIndex < history.length - 1) history.splice(currentIndex + 1);
             history.push(copiaSegura);
-
             if (history.length > MAX_HISTORY) {
                 history.shift();
                 currentIndex = MAX_HISTORY - 1;
             } else {
                 currentIndex = history.length - 1;
             }
-
             updateButtons();
             saveToLocalStorage();
         }
@@ -566,8 +603,7 @@
                 currentIndex--;
                 updateButtons();
                 saveToLocalStorage();
-                const estado = deepClone(history[currentIndex]);
-                return estado;
+                return deepClone(history[currentIndex]);
             }
             return null;
         }
@@ -577,97 +613,51 @@
                 currentIndex++;
                 updateButtons();
                 saveToLocalStorage();
-                const estado = deepClone(history[currentIndex]);
-                return estado;
+                return deepClone(history[currentIndex]);
             }
             return null;
         }
 
-        function canUndo() {
-            return currentIndex > 0;
-        }
-
-        function canRedo() {
-            return currentIndex < history.length - 1;
-        }
+        function canUndo() { return currentIndex > 0; }
+        function canRedo() { return currentIndex < history.length - 1; }
 
         function updateButtons() {
             const undoBtn = document.getElementById('btn-undo');
             const redoBtn = document.getElementById('btn-redo');
-
             if (undoBtn) undoBtn.disabled = !canUndo();
             if (redoBtn) redoBtn.disabled = !canRedo();
         }
 
         function saveToLocalStorage() {
-            try {
-                const perfilActual = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-                const storageKey = `history_${perfilActual}`;
-
-                const historyData = {
-                    history: history,
-                    currentIndex: currentIndex,
-                    timestamp: Date.now()
-                };
-
-                localStorage.setItem(storageKey, JSON.stringify(historyData));
-            } catch (error) {
-                console.error('Error guardando historial:', error);
-                if (error.name === 'QuotaExceededError' || error.code === 22) {
-                    if (window.UILogic) UILogic.mostrarToast('Almacenamiento lleno: historial de deshacer no guardado', 'warning');
-                }
-            }
+            const historyData = { history: history, currentIndex: currentIndex, timestamp: Date.now() };
+            // El tercer parámetro `true` le dice al StorageHelper que lo guarde en el perfil activo
+            StorageHelper.setItem('history', historyData, true);
         }
 
         function loadFromLocalStorage() {
-            try {
-                const perfilActual = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-                const storageKey = `history_${perfilActual}`;
-                const stored = localStorage.getItem(storageKey);
+            const historyData = StorageHelper.getObject('history', null, true);
+            if (historyData) {
+                const ahora = Date.now();
+                const tiempoTranscurrido = ahora - (historyData.timestamp || 0);
+                const limiteEnMs = 24 * 60 * 60 * 1000;
 
-                if (stored) {
-                    const historyData = JSON.parse(stored, (key, value) => {
-                        if (['__proto__', 'constructor', 'prototype'].includes(key)) return undefined;
-                        return value;
-                    });
-
-                    const ahora = Date.now();
-                    const tiempoTranscurrido = ahora - (historyData.timestamp || 0);
-                    const limiteEnMs = 24 * 60 * 60 * 1000;
-
-                    if (tiempoTranscurrido < limiteEnMs) {
-                        history = historyData.history || [];
-                        currentIndex = historyData.currentIndex !== undefined ? historyData.currentIndex : -1;
-
-                        console.log(`✓ Historial restaurado: ${history.length} estados, índice actual: ${currentIndex}`);
-
-                        return history.length > 0 && currentIndex >= 0;
-                    } else {
-                        console.log('Historial expirado (más de 24hs), limpiando...');
-                        localStorage.removeItem(storageKey);
-                        history = [];
-                        currentIndex = -1;
-                    }
+                if (tiempoTranscurrido < limiteEnMs) {
+                    history = historyData.history || [];
+                    currentIndex = historyData.currentIndex !== undefined ? historyData.currentIndex : -1;
+                    console.log(`✓ Historial restaurado: ${history.length} estados, índice actual: ${currentIndex}`);
+                    return history.length > 0 && currentIndex >= 0;
+                } else {
+                    console.log('Historial expirado (más de 24hs), limpiando...');
+                    StorageHelper.removeItem('history', true);
                 }
-            } catch (error) {
-                console.error('Error cargando historial:', error);
-                history = [];
-                currentIndex = -1;
             }
-
+            history = [];
+            currentIndex = -1;
             updateButtons();
             return false;
         }
 
-        function clearStorage() {
-            try {
-                const perfilActual = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-                const storageKey = `history_${perfilActual}`;
-                localStorage.removeItem(storageKey);
-            } catch (error) {
-                console.error('Error limpiando historial:', error);
-            }
-        }
+        function clearStorage() { StorageHelper.removeItem('history', true); }
 
         function clear() {
             history = [];
@@ -684,16 +674,8 @@
         }
 
         return {
-            saveState,
-            undo,
-            redo,
-            canUndo,
-            canRedo,
-            updateButtons,
-            clear,
-            saveToLocalStorage,
-            loadFromLocalStorage,
-            getCurrentState
+            saveState, undo, redo, canUndo, canRedo, updateButtons, clear,
+            saveToLocalStorage, loadFromLocalStorage, getCurrentState
         };
     })();
 
@@ -1799,15 +1781,11 @@
     //                     MÓDULO GIST SYNC
     // ====================================================================
     const GistSync = (function (S) {
-
         const GIST_FILENAME = 'horarios_backup.json';
         const KEY_TOKEN = 'gistToken';
-
         const GIST_ID_REGEX = /^[a-f0-9]{20,40}$/i;
 
-        function esGistIdValido(id) {
-            return id && GIST_ID_REGEX.test(id.trim());
-        }
+        function esGistIdValido(id) { return id && GIST_ID_REGEX.test(id.trim()); }
 
         function _conPerfil(fn) {
             if (!window.PerfilManager) return;
@@ -1815,50 +1793,29 @@
             if (perfil) { fn(perfil); PerfilManager.guardarPerfiles(); }
         }
 
-        function getToken() { return localStorage.getItem(KEY_TOKEN) || ''; }
+        function getToken() { return StorageHelper.getItem(KEY_TOKEN, ''); }
 
-        function getGistId() {
-            const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
-            return perfil?.gistId || '';
-        }
-
-        function getLastSync() {
-            const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
-            return perfil?.gistLastSync || null;
-        }
-
-        function getMergeBehavior() {
-            const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
-            return perfil?.gistMergeBehavior || 'replace';
-        }
-
-        function setMergeBehavior(valor) {
-            _conPerfil(perfil => { perfil.gistMergeBehavior = valor; });
-        }
+        function getGistId() { return window.PerfilManager?.obtenerDatosPerfil()?.gistId || ''; }
+        function getLastSync() { return window.PerfilManager?.obtenerDatosPerfil()?.gistLastSync || null; }
+        function getMergeBehavior() { return window.PerfilManager?.obtenerDatosPerfil()?.gistMergeBehavior || 'replace'; }
+        function setMergeBehavior(valor) { _conPerfil(perfil => { perfil.gistMergeBehavior = valor; }); }
 
         function getAutoSync() {
-            const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
-            const val = perfil?.gistAutoSync;
+            const val = window.PerfilManager?.obtenerDatosPerfil()?.gistAutoSync;
             if (val === 1 || val === 2) return val;
             if (val === true) return 1;
             return 0;
         }
-
-        function setAutoSync(valor) {
-            _conPerfil(perfil => { perfil.gistAutoSync = valor; });
-        }
+        function setAutoSync(valor) { _conPerfil(perfil => { perfil.gistAutoSync = valor; }); }
 
         function getRangoHorario() {
-            const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
+            const perfil = window.PerfilManager?.obtenerDatosPerfil();
             return {
                 desde: perfil?.gistRangoDesde || '21:00',
                 hasta: perfil?.gistRangoHasta || '00:00'
             };
         }
-
-        function setRangoHorario(desde, hasta) {
-            _conPerfil(perfil => { perfil.gistRangoDesde = desde; perfil.gistRangoHasta = hasta; });
-        }
+        function setRangoHorario(desde, hasta) { _conPerfil(perfil => { perfil.gistRangoDesde = desde; perfil.gistRangoHasta = hasta; }); }
 
         function _claveHoraActual() {
             const ahora = new Date();
@@ -1866,7 +1823,7 @@
         }
 
         function getSyncCount(tipo) {
-            const perfil = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
+            const perfil = window.PerfilManager?.obtenerDatosPerfil();
             const key = `gistSyncCount_${tipo}`;
             const keyFecha = `gistSyncFecha_${tipo}`;
             if (!perfil?.[keyFecha] || perfil[keyFecha] !== _claveHoraActual()) return 0;
@@ -1886,23 +1843,18 @@
         }
 
         function getSyncLimite(tipo) {
-            const key = `gistSyncLimite_${tipo}`;
-            const val = parseInt(localStorage.getItem(key));
-            if (tipo === 'bajar') return isNaN(val) ? 2 : val;
-            if (tipo === 'subir') return isNaN(val) ? 1 : val;
-            return 2;
+            const defValue = tipo === 'bajar' ? 2 : (tipo === 'subir' ? 1 : 2);
+            return StorageHelper.getNumber(`gistSyncLimite_${tipo}`, defValue);
         }
 
         function setSyncLimite(tipo, valor) {
             const anteriorLimite = getSyncLimite(tipo);
-            try { localStorage.setItem(`gistSyncLimite_${tipo}`, valor); } catch (e) { }
+            StorageHelper.setItem(`gistSyncLimite_${tipo}`, valor);
             if (anteriorLimite === 0 && valor > 0 && window.PerfilManager) {
-                const perfil = PerfilManager.obtenerDatosPerfil();
-                if (perfil) {
+                _conPerfil(perfil => {
                     perfil[`gistSyncCount_${tipo}`] = 0;
                     perfil[`gistSyncFecha_${tipo}`] = null;
-                    PerfilManager.guardarPerfiles();
-                }
+                });
             }
         }
 
@@ -1916,44 +1868,25 @@
             const { desde, hasta } = getRangoHorario();
             const ahora = new Date();
             const horaActual = String(ahora.getHours()).padStart(2, '0') + ':' + String(ahora.getMinutes()).padStart(2, '0');
-            if (desde <= hasta) {
-                return horaActual >= desde && horaActual <= hasta;
-            } else {
-                return horaActual >= desde || horaActual <= hasta;
-            }
+            return desde <= hasta ? (horaActual >= desde && horaActual <= hasta) : (horaActual >= desde || horaActual <= hasta);
         }
 
         function saveCredentials(token, gistId) {
-            try {
-                if (token) {
-                    localStorage.setItem(KEY_TOKEN, S.sanitizeString(token.trim()));
-                } else {
-                    localStorage.removeItem(KEY_TOKEN);
-                }
-                if (window.PerfilManager) {
-                    const perfil = PerfilManager.obtenerDatosPerfil();
-                    if (perfil) {
-                        if (gistId && esGistIdValido(gistId)) {
-                            perfil.gistId = gistId.trim();
-                        } else if (gistId === '') {
-                            delete perfil.gistId;
-                        }
-                        PerfilManager.guardarPerfiles();
-                    }
-                }
-            } catch (e) { console.error('Error guardando credenciales:', e); }
+            if (token) StorageHelper.setItem(KEY_TOKEN, S.sanitizeString(token.trim()));
+            else StorageHelper.removeItem(KEY_TOKEN);
+
+            _conPerfil(perfil => {
+                if (gistId && esGistIdValido(gistId)) perfil.gistId = gistId.trim();
+                else if (gistId === '') delete perfil.gistId;
+            });
         }
 
         function saveLastSync(gistId) {
             const ahora = new Date().toLocaleString('es-AR');
-            if (window.PerfilManager) {
-                const perfil = PerfilManager.obtenerDatosPerfil();
-                if (perfil) {
-                    perfil.gistLastSync = ahora;
-                    if (gistId && esGistIdValido(gistId)) perfil.gistId = gistId;
-                    PerfilManager.guardarPerfiles();
-                }
-            }
+            _conPerfil(perfil => {
+                perfil.gistLastSync = ahora;
+                if (gistId && esGistIdValido(gistId)) perfil.gistId = gistId;
+            });
         }
 
         async function subir(registros, diasHabiles, horasDiarias) {
@@ -1961,46 +1894,19 @@
             if (!token) throw new Error('Falta el token de GitHub');
 
             const hash = await S.calcularHashSHA256(registros);
-            const data = {
-                registros,
-                diasHabiles,
-                horasDiarias,
-                fecha: S.fechaLocalISO(),
-                version: S.SECURITY_LIMITS.SCHEMA_VERSION,
-                hash,
-                timestamp: Date.now()
-            };
-
+            const data = { registros, diasHabiles, horasDiarias, fecha: S.fechaLocalISO(), version: S.SECURITY_LIMITS.SCHEMA_VERSION, hash, timestamp: Date.now() };
             const gistId = getGistId();
             const gistIdValido = esGistIdValido(gistId);
-            const url = gistIdValido
-                ? `https://api.github.com/gists/${gistId}`
-                : 'https://api.github.com/gists';
+            const url = gistIdValido ? `https://api.github.com/gists/${gistId}` : 'https://api.github.com/gists';
             const method = gistIdValido ? 'PATCH' : 'POST';
-
-            const body = {
-                description: 'Horarios PWA - Backup automático',
-                public: false,
-                files: {
-                    [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) }
-                }
-            };
 
             const response = await fetch(url, {
                 method,
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'X-GitHub-Api-Version': '2022-11-28'
-                },
-                body: JSON.stringify(body)
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'X-GitHub-Api-Version': '2022-11-28' },
+                body: JSON.stringify({ description: 'Horarios PWA - Backup automático', public: false, files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } } })
             });
 
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err.message || `Error ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error((await response.json().catch(() => ({}))).message || `Error ${response.status}`);
             const result = await response.json();
             saveLastSync(result.id);
             return result.id;
@@ -2013,39 +1919,21 @@
             if (!gistId || !esGistIdValido(gistId)) throw new Error('Gist ID inválido — dejá el campo vacío y subí primero para crear uno');
 
             const response = await fetch(`https://api.github.com/gists/${gistId}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'X-GitHub-Api-Version': '2022-11-28'
-                }
+                headers: { 'Authorization': `Bearer ${token}`, 'X-GitHub-Api-Version': '2022-11-28' }
             });
 
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err.message || `Error ${response.status}`);
-            }
-
-            const gist = await response.json();
-            const file = gist.files[GIST_FILENAME];
+            if (!response.ok) throw new Error((await response.json().catch(() => ({}))).message || `Error ${response.status}`);
+            const file = (await response.json()).files[GIST_FILENAME];
             if (!file) throw new Error(`Archivo ${GIST_FILENAME} no encontrado en el Gist`);
 
-            const data = JSON.parse(file.content, (key, value) => {
-                if (['__proto__', 'constructor', 'prototype'].includes(key)) return undefined;
-                return value;
-            });
-
-            if (data.hash) {
-                const hashCalculado = await S.calcularHashSHA256(data.registros);
-                if (hashCalculado !== data.hash) {
-                    data._hashNoCoincide = true;
-                }
-            }
+            const data = JSON.parse(file.content, (key, value) => ['__proto__', 'constructor', 'prototype'].includes(key) ? undefined : value);
+            if (data.hash && await S.calcularHashSHA256(data.registros) !== data.hash) data._hashNoCoincide = true;
 
             saveLastSync(gistId);
             return data;
         }
 
         return { getToken, getGistId, getLastSync, getMergeBehavior, setMergeBehavior, getAutoSync, setAutoSync, getRangoHorario, setRangoHorario, getSyncCount, marcarSync, superaLimite, getSyncLimite, setSyncLimite, dentroDelRangoHorario, saveCredentials, esGistIdValido, subir, bajar };
-
     })(SecurityAndUtils);
 
     window.GistSync = GistSync;
