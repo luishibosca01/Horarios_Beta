@@ -1450,7 +1450,7 @@
             if (e && tf) {
                 const minutosEntrada = TimeUtils.horaAMinutos(e);
                 const minutosFuera = TimeUtils.horaAMinutos(tf);
-                let minutosLimite = s ? TimeUtils.horaAMinutos(s) : (new Date().getHours() * 60 + new Date().getMinutes());
+                let minutosLimite = s ? TimeUtils.horaAMinutos(s) : TimeUtils.horaAMinutos(TimeUtils.obtenerHoraActual());
 
                 let tiempoTranscurrido = minutosLimite - minutosEntrada;
                 if (tiempoTranscurrido < 0) tiempoTranscurrido += 24 * 60;
@@ -2674,8 +2674,8 @@
             }
 
             return {
-                entradaPromedio: minutosAHora(promedioEntrada),
-                salidaPromedio: minutosAHora(promedioSalida),
+                entradaPromedio: TimeUtils.minutosAHora(promedioEntrada),
+                salidaPromedio: TimeUtils.minutosAHora(promedioSalida),
                 diasTrabajados: registrosValidos.length,
                 promedioDiario: `${hPromedio}h ${mPromedio}m`,
                 tiempoFueraTotal: hTiempoFuera > 0 ? `${hTiempoFuera}h ${mTiempoFuera}m` : `${mTiempoFuera}m`,
@@ -2767,10 +2767,6 @@
             }
             const stats = calcularEstadisticasMes(mesAnio);
             _renderizarStats(stats, { mostrarBtnReporte: true });
-        }
-
-        function _perfilKey(base) {
-            return window.PerfilManager ? PerfilManager.perfilKey(base) : base + '_default';
         }
 
         let _fondoCard = 'golden-gate';
