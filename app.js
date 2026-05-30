@@ -4238,7 +4238,7 @@ ${lineasTipos}
 
 ────────────────────────────────────────────────────────────────
 
-Generado por Sistema Lushibosca
+Generado por Sistema Horarios
 `
             };
 
