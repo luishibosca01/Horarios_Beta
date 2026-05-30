@@ -115,7 +115,7 @@
         }
 
         function horaAMinutos(h) {
-            if (!validarHora(h)) return 0; // FIX: antes solo chequeaba ':', ahora valida formato completo
+            if (!validarHora(h)) return 0; 
             const [hr, mn] = h.split(':').map(Number);
             return (hr * 60) + mn;
         }
@@ -123,7 +123,7 @@
         function sumarMinutosAHora(horaString, minutosASumar) {
             let totalMinutos = minutosASumar + horaAMinutos(horaString);
             let horas = Math.floor(totalMinutos / 60);
-            let mins = Math.floor(totalMinutos % 60); // FIX: Math.round podía producir mins=60
+            let mins = Math.floor(totalMinutos % 60);
             if (horas > 23) { horas = 23; mins = 59; }
             return `${String(horas).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
         }
@@ -210,12 +210,10 @@
     const StorageHelper = (function () {
         'use strict';
 
-        // Obtiene la clave final dependiendo de si debe usar el perfil activo
         function _getKey(key, useProfile) {
             if (useProfile && window.PerfilManager) {
                 return window.PerfilManager.perfilKey(key);
             }
-            // Fallback en caso de que PerfilManager no esté listo pero se pidió perfil
             if (useProfile) return key + '_default';
             return key;
         }
@@ -224,7 +222,7 @@
             try {
                 const finalKey = _getKey(key, useProfile);
                 const valueToStore = typeof value === 'object' ? JSON.stringify(value) : String(value);
-                localStorage.setItem(finalKey, valueToStore); // FIX: era StorageHelper.setItem (recursión infinita)
+                localStorage.setItem(finalKey, valueToStore);
                 return true;
             } catch (e) {
                 console.error(`Error guardando en Storage (${key}):`, e);
@@ -262,7 +260,6 @@
             if (!val) return defaultValue;
             try {
                 return JSON.parse(val, (k, v) => {
-                    // Prevención de prototype pollution
                     if (['__proto__', 'constructor', 'prototype'].includes(k)) return undefined;
                     return v;
                 });
@@ -655,7 +652,7 @@
     // HISTORY MANAGER MODULE
     // ====================================================================
     const HistoryManager = (function () {
-        let _stack = []; // FIX: renombrado de 'history' para no shadowear window.history
+        let _stack = [];
         let currentIndex = -1;
         const MAX_HISTORY = 20;
 
@@ -711,7 +708,6 @@
 
         function saveToLocalStorage() {
             const historyData = { history: _stack, currentIndex: currentIndex, timestamp: Date.now() };
-            // El tercer parámetro `true` le dice al StorageHelper que lo guarde en el perfil activo
             StorageHelper.setItem('history', historyData, true);
         }
 
@@ -779,7 +775,6 @@
             function ok() { cleanup(); resolve(true); }
             function cancel() { cleanup(); resolve(false); }
 
-            // FIX: cleanup también al cerrar por navegación (popstate) para evitar memory leak
             function onPopstate() {
                 _removeListeners();
                 resolve(false);
@@ -1103,10 +1098,6 @@
         }
 
         function cargarConfiguracion() {
-            // FIX: diasHabiles y horasDiarias se leen del perfil activo (gestionado por PerfilManager),
-            // no del storage global. Los valores del perfil son la fuente de verdad.
-            // Las claves globales 'diasHabiles' / 'horasDiarias' solo se usan como fallback
-            // para el perfil 'default' por retrocompatibilidad.
             const perfilData = window.PerfilManager ? PerfilManager.obtenerDatosPerfil() : null;
             return {
                 diasHabiles: (perfilData && Array.isArray(perfilData.diasHabiles))
@@ -1897,7 +1888,6 @@
         function setRangoHorario(desde, hasta) { _conPerfil(perfil => { perfil.gistRangoDesde = desde; perfil.gistRangoHasta = hasta; }); }
 
         function _claveHoraActual() {
-            // slice(0,13) → "YYYY-MM-DD HH" que es la clave de hora para límite de syncs
             return TimeUtils.fechaLocalISOFull().slice(0, 13);
         }
 
@@ -1960,7 +1950,6 @@
         }
 
         function saveLastSync(gistId) {
-            // FIX: se guarda como ISO + display local separados; el display se genera al leer
             const ahoraISO = new Date().toISOString();
             _conPerfil(perfil => {
                 perfil.gistLastSync = ahoraISO;
@@ -1968,14 +1957,13 @@
             });
         }
 
-        // FIX: helper para formatear lastSync (soporta ISO nuevo y legacy toLocaleString)
         function formatLastSync(isoOrLegacy) {
             if (!isoOrLegacy) return null;
             try {
                 const d = new Date(isoOrLegacy);
                 if (!isNaN(d.getTime())) return d.toLocaleString('es-AR');
             } catch (e) { }
-            return isoOrLegacy; // fallback: devolver tal cual si no es ISO válido
+            return isoOrLegacy;
         }
 
         async function subir(registros, diasHabiles, horasDiarias) {
@@ -3058,7 +3046,7 @@
                         }
 
                         let hS = Math.floor(minutosTotal / 60) % 24;
-                        const mS = Math.floor(minutosTotal % 60); // FIX: Math.round → Math.floor
+                        const mS = Math.floor(minutosTotal % 60);
                         const horaSalida = `${String(hS).padStart(2, '0')}:${String(mS).padStart(2, '0')}`;
 
                         const esLaborable = Array.isArray(diasHabiles) && diasHabiles.includes(new Date().getDay());
@@ -3067,7 +3055,7 @@
                         if (mostrarBuffer) {
                             const minutosConBuffer = minutosTotal - (bufferSemanal * 60);
                             let hSB = Math.floor(minutosConBuffer / 60) % 24;
-                            const mSB = Math.floor(minutosConBuffer % 60); // FIX: Math.round → Math.floor
+                            const mSB = Math.floor(minutosConBuffer % 60);
                             const horaBuf = `${String(hSB).padStart(2, '0')}:${String(mSB).padStart(2, '0')}`;
                             const colorBuffer = bufferSemanal > 0 ? 'var(--c-green)' : bufferSemanal < 0 ? 'var(--c-red)' : 'var(--text-main)';
                             hint = `Salida estimada: <strong>${horaSalida}</strong> <span class="hint-buffer-color" data-color="${colorBuffer}">(<strong>${horaBuf}</strong>)</span>`;
@@ -3167,7 +3155,7 @@
                     if (mins > 0) minutosTotal += mins;
                 }
                 let hS = Math.floor(minutosTotal / 60) % 24;
-                const mS = Math.floor(minutosTotal % 60); // FIX: Math.round → Math.floor
+                const mS = Math.floor(minutosTotal % 60); 
                 const horaSalida = `${String(hS).padStart(2, '0')}:${String(mS).padStart(2, '0')}`;
 
                 const esLaborable = Array.isArray(diasHabiles) && diasHabiles.includes(new Date().getDay());
@@ -3176,7 +3164,7 @@
                 if (mostrarBuffer) {
                     const minutosConBuffer = minutosTotal - (bufferSemanal * 60);
                     let hSB = Math.floor(minutosConBuffer / 60) % 24;
-                    const mSB = Math.floor(minutosConBuffer % 60); // FIX: Math.round → Math.floor
+                    const mSB = Math.floor(minutosConBuffer % 60); 
                     const horaBuf = `${String(hSB).padStart(2, '0')}:${String(mSB).padStart(2, '0')}`;
                     const colorBuffer = bufferSemanal > 0 ? 'var(--c-green)' : bufferSemanal < 0 ? 'var(--c-red)' : 'var(--text-main)';
                     hint = `Salida estimada: <strong>${horaSalida}</strong> <span class="hint-buffer-color" data-color="${colorBuffer}">(<strong>${horaBuf}</strong>)</span>`;
@@ -3712,7 +3700,6 @@
 
         function cerrarImportar() {
             if (!_modalAbiertoDesdeLista) {
-                // FIX: restaurar relación padre por si fue borrada por cerrarTodos (ej: desde Gist)
                 ModalManager.setPadre('modal-config', 'modal-selector-perfiles');
             }
             ModalManager.alternar('modal-importar', _modalAbiertoDesdeLista ? null : 'modal-config');
@@ -4720,7 +4707,6 @@ Generado por Sistema Lushibosca
             };
 
             try {
-                // FIX: usar StorageHelper en vez de localStorage directo
                 if (!StorageHelper.setItem('perfiles', perfiles)) throw new Error('quota');
             } catch (e) {
                 console.error('Error al guardar perfil:', e);
@@ -4845,7 +4831,6 @@ Generado por Sistema Lushibosca
             const nombreAnterior = perfiles[perfilEnEdicion].nombre;
             perfiles[perfilEnEdicion].nombre = nuevoNombre;
             try {
-                // FIX: usar StorageHelper en vez de localStorage directo
                 if (!StorageHelper.setItem('perfiles', perfiles)) throw new Error('quota');
             } catch (e) {
                 console.error('Error al guardar perfil:', e);
@@ -4887,7 +4872,6 @@ Generado por Sistema Lushibosca
             if (!confirmacion) return;
 
             const pid = perfilEnEdicion;
-            // FIX: usar StorageHelper en vez de localStorage directo
             ['breakStartTime', 'history', 'fondoCard', 'ignorarTiempoFuera',
              'cardVisible_registrar', 'cardVisible_estadisticas', 'cardVisible_historico', 'ordenCards'
             ].forEach(k => StorageHelper.removeItem(`${k}_${pid}`));
@@ -5310,7 +5294,6 @@ Generado por Sistema Lushibosca
 
         function cerrarExportar() {
             if (!_modalAbiertoDesdeLista) {
-                // FIX: restaurar relación padre por si fue borrada por cerrarTodos (ej: desde Gist)
                 ModalManager.setPadre('modal-config', 'modal-selector-perfiles');
             }
             ModalManager.alternar('modal-exportar', _modalAbiertoDesdeLista ? null : 'modal-config');
@@ -5630,8 +5613,6 @@ Generado por Sistema Lushibosca
                 ModalManager.cerrar('modal-gist');
                 if (_gistModalPadre) {
                     ModalManager.abrir(_gistModalPadre);
-                    // FIX: restaurar la relación padre para que cerrar modal-config
-                    // sepa que debe volver a modal-selector-perfiles
                     if (_gistModalPadre === 'modal-config') {
                         ModalManager.setPadre('modal-config', 'modal-selector-perfiles');
                     }
@@ -6252,8 +6233,6 @@ Generado por Sistema Lushibosca
 
             if (historialCargado) {
                 const estadoActual = HistoryManager.getCurrentState();
-                // FIX: si el historial esta vacio (guardado corrupto antes del fix de StorageHelper),
-                // descartarlo y mantener los registros del perfil como fuente de verdad
                 if (estadoActual && estadoActual.length > 0) {
                     D.registros().splice(0, D.registros().length, ...estadoActual);
                     console.log('Registros restaurados desde historial');
@@ -7141,7 +7120,6 @@ Generado por Sistema Lushibosca
         function _popupCalendarioHover(event, registroId) {
             if (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents) return;
             if (!window.matchMedia('(hover: hover)').matches) return;
-            // FIX: usar StorageHelper en lugar de localStorage directo
             const stored = StorageHelper.getItem('hoverPopupCalendario', null);
             const esHover = window.matchMedia('(hover: hover)').matches;
             if (stored === null ? !esHover : stored !== 'true') return;
@@ -7156,7 +7134,6 @@ Generado por Sistema Lushibosca
 
         function _onclickCalendarioDia(event, registroId) {
             const esDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-            // FIX: usar StorageHelper en lugar de localStorage directo
             const stored = StorageHelper.getItem('hoverPopupCalendario', null);
             const hoverActivo = esDesktop && (stored === null ? true : stored === 'true');
 
