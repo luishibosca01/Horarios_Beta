@@ -1366,6 +1366,51 @@
             });
         }
 
+        /**
+         * Valida los campos del formulario de edición antes de guardar.
+         * Usa registros y editandoId del closure del módulo.
+         * @returns {{ msg: string, tipo: string }} | null  — null si no hay error.
+         */
+        function _validarCamposEdicion(f, e, s, tf) {
+            const hoy = TimeUtils.obtenerFechaHoy();
+
+            if (f > hoy && !TiposRegistro.esRegistroEspecial(e, s))
+                return { msg: 'Fecha futura no permitida en registro regular', tipo: 'warning' };
+
+            if (!TimeUtils.validarFecha(f))
+                return { msg: 'Fecha inválida', tipo: 'error' };
+            if (e && !TimeUtils.validarHora(e))
+                return { msg: 'Hora de entrada inválida', tipo: 'error' };
+            if (s && !TimeUtils.validarHora(s))
+                return { msg: 'Hora de salida inválida', tipo: 'error' };
+            if (tf && !TimeUtils.validarHora(tf))
+                return { msg: 'Tiempo fuera inválido', tipo: 'error' };
+            if (!e && s)
+                return { msg: 'Debes fichar una entrada', tipo: 'error' };
+
+            if (registros.some(reg => reg.fecha === f && reg.id !== editandoId))
+                return { msg: 'Ya existe otro registro para esa fecha', tipo: 'error' };
+
+            if (e && tf) {
+                const minutosEntrada = TimeUtils.horaAMinutos(e);
+                const minutosFuera  = TimeUtils.horaAMinutos(tf);
+                let minutosLimite   = s
+                    ? TimeUtils.horaAMinutos(s)
+                    : TimeUtils.horaAMinutos(TimeUtils.obtenerHoraActual());
+                let tiempoTranscurrido = minutosLimite - minutosEntrada;
+                if (tiempoTranscurrido < 0) tiempoTranscurrido += 24 * 60;
+                if (minutosFuera > tiempoTranscurrido)
+                    return {
+                        msg: s
+                            ? 'El tiempo fuera no puede superar el tiempo efectivo'
+                            : 'El tiempo fuera no puede superar el tiempo transcurrido desde la entrada',
+                        tipo: 'error'
+                    };
+            }
+
+            return null;
+        }
+
         async function guardarEdicion() {
             const r = registros.find(x => x.id === editandoId);
             if (!r) return;
@@ -1401,16 +1446,6 @@
                     }
                 }
             }
-            const hoy = TimeUtils.obtenerFechaHoy();
-            if (f > hoy) {
-                const esEspecial = TiposRegistro.esRegistroEspecial(e, s);
-                if (!esEspecial) {
-                    UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                    UILogic.mostrarToast('Fecha futura no permitida en registro regular', 'warning');
-                    return;
-                }
-            }
-
             if (r.fecha === f && (r.entrada || '') === (e || '') && (r.salida || '') === (s || '') &&
                 (r.tiempoFuera || '') === (tf || '') && (r.credito || '') === (cr || '') && (r.notas || '') === (notas || '')) {
                 UILogic.mostrarToast('Sin cambios', 'info');
@@ -1418,13 +1453,6 @@
                 UILogic.cerrarEdicion();
                 return;
             }
-
-            if (!TimeUtils.validarFecha(f)) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Fecha inválida', 'error'); return; }
-            if (e && !TimeUtils.validarHora(e)) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Hora de entrada inválida', 'error'); return; }
-            if (s && !TimeUtils.validarHora(s)) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Hora de salida inválida', 'error'); return; }
-            if (tf && !TimeUtils.validarHora(tf)) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Tiempo fuera inválido', 'error'); return; }
-
-            if (!e && s) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Debes fichar una entrada', 'error'); return; }
 
             if (!e && !s) {
                 const registroABorrar = registros.find(r => r.id === editandoId);
@@ -1446,22 +1474,11 @@
                 return;
             }
 
-            const existeFecha = registros.some(reg => reg.fecha === f && reg.id !== editandoId);
-            if (existeFecha) { UILogic.restaurarBotonGuardarEdicion(btnGuardar); UILogic.mostrarToast('Ya existe otro registro para esa fecha', 'error'); return; }
-
-            if (e && tf) {
-                const minutosEntrada = TimeUtils.horaAMinutos(e);
-                const minutosFuera = TimeUtils.horaAMinutos(tf);
-                let minutosLimite = s ? TimeUtils.horaAMinutos(s) : TimeUtils.horaAMinutos(TimeUtils.obtenerHoraActual());
-
-                let tiempoTranscurrido = minutosLimite - minutosEntrada;
-                if (tiempoTranscurrido < 0) tiempoTranscurrido += 24 * 60;
-
-                if (minutosFuera > tiempoTranscurrido) {
-                    UILogic.restaurarBotonGuardarEdicion(btnGuardar);
-                    UILogic.mostrarToast(s ? 'El tiempo fuera no puede superar el tiempo efectivo' : 'El tiempo fuera no puede superar el tiempo transcurrido desde la entrada', 'error');
-                    return;
-                }
+            const camposError = _validarCamposEdicion(f, e, s, tf);
+            if (camposError) {
+                UILogic.restaurarBotonGuardarEdicion(btnGuardar);
+                UILogic.mostrarToast(camposError.msg, camposError.tipo);
+                return;
             }
 
             r.fecha = f; r.entrada = e || null;
