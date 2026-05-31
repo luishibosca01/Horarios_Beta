@@ -195,12 +195,31 @@
             return nombre.charAt(0).toUpperCase() + nombre.slice(1);
         }
 
+        /**
+         * Genera un array de fechas ISO "YYYY-MM-DD" entre `desde` y `hasta` (inclusive).
+         * Nunca muta los Date originales; cada fecha se clona internamente.
+         * @param {string} desde - Fecha ISO inicial "YYYY-MM-DD"
+         * @param {string} hasta - Fecha ISO final  "YYYY-MM-DD"
+         * @returns {string[]}
+         */
+        function generarRangoFechas(desde, hasta) {
+            const resultado = [];
+            const cur = parsearFechaLocal(desde);
+            const fin = parsearFechaLocal(hasta);
+            while (cur <= fin) {
+                resultado.push(formatearFechaLocal(cur));
+                cur.setDate(cur.getDate() + 1);
+            }
+            return resultado;
+        }
+
         return {
             validarFecha, validarHora, parsearFechaLocal, formatearFechaLocal,
             obtenerFechaHoy, obtenerHoraActual, minutosAHora, fechaLocalISOFull,
             horaAMinutos, sumarMinutosAHora,
             obtenerNombreDia, obtenerLunes, obtenerLunesSemanaISO, obtenerSemanaRangoActual,
-            horasATexto, formatoDiferencia, formatoTituloMes
+            horasATexto, formatoDiferencia, formatoTituloMes,
+            generarRangoFechas
         };
     })();
 
@@ -1000,13 +1019,7 @@
                 const huboCambios = nuevoTipo !== grupoEnEdicion.subtipo || nuevaDesde !== grupoEnEdicion.fechaDesde || nuevaHasta !== grupoEnEdicion.fechaHasta;
                 if (!huboCambios) { UILogic.mostrarToast('Sin cambios', 'info'); UILogic.cerrarEdicionGrupo(); return; }
 
-                const fechasNuevas = [];
-                let checkFecha = TimeUtils.parsearFechaLocal(nuevaDesde);
-                const checkFin = TimeUtils.parsearFechaLocal(nuevaHasta);
-                while (checkFecha <= checkFin) {
-                    fechasNuevas.push(TimeUtils.formatearFechaLocal(checkFecha));
-                    checkFecha.setDate(checkFecha.getDate() + 1);
-                }
+                const fechasNuevas = TimeUtils.generarRangoFechas(nuevaDesde, nuevaHasta);
 
                 const idsDelGrupo = new Set(grupoEnEdicion.registros.map(r => r.id));
                 const fechasSet = new Set(fechasNuevas);
@@ -1688,13 +1701,10 @@
             const registrosRango = registros.filter(r => r.fecha >= inicioSemana && r.fecha <= fechaHoy);
             const registrosMap = new Map(registrosRango.map(r => [r.fecha, r]));
 
-            let fechaIteracion = TimeUtils.parsearFechaLocal(inicioSemana);
-            let fechaLimite = TimeUtils.parsearFechaLocal(fechaHoy);
             const { ayerStr, ayerAbierto } = detectarAyerAbierto(fechaHoy, registrosMap);
 
-            while (fechaIteracion <= fechaLimite) {
-                const isoDate = TimeUtils.formatearFechaLocal(fechaIteracion);
-                const numDia = fechaIteracion.getDay();
+            for (const isoDate of TimeUtils.generarRangoFechas(inicioSemana, fechaHoy)) {
+                const numDia = TimeUtils.parsearFechaLocal(isoDate).getDay();
                 const esDiaLaboralConfigurado = diasHabiles.includes(numDia);
                 const r = registrosMap.get(isoDate);
                 let horasObjetivoDia = 0, horasHechasDia = 0;
@@ -1712,7 +1722,6 @@
                     if (r && !esEspecial && r.salida) horasHechasDia = r.total;
                 }
                 buffer += (horasHechasDia - horasObjetivoDia);
-                fechaIteracion.setDate(fechaIteracion.getDate() + 1);
             }
             return buffer;
         }
@@ -1757,14 +1766,7 @@
             const entrada = tipoConfig.codigo;
             const salida = tipoConfig.codigo;
 
-            let fechaActual = TimeUtils.parsearFechaLocal(desde);
-            const fechaFin = TimeUtils.parsearFechaLocal(hasta);
-            const fechasARegistrar = [];
-
-            while (fechaActual <= fechaFin) {
-                fechasARegistrar.push(TimeUtils.formatearFechaLocal(fechaActual));
-                fechaActual.setDate(fechaActual.getDate() + 1);
-            }
+            const fechasARegistrar = TimeUtils.generarRangoFechas(desde, hasta);
 
             if (fechasARegistrar.length > 60) { UILogic.mostrarToast(`El rango seleccionado contiene ${fechasARegistrar.length} días.\n Máximo permitido: 60 días por operación.`, 'error'); throw new Error('Límite de días excedido'); }
 
@@ -2647,12 +2649,9 @@
 
                 let objetivo = 0;
                 let hechas = 0;
-                let fechaIt = TimeUtils.parsearFechaLocal(opciones.desde);
-                const fechaFin = TimeUtils.parsearFechaLocal(opciones.hasta);
-                while (fechaIt <= fechaFin) {
-                    const iso = TimeUtils.formatearFechaLocal(fechaIt);
-                    if (iso > hoy) { fechaIt.setDate(fechaIt.getDate() + 1); continue; }
-                    const esDiaHabil = diasHabilesConfig.includes(fechaIt.getDay());
+                for (const iso of TimeUtils.generarRangoFechas(opciones.desde, opciones.hasta)) {
+                    if (iso > hoy) continue;
+                    const esDiaHabil = diasHabilesConfig.includes(TimeUtils.parsearFechaLocal(iso).getDay());
                     const r = regsPorFecha.get(iso);
                     const esEspecial = r && TiposRegistro.esRegistroEspecial(r.entrada, r.salida);
                     const esHoy = iso === hoy;
@@ -2674,7 +2673,6 @@
                     if (esRemoto) {
                         hechas += horasDiariasObj;
                     }
-                    fechaIt.setDate(fechaIt.getDate() + 1);
                 }
                 bufferPeriodo = hechas - objetivo;
             }
@@ -2908,16 +2906,8 @@
 
             let todosEspeciales = false;
             if (Array.isArray(diasHabiles) && diasHabiles.length > 0 && horasDiarias > 0) {
-                const fechasLaborables = [];
-                let cur = TimeUtils.parsearFechaLocal(ini);
-                const fin = TimeUtils.parsearFechaLocal(fn);
-                while (cur <= fin) {
-                    if (diasHabiles.includes(cur.getDay())) {
-                        fechasLaborables.push(TimeUtils.formatearFechaLocal(cur));
-                    }
-                    cur = new Date(cur);
-                    cur.setDate(cur.getDate() + 1);
-                }
+                const fechasLaborables = TimeUtils.generarRangoFechas(ini, fn)
+                    .filter(f => diasHabiles.includes(TimeUtils.parsearFechaLocal(f).getDay()));
                 if (fechasLaborables.length > 0) {
                     const especiales = fechasLaborables.filter(fecha => {
                         const r = registros.find(x => x.fecha === fecha);
@@ -3009,6 +2999,11 @@
         }
 
         // ─── HINT DE SALIDA ESTIMADA ───────────────────────────────────────
+        // Calcula el texto de "Salida estimada" para un registro abierto,
+        // teniendo en cuenta el tiempo fuera activo, el timer de break y
+        // el buffer semanal. Devuelve { hint, hintEsHTML }.
+        // Precondición: el llamador ya verificó que reg.entrada existe,
+        // objetivoDiario > 0 y el registro no es de tipo especial.
         function _calcularHintSalidaEstimada(reg, objetivoDiario, bufferSemanal, diasHabiles) {
             const [hE, mE] = reg.entrada.split(':').map(Number);
             let minutosTotal = (hE * 60) + mE + (objetivoDiario * 60);
@@ -4238,7 +4233,7 @@ ${lineasTipos}
 
 ────────────────────────────────────────────────────────────────
 
-Generado por Sistema Horarios
+Generado por Sistema Lushibosca
 `
             };
 
