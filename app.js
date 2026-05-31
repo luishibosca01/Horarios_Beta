@@ -4,6 +4,47 @@
 
     const $ = id => document.getElementById(id);
 
+    // ====================================================================
+    // STORAGE KEYS — MODULE
+    // ====================================================================
+    const STORAGE_KEYS = Object.freeze({
+        // ── Configuración global ──────────────────────────────────────
+        TEMA_OSCURO:           'temaOscuro',
+        VISTA_ACTUAL:          'vistaActual',
+        MODO_ESTADISTICAS:     'modoEstadisticas',
+        HOVER_POPUP:           'hoverPopupCalendario',
+        DIAS_HABILES:          'diasHabiles',
+        HORAS_DIARIAS:         'horasDiarias',
+        VISTA_HISTORICO_CAL:   'vistaHistoricoCalendario',
+
+        // ── Configuración por perfil (useProfile = true) ──────────────
+        IGNORAR_TF:            'ignorarTiempoFuera',
+        FONDO_CARD:            'fondoCard',
+        PERSISTIR_TARJETAS:    'persistirTarjetas',
+        ORDEN_CARDS:           'ordenCards',
+
+        // ── Estado UI persistido ──────────────────────────────────────
+        FORMULARIO_EXPANDIDO:  'formularioExpandido',
+        STATS_EXPANDIDO:       'statsExpandido',
+        HISTORICO_EXPANDIDO:   'historicoExpandido',
+
+        // ── Perfiles e historial ──────────────────────────────────────
+        PERFIL_ACTIVO:         'perfilActivo',
+        PERFILES:              'perfiles',
+        HISTORY:               'history',
+
+        // ── Gist ──────────────────────────────────────────────────────
+        GIST_TOKEN:            'gistToken',
+
+        // ── Plantillas (claves con parte dinámica) ────────────────────
+        BREAK_TIME:    (perfilId) => `breakStartTime_${perfilId}`,
+        GIST_LIMITE:   (tipo)     => `gistSyncLimite_${tipo}`,
+        MES_EXPANDIDO: (clave)    => `mes-${clave}-expandido`,
+        ANIO_EXPANDIDO:(anioId)   => `anio-${anioId}-expandido`,
+        CARD_VISIBLE:  (cual)     => `cardVisible_${cual}`,
+    });
+
+
     function _applyDataColors(root) {
         root.querySelectorAll('[data-color]').forEach(el => {
             el.style.color = el.dataset.color;
@@ -425,10 +466,10 @@
                 'default': { nombre: 'Principal', registros: [], diasHabiles: [1, 2, 3, 4, 5], horasDiarias: 7 }
             };
 
-            perfiles = StorageHelper.getObject('perfiles', defaultPerfil);
+            perfiles = StorageHelper.getObject(STORAGE_KEYS.PERFILES, defaultPerfil);
             if (!perfiles['default']) perfiles['default'] = defaultPerfil['default'];
 
-            perfilActual = StorageHelper.getItem('perfilActivo', 'default');
+            perfilActual = StorageHelper.getItem(STORAGE_KEYS.PERFIL_ACTIVO, 'default');
             if (!perfiles[perfilActual]) {
                 const availableIds = Object.keys(perfiles);
                 perfilActual = availableIds.length > 0 ? availableIds[0] : 'default';
@@ -436,8 +477,8 @@
         }
 
         function guardarPerfiles() {
-            const savedPerfiles = StorageHelper.setItem('perfiles', perfiles);
-            const savedActivo = StorageHelper.setItem('perfilActivo', perfilActual);
+            const savedPerfiles = StorageHelper.setItem(STORAGE_KEYS.PERFILES, perfiles);
+            const savedActivo = StorageHelper.setItem(STORAGE_KEYS.PERFIL_ACTIVO, perfilActual);
             return savedPerfiles && savedActivo;
         }
 
@@ -498,7 +539,7 @@
             if (!nuevoId || nuevoId === perfilActual) return;
             guardarDatosPerfilActual();
             perfilActual = nuevoId;
-            if (StorageHelper.setItem('perfilActivo', perfilActual)) {
+            if (StorageHelper.setItem(STORAGE_KEYS.PERFIL_ACTIVO, perfilActual)) {
                 location.reload();
             }
         }
@@ -722,11 +763,11 @@
 
         function saveToLocalStorage() {
             const historyData = { history: _stack, currentIndex: currentIndex, timestamp: Date.now() };
-            StorageHelper.setItem('history', historyData, true);
+            StorageHelper.setItem(STORAGE_KEYS.HISTORY, historyData, true);
         }
 
         function loadFromLocalStorage() {
-            const historyData = StorageHelper.getObject('history', null, true);
+            const historyData = StorageHelper.getObject(STORAGE_KEYS.HISTORY, null, true);
             if (historyData) {
                 const ahora = Date.now();
                 const tiempoTranscurrido = ahora - (historyData.timestamp || 0);
@@ -739,7 +780,7 @@
                     return _stack.length > 0 && currentIndex >= 0;
                 } else {
                     console.log('Historial expirado (más de 24hs), limpiando...');
-                    StorageHelper.removeItem('history', true);
+                    StorageHelper.removeItem(STORAGE_KEYS.HISTORY, true);
                 }
             }
             _stack = [];
@@ -748,7 +789,7 @@
             return false;
         }
 
-        function clearStorage() { StorageHelper.removeItem('history', true); }
+        function clearStorage() { StorageHelper.removeItem(STORAGE_KEYS.HISTORY, true); }
 
         function clear() {
             _stack = [];
@@ -1110,15 +1151,15 @@
             return {
                 diasHabiles: (perfilData && Array.isArray(perfilData.diasHabiles))
                     ? perfilData.diasHabiles
-                    : StorageHelper.getObject('diasHabiles', [1, 2, 3, 4, 5]),
+                    : StorageHelper.getObject(STORAGE_KEYS.DIAS_HABILES, [1, 2, 3, 4, 5]),
                 horasDiarias: (perfilData && perfilData.horasDiarias !== undefined)
                     ? perfilData.horasDiarias
-                    : StorageHelper.getNumber('horasDiarias', 7),
-                temaOscuro: StorageHelper.getBoolean('temaOscuro', true),
-                vistaActual: StorageHelper.getItem('vistaActual', 'diaria'),
-                ignorarTiempoFuera: StorageHelper.getBoolean('ignorarTiempoFuera', false, true),
-                modoEstadisticas: StorageHelper.getItem('modoEstadisticas', 'mensual'),
-                fondoCard: StorageHelper.getItem('fondoCard', 'golden-gate', true)
+                    : StorageHelper.getNumber(STORAGE_KEYS.HORAS_DIARIAS, 7),
+                temaOscuro: StorageHelper.getBoolean(STORAGE_KEYS.TEMA_OSCURO, true),
+                vistaActual: StorageHelper.getItem(STORAGE_KEYS.VISTA_ACTUAL, 'diaria'),
+                ignorarTiempoFuera: StorageHelper.getBoolean(STORAGE_KEYS.IGNORAR_TF, false, true),
+                modoEstadisticas: StorageHelper.getItem(STORAGE_KEYS.MODO_ESTADISTICAS, 'mensual'),
+                fondoCard: StorageHelper.getItem(STORAGE_KEYS.FONDO_CARD, 'golden-gate', true)
             };
         }
 
@@ -1306,7 +1347,7 @@
 
                 if (registroABorrar && registroABorrar.fecha === hoy) {
                     const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-                    const storageKey = `breakStartTime_${perfilId}`;
+                    const storageKey = STORAGE_KEYS.BREAK_TIME(perfilId);
                     if (StorageHelper.getItem(storageKey)) {
                         StorageHelper.removeItem(storageKey);
                         UILogic.mostrarToast('Timer detenido al borrar el registro', 'info');
@@ -1458,7 +1499,7 @@
                 const registroABorrar = registros.find(r => r.id === editandoId);
                 if (registroABorrar && registroABorrar.fecha === TimeUtils.obtenerFechaHoy()) {
                     const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-                    StorageHelper.removeItem(`breakStartTime_${perfilId}`);
+                    StorageHelper.removeItem(STORAGE_KEYS.BREAK_TIME(perfilId));
                     UILogic.actualizarEstadoBotonTimerMain();
                 }
                 registros = registros.filter(r => r.id !== editandoId);
@@ -1517,8 +1558,8 @@
             ignorarTiempoFuera = false;
 
             const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-            StorageHelper.removeItem(`breakStartTime_${perfilId}`);
-            const keys = ['history', 'fondoCard', 'ignorarTiempoFuera', 'cardVisible_registrar', 'cardVisible_estadisticas', 'cardVisible_historico', 'ordenCards'];
+            StorageHelper.removeItem(STORAGE_KEYS.BREAK_TIME(perfilId));
+            const keys = [STORAGE_KEYS.HISTORY, STORAGE_KEYS.FONDO_CARD, STORAGE_KEYS.IGNORAR_TF, 'cardVisible_registrar', 'cardVisible_estadisticas', 'cardVisible_historico', STORAGE_KEYS.ORDEN_CARDS];
             keys.forEach(k => StorageHelper.removeItem(k, true));
 
             if (window.PerfilManager) {
@@ -1591,7 +1632,7 @@
                         return value;
                     });
 
-                    const allowedRootKeys = ['registros', 'diasHabiles', 'horasDiarias', 'fecha', 'version', 'hash', 'timestamp', 'rangoExportado'];
+                    const allowedRootKeys = ['registros', STORAGE_KEYS.DIAS_HABILES, STORAGE_KEYS.HORAS_DIARIAS, 'fecha', 'version', 'hash', 'timestamp', 'rangoExportado'];
                     if (Object.keys(data).some(k => !allowedRootKeys.includes(k))) { UILogic.mostrarToast('Archivo con estructura sospechosa', 'error'); return; }
                     if (!data || typeof data !== 'object' || Array.isArray(data)) { UILogic.mostrarToast('Estructura de archivo inválida', 'error'); return; }
                     if (!data.registros || !Array.isArray(data.registros)) { UILogic.mostrarToast('Archivo inválido o corrupto', 'error'); return; }
@@ -1668,8 +1709,8 @@
             if (await guardarYActualizar()) {
                 const esPerfilDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
                 if (esPerfilDefault) {
-                    StorageHelper.setItem('diasHabiles', diasHabiles);
-                    StorageHelper.setItem('horasDiarias', horasDiarias);
+                    StorageHelper.setItem(STORAGE_KEYS.DIAS_HABILES, diasHabiles);
+                    StorageHelper.setItem(STORAGE_KEYS.HORAS_DIARIAS, horasDiarias);
                 }
                 UILogic.mostrarToast(mensajeExito, 'success');
                 UILogic.cerrarImportar();
@@ -1679,7 +1720,7 @@
 
         function detenerYRegistrarTimer(registro) {
             const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-            const storageKey = `breakStartTime_${perfilId}`;
+            const storageKey = STORAGE_KEYS.BREAK_TIME(perfilId);
             const storedStart = StorageHelper.getItem(storageKey);
             if (!storedStart) return false;
 
@@ -1873,7 +1914,6 @@
     // ====================================================================
     const GistSync = (function (S) {
         const GIST_FILENAME = 'horarios_backup.json';
-        const KEY_TOKEN = 'gistToken';
         const GIST_ID_REGEX = /^[a-f0-9]{20,40}$/i;
 
         function esGistIdValido(id) { return id && GIST_ID_REGEX.test(id.trim()); }
@@ -1884,7 +1924,7 @@
             if (perfil) { fn(perfil); PerfilManager.guardarPerfiles(); }
         }
 
-        function getToken() { return StorageHelper.getItem(KEY_TOKEN, ''); }
+        function getToken() { return StorageHelper.getItem(STORAGE_KEYS.GIST_TOKEN, ''); }
 
         function getGistId() { return window.PerfilManager?.obtenerDatosPerfil()?.gistId || ''; }
         function getLastSync() { return window.PerfilManager?.obtenerDatosPerfil()?.gistLastSync || null; }
@@ -1934,12 +1974,12 @@
 
         function getSyncLimite(tipo) {
             const defValue = tipo === 'bajar' ? 2 : (tipo === 'subir' ? 1 : 2);
-            return StorageHelper.getNumber(`gistSyncLimite_${tipo}`, defValue);
+            return StorageHelper.getNumber(STORAGE_KEYS.GIST_LIMITE(tipo), defValue);
         }
 
         function setSyncLimite(tipo, valor) {
             const anteriorLimite = getSyncLimite(tipo);
-            StorageHelper.setItem(`gistSyncLimite_${tipo}`, valor);
+            StorageHelper.setItem(STORAGE_KEYS.GIST_LIMITE(tipo), valor);
             if (anteriorLimite === 0 && valor > 0 && window.PerfilManager) {
                 _conPerfil(perfil => {
                     perfil[`gistSyncCount_${tipo}`] = 0;
@@ -1961,8 +2001,8 @@
         }
 
         function saveCredentials(token, gistId) {
-            if (token) StorageHelper.setItem(KEY_TOKEN, S.sanitizeString(token.trim()));
-            else StorageHelper.removeItem(KEY_TOKEN);
+            if (token) StorageHelper.setItem(STORAGE_KEYS.GIST_TOKEN, S.sanitizeString(token.trim()));
+            else StorageHelper.removeItem(STORAGE_KEYS.GIST_TOKEN);
 
             _conPerfil(perfil => {
                 if (gistId && esGistIdValido(gistId)) perfil.gistId = gistId.trim();
@@ -2379,7 +2419,7 @@
 
             let debeEstarExpandido = false;
             try {
-                const estadoGuardado = StorageHelper.getItem(`mes-${claveMes}-expandido`);
+                const estadoGuardado = StorageHelper.getItem(STORAGE_KEYS.MES_EXPANDIDO(claveMes));
                 debeEstarExpandido = estadoGuardado !== null ? estadoGuardado === 'true' : claveMes === mesHoy;
             } catch (e) {
                 debeEstarExpandido = claveMes === mesHoy;
@@ -2480,7 +2520,7 @@
 
                 let anioExpandido = false;
                 try {
-                    anioExpandido = StorageHelper.getItem(`anio-${anio}-expandido`) === 'true';
+                    anioExpandido = StorageHelper.getItem(STORAGE_KEYS.ANIO_EXPANDIDO(anio)) === 'true';
                 } catch (e) { }
 
                 if (anioExpandido) {
@@ -2800,7 +2840,7 @@
             const ids = [...(window.FONDOS_SVG || []).map(f => f.id), 'ninguno'];
             const idx = ids.indexOf(_fondoCard);
             _fondoCard = ids[(idx + 1) % ids.length];
-            StorageHelper.setItem('fondoCard', _fondoCard, true);
+            StorageHelper.setItem(STORAGE_KEYS.FONDO_CARD, _fondoCard, true);
             const btn = $('hint-fondo-label');
             if (btn) btn.textContent = _getLabelFondo(_fondoCard);
             const bg = $('stats-card-bg');
@@ -3031,7 +3071,7 @@
             }
 
             const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-            const inicioBreak = StorageHelper.getItem(`breakStartTime_${perfilId}`);
+            const inicioBreak = StorageHelper.getItem(STORAGE_KEYS.BREAK_TIME(perfilId));
             if (inicioBreak && !D.getIgnorarTiempoFuera()) {
                 const mins = Math.floor((Date.now() - parseInt(inicioBreak)) / 60000);
                 if (mins > 0) minutosTotal += mins;
@@ -3414,10 +3454,37 @@
         }
 
         // ─── TOGGLES DE UI Y STORAGE ───────────────────────────────────────
+
+        /**
+         * Factory para pares toggle/actualizarEstado de configuraciones booleanas.
+         *
+         * @param {object} cfg
+         * @param {function(): boolean}  cfg.getVal        - Lee el valor actual.
+         * @param {function(boolean): void} cfg.setVal     - Persiste el nuevo valor.
+         * @param {string}               cfg.btnId         - ID del botón a marcar con btn-activo.
+         * @param {string}               cfg.mensajeOn     - Toast cuando queda activo.
+         * @param {string}               cfg.mensajeOff    - Toast cuando queda inactivo.
+         * @param {function(boolean): void} [cfg.onAfterToggle] - Efecto secundario opcional.
+         * @returns {{ toggle: function, actualizarEstado: function }}
+         */
+        function _crearToggleConfig({ getVal, setVal, btnId, mensajeOn, mensajeOff, onAfterToggle }) {
+            function actualizarEstado() {
+                _setBtnActivo(btnId, getVal());
+            }
+            function toggle() {
+                const nuevo = !getVal();
+                setVal(nuevo);
+                actualizarEstado();
+                mostrarToast(nuevo ? mensajeOn : mensajeOff, 'info');
+                onAfterToggle?.(nuevo);
+            }
+            return { toggle, actualizarEstado };
+        }
+
         function alternarTema() {
-            const temaOscuro = !StorageHelper.getBoolean('temaOscuro', true);
+            const temaOscuro = !StorageHelper.getBoolean(STORAGE_KEYS.TEMA_OSCURO, true);
             document.documentElement.classList.toggle('dark-mode', temaOscuro);
-            StorageHelper.setItem('temaOscuro', temaOscuro);
+            StorageHelper.setItem(STORAGE_KEYS.TEMA_OSCURO, temaOscuro);
             ['theme-toggle', 'theme-toggle-modal', 'btn-tema-selector'].forEach(id => {
                 const icon = document.getElementById(id)?.querySelector('use');
                 if (icon) icon.setAttribute('href', temaOscuro ? '#icon-sun' : '#icon-moon');
@@ -3434,7 +3501,7 @@
             setTimeout(() => {
                 const vistaActual = D.vistaActual() === 'semana' ? 'diaria' : 'semana';
                 D.setVistaActual(vistaActual);
-                StorageHelper.setItem('vistaActual', vistaActual);
+                StorageHelper.setItem(STORAGE_KEYS.VISTA_ACTUAL, vistaActual);
                 _detenerCicloStats();
                 actualizarUI();
                 if (content) content.classList.remove('fade-out');
@@ -3447,35 +3514,40 @@
             if (btn) btn.classList.toggle('btn-activo', activo);
         }
 
-        function toggleIgnorarTiempoFuera() {
-            const nuevoValor = !D.getIgnorarTiempoFuera();
-            D.setIgnorarTiempoFuera(nuevoValor);
-            StorageHelper.setItem('ignorarTiempoFuera', nuevoValor, true);
-            actualizarEstadoBotonIgnorarTF();
-            D.recalcularTotalesEnMemoria();
-            actualizarUI();
-            mostrarToast(nuevoValor ? 'Tiempo fuera ignorado' : 'Tiempo fuera incluido', 'info');
-        }
-        function actualizarEstadoBotonIgnorarTF() { _setBtnActivo('btn-toggle-ignorar-tf', D.getIgnorarTiempoFuera()); }
+        // ── ignorarTiempoFuera ──────────────────────────────────────────────
+        // Necesita sincronizar también el estado en memoria de DataManagement.
+        const { toggle: toggleIgnorarTiempoFuera, actualizarEstado: actualizarEstadoBotonIgnorarTF } =
+            _crearToggleConfig({
+                getVal:    () => D.getIgnorarTiempoFuera(),
+                setVal:    (v) => { D.setIgnorarTiempoFuera(v); StorageHelper.setItem(STORAGE_KEYS.IGNORAR_TF, v, true); },
+                btnId:     'btn-toggle-ignorar-tf',
+                mensajeOn: 'Tiempo fuera ignorado',
+                mensajeOff:'Tiempo fuera incluido',
+                onAfterToggle: () => { D.recalcularTotalesEnMemoria(); actualizarUI(); },
+            });
 
-        function toggleHoverPopupCalendario() {
-            const nuevo = !StorageHelper.getBoolean('hoverPopupCalendario', true);
-            StorageHelper.setItem('hoverPopupCalendario', nuevo);
-            actualizarEstadoBotonHoverPopup();
-            mostrarToast(nuevo ? 'Popup activado' : 'Popup desactivado', 'info');
-        }
-        function actualizarEstadoBotonHoverPopup() { _setBtnActivo('btn-toggle-hover-popup', StorageHelper.getBoolean('hoverPopupCalendario', true)); }
+        // ── hoverPopupCalendario ────────────────────────────────────────────
+        const { toggle: toggleHoverPopupCalendario, actualizarEstado: actualizarEstadoBotonHoverPopup } =
+            _crearToggleConfig({
+                getVal:    () => StorageHelper.getBoolean(STORAGE_KEYS.HOVER_POPUP, true),
+                setVal:    (v) => StorageHelper.setItem(STORAGE_KEYS.HOVER_POPUP, v),
+                btnId:     'btn-toggle-hover-popup',
+                mensajeOn: 'Popup activado',
+                mensajeOff:'Popup desactivado',
+            });
 
-        function togglePersistirTarjetas() {
-            const nuevo = !StorageHelper.getBoolean('persistirTarjetas', true);
-            StorageHelper.setItem('persistirTarjetas', nuevo);
-            actualizarEstadoBotonPersistir();
-            mostrarToast(nuevo ? 'Estado guardado' : 'Tarjetas no se recuerdan al iniciar', 'info');
-        }
-        function actualizarEstadoBotonPersistir() { _setBtnActivo('btn-toggle-persistir-tarjetas', StorageHelper.getBoolean('persistirTarjetas', true)); }
+        // ── persistirTarjetas ───────────────────────────────────────────────
+        const { toggle: togglePersistirTarjetas, actualizarEstado: actualizarEstadoBotonPersistir } =
+            _crearToggleConfig({
+                getVal:    () => StorageHelper.getBoolean(STORAGE_KEYS.PERSISTIR_TARJETAS, true),
+                setVal:    (v) => StorageHelper.setItem(STORAGE_KEYS.PERSISTIR_TARJETAS, v),
+                btnId:     'btn-toggle-persistir-tarjetas',
+                mensajeOn: 'Estado guardado',
+                mensajeOff:'Tarjetas no se recuerdan al iniciar',
+            });
 
         function toggleVisibilidadCard(cual) {
-            const key = 'cardVisible_' + cual;
+            const key = STORAGE_KEYS.CARD_VISIBLE(cual);
             const nuevo = !StorageHelper.getBoolean(key, true, true);
             StorageHelper.setItem(key, nuevo, true);
             aplicarVisibilidadCard(cual, nuevo);
@@ -3490,14 +3562,14 @@
 
         function aplicarVisibilidadCards() {
             ['registrar', 'estadisticas', 'historico'].forEach(cual => {
-                const visible = StorageHelper.getBoolean('cardVisible_' + cual, true, true);
+                const visible = StorageHelper.getBoolean(STORAGE_KEYS.CARD_VISIBLE(cual), true, true);
                 aplicarVisibilidadCard(cual, visible);
                 _setBtnActivo('btn-toggle-card-' + cual, visible);
             });
         }
 
         function obtenerOrdenCards() {
-            const guardado = StorageHelper.getObject('ordenCards', null, true);
+            const guardado = StorageHelper.getObject(STORAGE_KEYS.ORDEN_CARDS, null, true);
             const validos = ['registrar', 'estadisticas', 'historico'];
             if (Array.isArray(guardado) && guardado.length === 3 && validos.every(v => guardado.includes(v))) {
                 return guardado;
@@ -3609,7 +3681,7 @@
                 const nuevoOrden = itemsDOM.map(i => getCardFromItem(i)).filter(Boolean);
 
                 try {
-                    StorageHelper.setItem('ordenCards', nuevoOrden, true);
+                    StorageHelper.setItem(STORAGE_KEYS.ORDEN_CARDS, nuevoOrden, true);
                 } catch (e) { }
 
                 if (typeof aplicarOrdenCards === 'function') {
@@ -3904,7 +3976,7 @@
             const orden = ['mensual', 'anual', 'semanal'];
             const idx = orden.indexOf(modoEstadisticas);
             modoEstadisticas = orden[(idx + direccion + orden.length) % orden.length];
-            try { StorageHelper.setItem('modoEstadisticas', modoEstadisticas); } catch (e) { }
+            try { StorageHelper.setItem(STORAGE_KEYS.MODO_ESTADISTICAS, modoEstadisticas); } catch (e) { }
 
             _animarCambioStats(() => {
                 selectMes.classList.add('hidden');
@@ -4297,7 +4369,7 @@ Generado por Sistema Lushibosca
             const hoy = obtenerFechaHoy();
             const registroHoy = D.registros().find(r => r.fecha === hoy);
             const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-            const storageKey = `breakStartTime_${perfilId}`;
+            const storageKey = STORAGE_KEYS.BREAK_TIME(perfilId);
             const isRunning = StorageHelper.getItem(storageKey) !== null;
             const icon = btn.querySelector('use');
 
@@ -4385,7 +4457,7 @@ Generado por Sistema Lushibosca
 
         async function toggleTimerBreakMain() {
             const perfilId = window.PerfilManager ? PerfilManager.obtenerPerfilActual() : 'default';
-            const storageKey = `breakStartTime_${perfilId}`;
+            const storageKey = STORAGE_KEYS.BREAK_TIME(perfilId);
             const storedStart = StorageHelper.getItem(storageKey);
             const hoy = obtenerFechaHoy();
             const registroHoy = D.registros().find(r => r.fecha === hoy);
@@ -4697,7 +4769,7 @@ Generado por Sistema Lushibosca
             };
 
             try {
-                if (!StorageHelper.setItem('perfiles', perfiles)) throw new Error('quota');
+                if (!StorageHelper.setItem(STORAGE_KEYS.PERFILES, perfiles)) throw new Error('quota');
             } catch (e) {
                 console.error('Error al guardar perfil:', e);
                 delete perfiles[id];
@@ -4821,7 +4893,7 @@ Generado por Sistema Lushibosca
             const nombreAnterior = perfiles[perfilEnEdicion].nombre;
             perfiles[perfilEnEdicion].nombre = nuevoNombre;
             try {
-                if (!StorageHelper.setItem('perfiles', perfiles)) throw new Error('quota');
+                if (!StorageHelper.setItem(STORAGE_KEYS.PERFILES, perfiles)) throw new Error('quota');
             } catch (e) {
                 console.error('Error al guardar perfil:', e);
                 perfiles[perfilEnEdicion].nombre = nombreAnterior;
@@ -4862,13 +4934,13 @@ Generado por Sistema Lushibosca
             if (!confirmacion) return;
 
             const pid = perfilEnEdicion;
-            ['breakStartTime', 'history', 'fondoCard', 'ignorarTiempoFuera',
-             'cardVisible_registrar', 'cardVisible_estadisticas', 'cardVisible_historico', 'ordenCards'
+            ['breakStartTime', STORAGE_KEYS.HISTORY, STORAGE_KEYS.FONDO_CARD, STORAGE_KEYS.IGNORAR_TF,
+             'cardVisible_registrar', 'cardVisible_estadisticas', 'cardVisible_historico', STORAGE_KEYS.ORDEN_CARDS
             ].forEach(k => StorageHelper.removeItem(`${k}_${pid}`));
 
             delete perfiles[perfilEnEdicion];
             try {
-                if (!StorageHelper.setItem('perfiles', perfiles)) throw new Error('quota');
+                if (!StorageHelper.setItem(STORAGE_KEYS.PERFILES, perfiles)) throw new Error('quota');
             } catch (e) {
                 console.error('Error al eliminar perfil:', e);
                 mostrarToast('Error al guardar: almacenamiento lleno', 'error');
@@ -4878,7 +4950,7 @@ Generado por Sistema Lushibosca
             const perfilActual = window.PerfilManager.obtenerPerfilActual();
             if (perfilEnEdicion === perfilActual) {
                 try {
-                    if (!StorageHelper.setItem('perfilActivo', 'default')) throw new Error('quota');
+                    if (!StorageHelper.setItem(STORAGE_KEYS.PERFIL_ACTIVO, 'default')) throw new Error('quota');
                 } catch (e) {
                     console.error('Error al guardar perfil activo:', e);
                     mostrarToast('Error al guardar: almacenamiento lleno', 'error');
@@ -5855,7 +5927,7 @@ Generado por Sistema Lushibosca
                         throw new Error('Datos inválidos en el Gist');
                     }
 
-                    const allowedRootKeys = ['registros', 'diasHabiles', 'horasDiarias', 'fecha', 'version', 'hash', 'timestamp', '_hashNoCoincide'];
+                    const allowedRootKeys = ['registros', STORAGE_KEYS.DIAS_HABILES, STORAGE_KEYS.HORAS_DIARIAS, 'fecha', 'version', 'hash', 'timestamp', '_hashNoCoincide'];
                     const hasInvalidKeys = Object.keys(data).some(k => !allowedRootKeys.includes(k));
                     if (hasInvalidKeys) throw new Error('Estructura del Gist sospechosa');
 
@@ -6256,11 +6328,11 @@ Generado por Sistema Lushibosca
             $('fecha').value = obtenerFechaHoy();
 
             try {
-                const persistir = StorageHelper.getBoolean('persistirTarjetas', true);
-                if (persistir && StorageHelper.getBoolean('formularioExpandido')) toggleFormulario();
-                if (persistir && StorageHelper.getBoolean('statsExpandido')) toggleStats();
+                const persistir = StorageHelper.getBoolean(STORAGE_KEYS.PERSISTIR_TARJETAS, true);
+                if (persistir && StorageHelper.getBoolean(STORAGE_KEYS.FORMULARIO_EXPANDIDO)) toggleFormulario();
+                if (persistir && StorageHelper.getBoolean(STORAGE_KEYS.STATS_EXPANDIDO)) toggleStats();
 
-                const estadoHistorico = persistir ? StorageHelper.getItem('historicoExpandido', 'cerrado') : 'cerrado';
+                const estadoHistorico = persistir ? StorageHelper.getItem(STORAGE_KEYS.HISTORICO_EXPANDIDO, 'cerrado') : 'cerrado';
                 if (estadoHistorico === 'meses' || estadoHistorico === 'completo') {
                     const contenido = $('contenido-historico');
                     const icon = $('icon-indicator-historico');
@@ -6275,7 +6347,7 @@ Generado por Sistema Lushibosca
                     }
                 }
 
-                const usarCalendario = StorageHelper.getBoolean('vistaHistoricoCalendario', true);
+                const usarCalendario = StorageHelper.getBoolean(STORAGE_KEYS.VISTA_HISTORICO_CAL, true);
                 if (usarCalendario) {
                     if ($('contenido-historico')?.classList.contains('expanded')) {
                         _vistaHistoricoCalendario = false;
@@ -6394,11 +6466,11 @@ Generado por Sistema Lushibosca
                 if (estaExpandido) {
                     detalleAnio.classList.remove('expanded');
                     if (chevronAnio) chevronAnio.style.transform = 'rotate(0deg)';
-                    try { StorageHelper.setItem(`anio-${anioId}-expandido`, 'false'); } catch (e) { }
+                    try { StorageHelper.setItem(STORAGE_KEYS.ANIO_EXPANDIDO(anioId), 'false'); } catch (e) { }
                 } else {
                     detalleAnio.classList.add('expanded');
                     if (chevronAnio) chevronAnio.style.transform = 'rotate(180deg)';
-                    try { StorageHelper.setItem(`anio-${anioId}-expandido`, 'true'); } catch (e) { }
+                    try { StorageHelper.setItem(STORAGE_KEYS.ANIO_EXPANDIDO(anioId), 'true'); } catch (e) { }
                 }
             });
 
@@ -6421,7 +6493,7 @@ Generado por Sistema Lushibosca
                     chevronIcon.style.transform = 'rotate(0deg)';
 
                     try {
-                        StorageHelper.setItem(`mes-${header.dataset.mesId}-expandido`, 'false');
+                        StorageHelper.setItem(STORAGE_KEYS.MES_EXPANDIDO(header.dataset.mesId), 'false');
                     } catch (e) { }
 
                 } else {
@@ -6440,7 +6512,7 @@ Generado por Sistema Lushibosca
                             const otroHeader = otroContenedor?.querySelector('.registro-mes-header');
                             if (otroChevron) otroChevron.style.transform = 'rotate(0deg)';
                             if (otroHeader?.dataset.anioId) {
-                                try { StorageHelper.setItem(`anio-${otroHeader.dataset.anioId}-expandido`, 'false'); } catch (e) { }
+                                try { StorageHelper.setItem(STORAGE_KEYS.ANIO_EXPANDIDO(otroHeader.dataset.anioId), 'false'); } catch (e) { }
                             }
                         }
                     });
@@ -6463,7 +6535,7 @@ Generado por Sistema Lushibosca
 
                                 if (otroHeader && otroHeader.dataset.mesId) {
                                     try {
-                                        StorageHelper.setItem(`mes-${otroHeader.dataset.mesId}-expandido`, 'false');
+                                        StorageHelper.setItem(STORAGE_KEYS.MES_EXPANDIDO(otroHeader.dataset.mesId), 'false');
                                     } catch (e) { }
                                 }
 
@@ -6478,7 +6550,7 @@ Generado por Sistema Lushibosca
                             chevronIcon.style.transform = 'rotate(180deg)';
 
                             try {
-                                StorageHelper.setItem(`mes-${header.dataset.mesId}-expandido`, 'true');
+                                StorageHelper.setItem(STORAGE_KEYS.MES_EXPANDIDO(header.dataset.mesId), 'true');
                             } catch (e) { }
 
                             setTimeout(() => {
@@ -6507,7 +6579,7 @@ Generado por Sistema Lushibosca
                         chevronIcon.style.transform = 'rotate(180deg)';
 
                         try {
-                            StorageHelper.setItem(`mes-${header.dataset.mesId}-expandido`, 'true');
+                            StorageHelper.setItem(STORAGE_KEYS.MES_EXPANDIDO(header.dataset.mesId), 'true');
                         } catch (e) { }
 
                         setTimeout(() => {
@@ -6653,7 +6725,7 @@ Generado por Sistema Lushibosca
                 else icon.classList.remove('rotated');
             }
             
-            if (StorageHelper.getBoolean('persistirTarjetas', true)) {
+            if (StorageHelper.getBoolean(STORAGE_KEYS.PERSISTIR_TARJETAS, true)) {
                 StorageHelper.setItem(storageKey, isExpanded);
             }
             if (isExpanded && callback) callback();
@@ -6663,7 +6735,7 @@ Generado por Sistema Lushibosca
             const el = $('form-registro');
             const estabaExpandido = el.classList.contains('expanded');
 
-            toggleSeccionGen('form-registro', 'icon-indicator-form', 'formularioExpandido');
+            toggleSeccionGen('form-registro', 'icon-indicator-form', STORAGE_KEYS.FORMULARIO_EXPANDIDO);
 
             if (estabaExpandido) {
 
@@ -6707,7 +6779,7 @@ Generado por Sistema Lushibosca
                         icon.style.transform = '';
                         icon.classList.add('rotated');
                     }
-                    StorageHelper.setItem('historicoExpandido', 'meses');
+                    StorageHelper.setItem(STORAGE_KEYS.HISTORICO_EXPANDIDO, 'meses');
                     tiempoExpansionBotones = null;
 
                     if (_vistaHistoricoCalendario) {
@@ -6727,7 +6799,7 @@ Generado por Sistema Lushibosca
                         icon.classList.remove('rotated');
                         icon.style.transform = 'rotate(-90deg)';
                     }
-                    StorageHelper.setItem('historicoExpandido', 'completo');
+                    StorageHelper.setItem(STORAGE_KEYS.HISTORICO_EXPANDIDO, 'completo');
                     tiempoExpansionBotones = Date.now();
 
                 } else {
@@ -6740,7 +6812,7 @@ Generado por Sistema Lushibosca
                             icon.style.transform = '';
                             icon.classList.add('rotated');
                         }
-                        StorageHelper.setItem('historicoExpandido', 'meses');
+                        StorageHelper.setItem(STORAGE_KEYS.HISTORICO_EXPANDIDO, 'meses');
                         tiempoExpansionBotones = null;
                     } else {
                         botones.classList.remove('expanded');
@@ -6749,7 +6821,7 @@ Generado por Sistema Lushibosca
                             icon.classList.remove('rotated');
                             icon.style.transform = '';
                         }
-                        StorageHelper.setItem('historicoExpandido', 'cerrado');
+                        StorageHelper.setItem(STORAGE_KEYS.HISTORICO_EXPANDIDO, 'cerrado');
                         tiempoExpansionBotones = null;
                     }
                 }
@@ -6778,7 +6850,7 @@ Generado por Sistema Lushibosca
                     }
 
                     try {
-                        StorageHelper.setItem('historicoExpandido', 'meses');
+                        StorageHelper.setItem(STORAGE_KEYS.HISTORICO_EXPANDIDO, 'meses');
                     } catch (e) {
                         console.warn('Error guardando estado histórico:', e);
                     }
@@ -6894,7 +6966,7 @@ Generado por Sistema Lushibosca
 
         function toggleVistaHistorico() {
             _vistaHistoricoCalendario = !_vistaHistoricoCalendario;
-            try { StorageHelper.setItem('vistaHistoricoCalendario', _vistaHistoricoCalendario); } catch (e) { }
+            try { StorageHelper.setItem(STORAGE_KEYS.VISTA_HISTORICO_CAL, _vistaHistoricoCalendario); } catch (e) { }
 
             const lista = document.getElementById('lista-registros');
             const cal = document.getElementById('vista-calendario-historico');
@@ -7110,7 +7182,7 @@ Generado por Sistema Lushibosca
         function _popupCalendarioHover(event, registroId) {
             if (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents) return;
             if (!window.matchMedia('(hover: hover)').matches) return;
-            const stored = StorageHelper.getItem('hoverPopupCalendario', null);
+            const stored = StorageHelper.getItem(STORAGE_KEYS.HOVER_POPUP, null);
             const esHover = window.matchMedia('(hover: hover)').matches;
             if (stored === null ? !esHover : stored !== 'true') return;
             if (_popupCalendarioEl && _popupCalendarioEl.dataset.registroId === registroId) return;
@@ -7124,7 +7196,7 @@ Generado por Sistema Lushibosca
 
         function _onclickCalendarioDia(event, registroId) {
             const esDesktop = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-            const stored = StorageHelper.getItem('hoverPopupCalendario', null);
+            const stored = StorageHelper.getItem(STORAGE_KEYS.HOVER_POPUP, null);
             const hoverActivo = esDesktop && (stored === null ? true : stored === 'true');
 
             if (hoverActivo) {
@@ -7199,7 +7271,7 @@ Generado por Sistema Lushibosca
         }
 
         function toggleStats() {
-            toggleSeccionGen('form-stats', 'icon-indicator-stats', 'statsExpandido', () => {
+            toggleSeccionGen('form-stats', 'icon-indicator-stats', STORAGE_KEYS.STATS_EXPANDIDO, () => {
                 registrarSwipe($('form-stats'), dir => togglePeriodoStats(dir));
                 if (modoEstadisticas === 'anual') {
                     poblarSelectorAnios();
@@ -7356,7 +7428,7 @@ Generado por Sistema Lushibosca
                 const nuevosDias = Array.from(checkboxes).map(cb => parseInt(cb.value)).sort((a, b) => a - b);
                 D.setDiasHabiles(nuevosDias);
                 const esDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
-                if (esDefault) StorageHelper.setItem('diasHabiles', nuevosDias);
+                if (esDefault) StorageHelper.setItem(STORAGE_KEYS.DIAS_HABILES, nuevosDias);
                 D.guardarYActualizar();
             }
             if (typeof actualizarEstadoBotonPersistir === 'function') {
@@ -7389,7 +7461,7 @@ Generado por Sistema Lushibosca
             D.setHorasDiarias(nuevoValor);
             
             const esDefault = window.PerfilManager && PerfilManager.obtenerPerfilActual() === 'default';
-            if (esDefault) StorageHelper.setItem('horasDiarias', nuevoValor);
+            if (esDefault) StorageHelper.setItem(STORAGE_KEYS.HORAS_DIARIAS, nuevoValor);
             D.guardarYActualizar();
         }
 
