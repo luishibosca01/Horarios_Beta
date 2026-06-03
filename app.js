@@ -2831,6 +2831,8 @@
         }
 
         let _fondoCard = 'golden-gate';
+        let _bgFadeTimer = null;
+        let _bgActiveLayer = 'a';
 
         function setFondoCard(valor) {
             _fondoCard = valor;
@@ -2912,9 +2914,46 @@
 
             if (_fondoCard === 'ninguno') {
                 bg.innerHTML = '';
-            } else {
-                bg.innerHTML = _getSvgFondo(_fondoCard, color);
+                return;
             }
+
+            let layerA = bg.querySelector('.stats-card-bg__layer[data-layer="a"]');
+            let layerB = bg.querySelector('.stats-card-bg__layer[data-layer="b"]');
+            if (!layerA) {
+                layerA = document.createElement('div');
+                layerA.className = 'stats-card-bg__layer';
+                layerA.dataset.layer = 'a';
+                bg.appendChild(layerA);
+            }
+            if (!layerB) {
+                layerB = document.createElement('div');
+                layerB.className = 'stats-card-bg__layer';
+                layerB.dataset.layer = 'b';
+                bg.appendChild(layerB);
+            }
+
+            const nuevoSVG = _getSvgFondo(_fondoCard, color);
+            const incoming = _bgActiveLayer === 'a' ? layerB : layerA;
+            const outgoing = _bgActiveLayer === 'a' ? layerA : layerB;
+
+            incoming.style.zIndex = '2';
+            incoming.style.opacity = '0';
+            incoming.innerHTML = nuevoSVG;
+
+            outgoing.style.zIndex = '1';
+            outgoing.style.opacity = '0';
+
+            if (_bgFadeTimer) { clearTimeout(_bgFadeTimer); _bgFadeTimer = null; }
+
+            incoming.offsetHeight;
+            incoming.style.opacity = '1';
+
+            _bgActiveLayer = _bgActiveLayer === 'a' ? 'b' : 'a';
+            _bgFadeTimer = setTimeout(() => {
+                outgoing.innerHTML = '';
+                outgoing.style.opacity = '0';
+                _bgFadeTimer = null;
+            }, 650);
         }
 
         function calcularEstadoCard() {
