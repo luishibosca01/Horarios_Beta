@@ -355,9 +355,6 @@
             StorageHelper.setItem(STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL, !!valor);
         }
         function getHabilitado() {
-            // Default false: la app es de acceso libre (sin login), así que
-            // las notificaciones deben ser opt-in explícito, no algo que
-            // ya viene activado sin que el usuario haga nada.
             return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_HABILITADO, false);
         }
         function setHabilitado(valor) {
@@ -412,11 +409,6 @@
             }
         }
 
-        // Calcula el target time (ms epoch) que le correspondería a un turno
-        // abierto, sin tocar la red. Se separa de programarFinDeJornada para
-        // poder comparar "qué debería estar programado" contra "qué está
-        // programado" sin gastar un request — ver _sincronizarPushHoy en
-        // DataManagement, que es quien más se beneficia de esto.
         function _calcularTarget(entradaHHMM, objetivoHoras, bufferSemanalHoras = 0) {
             if (!entradaHHMM || !objetivoHoras) return null;
             const [h, m] = entradaHHMM.split(':').map(Number);
@@ -466,11 +458,6 @@
 
         function cancelarFinDeJornada(fechaISO) {
             if (!fechaISO) return;
-            // El cache local (_guardarInfoActiva) solo representa el push de HOY
-            // (es lo único que programarFinDeJornada guarda ahí). Si estamos
-            // cancelando una fecha distinta (ej. cerrar un turno de ayer que
-            // quedó abierto), no hay que tocar ese cache o se pierde el hint
-            // de un push de hoy que sigue vigente.
             if (fechaISO === TimeUtils.obtenerFechaHoy()) _borrarInfoActiva();
             fetch(`${WORKER_URL}/api/cancel`, {
                 method: 'POST',
@@ -1604,10 +1591,6 @@
             HistoryManager.saveState(registros, `salida ${s} (${TimeUtils.fechaCorta(reg.fecha)})`);
             const saved = await _guardarConCicloSiHoy(reg.id, esHoy, 'salida');
             if (!saved) return;
-            // Cancelar siempre (no solo si esHoy): cubre el caso "trasnoche" en
-            // que este registro es de AYER pero recién se cierra hoy — si no
-            // se cancela acá, el push de ayer puede seguir vivo en Cloudflare
-            // y disparar la notificación aunque el turno ya esté cerrado.
             PushReminder.cancelarFinDeJornada(reg.fecha);
             if (!usaHoraActual) {
                 notify.aplicarFeedbackCampos([
@@ -1622,28 +1605,15 @@
             $('salida').value = '';
         }
 
-        // Resincroniza el recordatorio push contra el estado REAL de `registros`
-        // para la fecha de hoy. Se debe llamar después de cualquier operación
-        // que pueda agregar, quitar o modificar el registro de hoy por una vía
-        // que no sea el flujo normal de fichar entrada/salida (undo/redo,
-        // eliminar, importar, restablecer, editar en lote, merge con Gist,
-        // etc.) — si no, puede quedar un recordatorio programado en Cloudflare
-        // que ya no corresponde a nada, o faltar uno que sí debería existir.
-        // Optimización: antes de tocar el Worker, calcula qué target time
-        // *debería* estar programado y lo compara contra el que ya está
-        // cacheado localmente. Si coinciden, no hace ningún request.
         function _sincronizarPushHoy() {
             const hoy = TimeUtils.obtenerFechaHoy();
-            // En día no laboral no se programa recordatorio, aunque haya un
-            // turno abierto (el objetivo de "fin de jornada" no aplica fuera
-            // de los días hábiles configurados).
             const esDiaHabil = UILogic._esFechaHabil(hoy, diasHabilesEnFecha(hoy));
             const abierto = esDiaHabil && registros.find(r => r.fecha === hoy && r.entrada && !r.salida);
             const nuevoTarget = abierto
                 ? PushReminder.calcularTarget(abierto.entrada, abierto.objetivoHoras, _bufferSemanalActual())
                 : null;
             const targetActual = PushReminder.targetProgramadoParaHoy();
-            if (nuevoTarget === targetActual) return; // sin cambios reales, no gastamos requests
+            if (nuevoTarget === targetActual) return;
 
             if (targetActual != null) PushReminder.cancelarFinDeJornada(hoy);
             if (abierto && nuevoTarget != null) {
@@ -1996,10 +1966,6 @@
             const saved = await guardarYActualizar(null, true);
             notify.restaurarBotonGuardarEdicion(btnGuardar);
             if (saved) {
-                // Resincronizar el recordatorio push contra el estado real,
-                // no solo contra el registro que se acaba de editar: así no
-                // se cancela por error el push de otro registro de hoy si
-                // el que se editó no era el que tenía el turno abierto.
                 _sincronizarPushHoy();
                 notify.mostrarToast(cr ? `Guardado con Salida Temprana (+${cr})` : 'Registro actualizado', 'success');
                 notify.cerrarEdicion();
@@ -2016,7 +1982,7 @@
             historialDiasHabiles = [];
             registros.splice(0, registros.length);
             ignorarTiempoFuera = false;
-            _sincronizarPushHoy(); // registros quedó vacío -> esto cancela cualquier push pendiente de hoy
+            _sincronizarPushHoy();
 
             const perfilId = _obtenerPerfilIdActual();
             StorageHelper.removeItem(STORAGE_KEYS.BREAK_TIME(perfilId));
