@@ -33,6 +33,7 @@
         FERIADOS_PROCESADOS: 'feriadosAR_procesados',
         PUSH_ANTICIPACION_MIN: 'pushAnticipacionMin',
         PUSH_USAR_BUFFER_SEMANAL: 'pushUsarBufferSemanal',
+        PUSH_BUFFER_SOLO_ULTIMO_DIA: 'pushBufferSoloUltimoDia',
         PUSH_HABILITADO: 'pushHabilitado',
         PUSH_INFO_ACTIVA: 'pushInfoActiva',
 
@@ -369,6 +370,12 @@
         function setUsarBufferSemanal(valor) {
             StorageHelper.setItem(STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL, !!valor);
         }
+        function getBufferSoloUltimoDia() {
+            return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, true);
+        }
+        function setBufferSoloUltimoDia(valor) {
+            StorageHelper.setItem(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, !!valor);
+        }
         function getHabilitado() {
             return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_HABILITADO, false);
         }
@@ -479,6 +486,7 @@
             programarFinDeJornada, cancelarFinDeJornada,
             getAnticipacionMin, setAnticipacionMin,
             getUsarBufferSemanal, setUsarBufferSemanal,
+            getBufferSoloUltimoDia, setBufferSoloUltimoDia,
             getHabilitado, setHabilitado,
             calcularTarget: _calcularTarget,
             targetProgramadoParaHoy: () => obtenerInfoActiva()?.targetTimeMs ?? null,
@@ -1619,20 +1627,42 @@
             const esDiaHabil = UILogic._esFechaHabil(hoy, diasHabilesEnFecha(hoy));
             const abierto = esDiaHabil && registros.find(r => r.fecha === hoy && r.entrada && !r.salida);
             const nuevoTarget = abierto
-                ? PushReminder.calcularTarget(abierto.entrada, abierto.objetivoHoras, _bufferSemanalActual())
+                ? PushReminder.calcularTarget(abierto.entrada, abierto.objetivoHoras, _bufferSemanalParaPush(hoy))
                 : null;
             const targetActual = PushReminder.targetProgramadoParaHoy();
             if (nuevoTarget === targetActual) return; // sin cambios reales, no gastamos requests
 
             if (targetActual != null) PushReminder.cancelarFinDeJornada(hoy);
             if (abierto && nuevoTarget != null) {
-                PushReminder.programarFinDeJornada(abierto.fecha, abierto.entrada, abierto.objetivoHoras, _bufferSemanalActual());
+                PushReminder.programarFinDeJornada(abierto.fecha, abierto.entrada, abierto.objetivoHoras, _bufferSemanalParaPush(hoy));
             }
         }
 
         function _bufferSemanalActual() {
             const { inicio: iniSemana } = TimeUtils.obtenerSemanaRangoActual();
             return calcularBufferPeriodo(iniSemana, TimeUtils.obtenerFechaHoy(), true, 0, _calcularAsignacionesCompensatorio());
+        }
+
+        function _ultimoDiaHabilEfectivoSemana() {
+            const { fin } = TimeUtils.obtenerSemanaRangoActual();
+            let fecha = fin;
+            for (let i = 0; i < 7; i++) {
+                if (UILogic._esFechaHabil(fecha, diasHabilesEnFecha(fecha))) {
+                    const reg = registros.find(r => r.fecha === fecha);
+                    const esEspecial = reg && TiposRegistro.esRegistroEspecial(reg.entrada, reg.salida);
+                    if (!esEspecial) return fecha;
+                }
+                const d = TimeUtils.parsearFechaLocal(fecha);
+                d.setDate(d.getDate() - 1);
+                fecha = TimeUtils.formatearFechaLocal(d);
+            }
+            return null;
+        }
+
+        function _bufferSemanalParaPush(fecha) {
+            const buffer = _bufferSemanalActual();
+            if (!PushReminder.getUsarBufferSemanal() || !PushReminder.getBufferSoloUltimoDia()) return buffer;
+            return fecha === _ultimoDiaHabilEfectivoSemana() ? buffer : 0;
         }
 
         async function _crearNuevoRegistro(f, e, s, usaHoraActual, btn) {
@@ -1648,7 +1678,7 @@
             const saved = await _guardarConCicloSiHoy(nuevo.id, esHoy, 'entrada');
             if (!saved) return;
             if (esHoy && !s && UILogic._esFechaHabil(f, diasHabilesEnFecha(f))) {
-                const bufferSemanal = _bufferSemanalActual();
+                const bufferSemanal = _bufferSemanalParaPush(f);
                 PushReminder.programarFinDeJornada(nuevo.fecha, nuevo.entrada, nuevo.objetivoHoras, bufferSemanal);
             }
             const entradaManual = e && !usaHoraActual, salidaManual = s && !usaHoraActual;
@@ -2589,6 +2619,7 @@
             registrarVacacionesDirecto, borrarPeriodoDirecto, registrarDiaEspecial, editarGrupo, guardarEdicionGrupo,
             eliminarGrupoActual, setGrupoEnEdicion: (val) => grupoEnEdicion = val,
             sincronizarPushHoy: _sincronizarPushHoy,
+            bufferSemanalParaPush: _bufferSemanalParaPush,
             undoAction: function () { _aplicarEstadoHistorial(HistoryManager.undo(), 'Deshecho'); },
             redoAction: function () { _aplicarEstadoHistorial(HistoryManager.redo(), 'Rehecho'); },
             configurarNotificaciones
@@ -8164,6 +8195,13 @@
             _setBtnDisabled('btn-aplicar-horas-todos', modoGlobal);
         }
 
+        function _actualizarDisponibilidadBotonesPush() {
+            const habilitado = PushReminder.getHabilitado();
+            const usaBufferSemanal = PushReminder.getUsarBufferSemanal();
+            _setBtnDisabled('btn-toggle-push-buffer', !habilitado);
+            _setBtnDisabled('btn-toggle-push-buffer-ultimo-dia', !habilitado || !usaBufferSemanal);
+        }
+
         const { toggle: togglePushBuffer, actualizarEstado: actualizarEstadoBotonPushBuffer } =
             _crearToggleConfig({
                 getVal: () => PushReminder.getUsarBufferSemanal(),
@@ -8171,18 +8209,22 @@
                 btnId: 'btn-toggle-push-buffer',
                 mensajeOn: 'El recordatorio de fin de jornada descuenta tu saldo semanal a favor',
                 mensajeOff: 'El recordatorio de fin de jornada usa el objetivo diario tal cual',
+                onAfterToggle: () => {
+                    actualizarEstadoBotonPushBufferUltimoDia();
+                    _actualizarDisponibilidadBotonesPush();
+                    D.sincronizarPushHoy(); // por si hay un push activo hoy, se resincroniza con el nuevo criterio
+                },
             });
 
-        async function _reprogramarSiHabilitado(habilitado) {
-            if (!habilitado) return;
-            const hoy = TimeUtils.obtenerFechaHoy();
-            if (!_esFechaHabil(hoy, D.diasHabilesEnFecha(hoy))) return;
-            const regHoy = D.registros().find(r => r.fecha === hoy && r.entrada && !r.salida);
-            if (!regHoy) return;
-            const { inicio: iniSemana } = TimeUtils.obtenerSemanaRangoActual();
-            const bufferSemanal = D.calcularBufferPeriodo(iniSemana, hoy, true, 0, D.calcularAsignacionesCompensatorio());
-            await PushReminder.programarFinDeJornada(regHoy.fecha, regHoy.entrada, regHoy.objetivoHoras, bufferSemanal);
-        }
+        const { toggle: togglePushBufferUltimoDia, actualizarEstado: actualizarEstadoBotonPushBufferUltimoDia } =
+            _crearToggleConfig({
+                getVal: () => PushReminder.getBufferSoloUltimoDia(),
+                setVal: (v) => PushReminder.setBufferSoloUltimoDia(v),
+                btnId: 'btn-toggle-push-buffer-ultimo-dia',
+                mensajeOn: 'El saldo semanal solo se descuenta en el recordatorio del último día hábil de la semana',
+                mensajeOff: 'El saldo semanal se descuenta en el recordatorio de todos los días',
+                onAfterToggle: () => D.sincronizarPushHoy(),
+            });
 
         const { toggle: togglePushHabilitado, actualizarEstado: actualizarEstadoBotonPushHabilitado } =
             _crearToggleConfig({
@@ -8191,8 +8233,9 @@
                 btnId: 'btn-toggle-push-habilitado',
                 mensajeOn: 'Notificaciones de fin de jornada activadas',
                 mensajeOff: 'Notificaciones de fin de jornada desactivadas',
-                onAfterToggle: async (nuevo) => {
-                    await _reprogramarSiHabilitado(nuevo);
+                onAfterToggle: (nuevo) => {
+                    _actualizarDisponibilidadBotonesPush();
+                    if (nuevo) D.sincronizarPushHoy();
                 },
             });
 
@@ -8209,6 +8252,8 @@
             _abrirModalConPadre('modal-notificaciones', () => {
                 actualizarEstadoBotonPushHabilitado();
                 actualizarEstadoBotonPushBuffer();
+                actualizarEstadoBotonPushBufferUltimoDia();
+                _actualizarDisponibilidadBotonesPush();
                 actualizarSelectPushAnticipacion();
             });
         }
@@ -9109,7 +9154,9 @@
             abrirEditorTramoDias, abrirGistEnBrowser, abrirModalAyuda, abrirModalGist, abrirModalHistorialDias, abrirModalReporteSecciones,
             abrirSelectorMesesCalendario, abrirSelectorPerfiles,
             actualizarBotonLote, actualizarEstadoBotonAplicarHoras, actualizarEstadoBotonHoverPopup, actualizarEstadoBotonIgnorarTF, actualizarEstadoBotonLogicaCubierto, actualizarEstadoBotonObjetivoPorRegistro,
-            actualizarEstadoBotonPushBuffer, togglePushBuffer, actualizarSelectPushAnticipacion, cambiarPushAnticipacion,
+            actualizarEstadoBotonPushBuffer, togglePushBuffer,
+            actualizarEstadoBotonPushBufferUltimoDia, togglePushBufferUltimoDia,
+            actualizarSelectPushAnticipacion, cambiarPushAnticipacion,
             actualizarEstadoBotonPushHabilitado, togglePushHabilitado,
             abrirModalNotificaciones, cerrarModalNotificaciones,
             actualizarEstadoBotonesGist, actualizarFeedbackConfig, actualizarListaRegistros, actualizarUI, agruparRegistrosConsecutivos, alternarFechaActual,
@@ -9372,6 +9419,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('btn-toggle-logica-cubierto')?.addEventListener('click', () => UILogic.toggleLogicaCubierto());
     $('btn-toggle-objetivo-registro')?.addEventListener('click', () => UILogic.toggleObjetivoPorRegistro());
     $('btn-toggle-push-buffer')?.addEventListener('click', () => UILogic.togglePushBuffer());
+    $('btn-toggle-push-buffer-ultimo-dia')?.addEventListener('click', () => UILogic.togglePushBufferUltimoDia());
     $('btn-toggle-push-habilitado')?.addEventListener('click', () => UILogic.togglePushHabilitado());
     $('config-push-anticipacion')?.addEventListener('change', (e) => UILogic.cambiarPushAnticipacion(e.target.value));
     $('btn-toggle-notification')?.addEventListener('click', () => UILogic.abrirModalNotificaciones());
