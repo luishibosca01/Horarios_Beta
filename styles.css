@@ -1510,10 +1510,6 @@ button:disabled {
     color: var(--text-main);
 }
 
-.cal-popup-btn-accion:hover {
-    filter: var(--hover);
-}
-
 /* ─── STAT POPUP ─────────────────────────────────────────────────────────────── */
 
 .stat-item {
@@ -2332,8 +2328,8 @@ button.campo-flash-color {
 
     :is([id^="btn-toggle-"],
         #btn-reporte,
-        .icon-btn, .time-btn, .btn-increment, .filter-btn, .btn-gist, .card-section-title,
-        .btn-delete, .btn-cancel, .stats-number, .btn-export, .btn-merge, .btn-backup, .btn-edit,
+        .icon-btn, .time-btn, .btn-increment, .filter-btn, .btn-gist, .card-section-title, .cal-popup-btn-accion,
+        .btn-delete, .btn-cancel, .stats-number, .btn-export, .btn-merge, .btn-backup, .btn-edit, .cal-popup-btn-edit,
         .calendario-nav button, .btn-settings, .ayuda-indice-item, .btn-register, .input-icon-btn):hover:not(:disabled) {
         filter: var(--hover);
     }

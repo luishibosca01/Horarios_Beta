@@ -9374,7 +9374,7 @@ document.addEventListener('DOMContentLoaded', function () {
     $('btn-toggle-push-buffer')?.addEventListener('click', () => UILogic.togglePushBuffer());
     $('btn-toggle-push-habilitado')?.addEventListener('click', () => UILogic.togglePushHabilitado());
     $('config-push-anticipacion')?.addEventListener('change', (e) => UILogic.cambiarPushAnticipacion(e.target.value));
-    $('btn-abrir-notificaciones')?.addEventListener('click', () => UILogic.abrirModalNotificaciones());
+    $('btn-toggle-notification')?.addEventListener('click', () => UILogic.abrirModalNotificaciones());
     document.querySelector('#modal-notificaciones .btn-cancel')?.addEventListener('click', () => UILogic.cerrarModalNotificaciones());
     $('btn-aplicar-horas-todos')?.addEventListener('click', () => UILogic.aplicarHorasConfiguradasATodos());
     $('btn-historial-dias-habiles')?.addEventListener('click', () => UILogic.abrirModalHistorialDias());

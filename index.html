@@ -280,6 +280,15 @@
                 stroke="currentColor"></path>
             <line x1="1" y1="1" x2="23" y2="23" class="icon-line" stroke="currentColor"></line>
         </symbol>
+        <symbol id="icon-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" class="icon-line"></path>
+        </symbol>
+        <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" class="icon-line"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" class="icon-line"></path>
+        </symbol>
         <symbol id="icon-dashboard" viewBox="0 0 24 24">
             <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
         </symbol>
@@ -738,9 +747,9 @@
                     <div>
                         <div class="config-actions form-group config-onboarding-hide">
                             <label>Notificaciones</label>
-                            <button id="btn-abrir-notificaciones">
+                            <button id="btn-toggle-notification">
                                 <svg class="icon">
-                                    <use href="#icon-clock-in" />
+                                    <use href="#icon-bell" />
                                 </svg>
                                 <span>Notificaciones</span>
                                 <svg class="icon icon-indicator">
@@ -1478,7 +1487,7 @@
             <h3 id="modal-notificaciones-titulo">
                 <span class="modal-title-block">
                     <svg class="icon">
-                        <use href="#icon-clock-in" />
+                        <use href="#icon-bell" />
                     </svg>
                     Notificaciones
                 </span>
@@ -1487,7 +1496,7 @@
             <div class="form-group">
                 <button id="btn-toggle-push-habilitado">
                     <svg class="icon">
-                        <use href="#icon-clock-in" />
+                        <use href="#icon-bell" />
                     </svg>
                     <span>Notificar salida</span>
                     <svg class="icon icon-indicator">
@@ -1499,7 +1508,7 @@
             <div class="form-group">
                 <button id="btn-toggle-push-buffer">
                     <svg class="icon">
-                        <use href="#icon-clock-in" />
+                        <use href="#icon-shield" />
                     </svg>
                     <span>Incluir banco de horas</span>
                     <svg class="icon icon-indicator">
