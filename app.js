@@ -380,12 +380,7 @@
             return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_HABILITADO, false);
         }
         function setHabilitado(valor) {
-            const nuevo = !!valor;
-            StorageHelper.setItem(STORAGE_KEYS.PUSH_HABILITADO, nuevo);
-            if (!nuevo) {
-                const activa = obtenerInfoActiva();
-                if (activa) cancelarFinDeJornada(activa.fechaISO);
-            }
+            StorageHelper.setItem(STORAGE_KEYS.PUSH_HABILITADO, !!valor);
         }
 
         function _guardarInfoActiva(fechaISO, targetTimeMs) {
@@ -1626,15 +1621,17 @@
             const hoy = TimeUtils.obtenerFechaHoy();
             const esDiaHabil = UILogic._esFechaHabil(hoy, diasHabilesEnFecha(hoy));
             const abierto = esDiaHabil && registros.find(r => r.fecha === hoy && r.entrada && !r.salida);
-            const nuevoTarget = abierto
+            const habilitado = PushReminder.getHabilitado();
+            const nuevoTarget = (habilitado && abierto)
                 ? PushReminder.calcularTarget(abierto.entrada, abierto.objetivoHoras, _bufferSemanalParaPush(hoy))
                 : null;
             const targetActual = PushReminder.targetProgramadoParaHoy();
             if (nuevoTarget === targetActual) return; // sin cambios reales, no gastamos requests
 
-            if (targetActual != null) PushReminder.cancelarFinDeJornada(hoy);
             if (abierto && nuevoTarget != null) {
                 PushReminder.programarFinDeJornada(abierto.fecha, abierto.entrada, abierto.objetivoHoras, _bufferSemanalParaPush(hoy));
+            } else if (targetActual != null) {
+                PushReminder.cancelarFinDeJornada(hoy);
             }
         }
 
@@ -8202,6 +8199,8 @@
             _setBtnDisabled('btn-toggle-push-buffer-ultimo-dia', !habilitado || !usaBufferSemanal);
         }
 
+        const _sincronizarPushHoyDebounced = debounce(() => D.sincronizarPushHoy(), 400);
+
         const { toggle: togglePushBuffer, actualizarEstado: actualizarEstadoBotonPushBuffer } =
             _crearToggleConfig({
                 getVal: () => PushReminder.getUsarBufferSemanal(),
@@ -8212,7 +8211,7 @@
                 onAfterToggle: () => {
                     actualizarEstadoBotonPushBufferUltimoDia();
                     _actualizarDisponibilidadBotonesPush();
-                    D.sincronizarPushHoy(); // por si hay un push activo hoy, se resincroniza con el nuevo criterio
+                    _sincronizarPushHoyDebounced();
                 },
             });
 
@@ -8223,7 +8222,7 @@
                 btnId: 'btn-toggle-push-buffer-ultimo-dia',
                 mensajeOn: 'El saldo semanal solo se descuenta en el recordatorio del último día hábil de la semana',
                 mensajeOff: 'El saldo semanal se descuenta en el recordatorio de todos los días',
-                onAfterToggle: () => D.sincronizarPushHoy(),
+                onAfterToggle: () => _sincronizarPushHoyDebounced(),
             });
 
         const { toggle: togglePushHabilitado, actualizarEstado: actualizarEstadoBotonPushHabilitado } =
@@ -8233,9 +8232,9 @@
                 btnId: 'btn-toggle-push-habilitado',
                 mensajeOn: 'Notificaciones de fin de jornada activadas',
                 mensajeOff: 'Notificaciones de fin de jornada desactivadas',
-                onAfterToggle: (nuevo) => {
+                onAfterToggle: () => {
                     _actualizarDisponibilidadBotonesPush();
-                    if (nuevo) D.sincronizarPushHoy();
+                    _sincronizarPushHoyDebounced();
                 },
             });
 
@@ -8246,6 +8245,7 @@
 
         function cambiarPushAnticipacion(minutos) {
             PushReminder.setAnticipacionMin(minutos);
+            _sincronizarPushHoyDebounced();
         }
 
         function abrirModalNotificaciones() {
