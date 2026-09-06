@@ -312,11 +312,21 @@
             return headers;
         }
 
+        function _postWorker(path, payload) {
+            return fetch(`${WORKER_URL}${path}`, {
+                method: 'POST',
+                headers: _headersWorker(),
+                body: JSON.stringify(payload)
+            });
+        }
+
         function _urlBase64ToUint8Array(base64String) {
             const padding = '='.repeat((4 - base64String.length % 4) % 4);
             const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
             return Uint8Array.from([...atob(base64)].map(c => c.charCodeAt(0)));
         }
+
+        let _idInstalacionFallback = null;
 
         function _idInstalacion() {
             const KEY = 'pushInstallId';
@@ -328,7 +338,12 @@
                 }
                 return id;
             } catch {
-                return 'sin-storage';
+                if (!_idInstalacionFallback) {
+                    _idInstalacionFallback = crypto.randomUUID
+                        ? crypto.randomUUID()
+                        : `sin-storage-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                }
+                return _idInstalacionFallback;
             }
         }
 
@@ -439,16 +454,12 @@
                 : 'Se cumplió tu horario de hoy';
 
             try {
-                const res = await fetch(`${WORKER_URL}/api/schedule`, {
-                    method: 'POST',
-                    headers: _headersWorker(),
-                    body: JSON.stringify({
-                        id: _claveRecordatorio(fechaISO),
-                        subscription: sub.toJSON(),
-                        targetTime: targetMs,
-                        title: 'Horarios',
-                        message: mensaje
-                    })
+                const res = await _postWorker('/api/schedule', {
+                    id: _claveRecordatorio(fechaISO),
+                    subscription: sub.toJSON(),
+                    targetTime: targetMs,
+                    title: 'Horarios',
+                    message: mensaje
                 });
                 if (res.ok) _guardarInfoActiva(fechaISO, targetMs);
             } catch (err) {
@@ -459,11 +470,8 @@
         function cancelarFinDeJornada(fechaISO) {
             if (!fechaISO) return;
             if (fechaISO === TimeUtils.obtenerFechaHoy()) _borrarInfoActiva();
-            fetch(`${WORKER_URL}/api/cancel`, {
-                method: 'POST',
-                headers: _headersWorker(),
-                body: JSON.stringify({ id: _claveRecordatorio(fechaISO) })
-            }).catch(err => console.error('No se pudo cancelar el recordatorio:', err));
+            _postWorker('/api/cancel', { id: _claveRecordatorio(fechaISO) })
+                .catch(err => console.error('No se pudo cancelar el recordatorio:', err));
         }
 
         return {
@@ -1613,7 +1621,7 @@
                 ? PushReminder.calcularTarget(abierto.entrada, abierto.objetivoHoras, _bufferSemanalActual())
                 : null;
             const targetActual = PushReminder.targetProgramadoParaHoy();
-            if (nuevoTarget === targetActual) return;
+            if (nuevoTarget === targetActual) return; // sin cambios reales, no gastamos requests
 
             if (targetActual != null) PushReminder.cancelarFinDeJornada(hoy);
             if (abierto && nuevoTarget != null) {
@@ -9490,6 +9498,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // PWA INSTALLER MODULE
 // TIME AND DATE UTILITIES MODULE (TimeUtils)
+// PUSH REMINDER MODULE
 // SECURITY AND UTILS MODULE
 // STORAGE HELPER MODULE
 // PERFIL MANAGER MODULE
