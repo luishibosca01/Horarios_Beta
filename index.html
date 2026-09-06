@@ -737,6 +737,18 @@
                     </div>
                     <div>
                         <div class="config-actions form-group config-onboarding-hide">
+                            <label>Notificaciones</label>
+                            <button id="btn-abrir-notificaciones">
+                                <svg class="icon">
+                                    <use href="#icon-clock-in" />
+                                </svg>
+                                <span>Notificaciones</span>
+                                <svg class="icon icon-indicator">
+                                    <use href="#icon-chevron-right" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="config-actions form-group config-onboarding-hide">
                             <label>Estadísticas</label>
                             <button id="btn-toggle-ignorar-tf">
                                 <svg class="icon">
@@ -765,19 +777,7 @@
                                     <use href="#icon-dot" />
                                 </svg>
                             </button>
-                        </div>
-                        <div class="config-actions form-group config-onboarding-hide">
-                            <label>Notificaciones</label>
-                            <button id="btn-abrir-notificaciones">
-                                <svg class="icon">
-                                    <use href="#icon-clock-in" />
-                                </svg>
-                                <span>Notificaciones</span>
-                                <svg class="icon icon-indicator">
-                                    <use href="#icon-chevron-right" />
-                                </svg>
-                            </button>
-                        </div>
+                        </div>                        
                         <div class="config-actions">
                             <label>Datos</label>
                             <button class="btn-gist">
@@ -1519,11 +1519,9 @@
                     </select>
                 </div>
             </div>
-
             <div class="config-hint-text">
-                Las notificaciones pueden retrasarse según el ahorro de energía del dispositivo.
+                Las notificaciones pueden retrasarse según el uso del dispositivo y el modo de ahorro de energía, o anularse por cantidad de usuarios.
             </div>
-
             <div class="btn-group">
                 <button class="btn-cancel">
                     <svg class="icon">
