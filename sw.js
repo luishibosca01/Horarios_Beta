@@ -1,4 +1,4 @@
-const CACHE_NAME = 'horarios-v260906.1723-cache';
+const CACHE_NAME = 'horarios-v260907.1115-cache';
 const urlsToCache = [
   './',
   './index.html',
@@ -25,7 +25,7 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activación
+// Activación — limpieza de cachés viejas
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
@@ -46,7 +46,7 @@ self.addEventListener('fetch', event => {
   if (url.origin !== location.origin) return;
 
   event.respondWith(
-    caches.match(event.request)
+    caches.match(event.request, { ignoreSearch: true })
       .then(cached => {
         if (cached) return cached;
 
@@ -65,7 +65,7 @@ self.addEventListener('fetch', event => {
           })
           .catch(() => {
             if (event.request.mode === 'navigate') {
-              return caches.match('./') || caches.match('./index.html');
+              return caches.match('./index.html', { ignoreSearch: true }) || caches.match('./', { ignoreSearch: true });
             }
           });
       })
@@ -92,15 +92,29 @@ self.addEventListener('push', event => {
   );
 });
 
-// Click en la notificación — enfoca la app si ya está abierta, si no la abre
+// Click en la notificación — enfoca la PWA si ya está abierta, si no la abre
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      for (const client of clientList) {
-        if ('focus' in client) return client.focus();
+      // 1. Prioridad: ventana que tenga la URL de PWA (modo standalone)
+      const pwaClient = clientList.find(c => c.url && c.url.includes('mode=pwa'));
+      if (pwaClient && 'focus' in pwaClient) {
+        return pwaClient.focus();
       }
-      if (self.clients.openWindow) return self.clients.openWindow('./');
+
+      // 2. Si no hay con mode=pwa, enfocar cualquier ventana que pertenezca al scope de la app
+      for (const client of clientList) {
+        if (client.url && client.url.startsWith(self.registration.scope) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+
+      // 3. Si no hay ninguna ventana abierta, abrir la PWA directamente con URL absoluta
+      const pwaUrl = new URL('./index.html?mode=pwa', self.registration.scope).href;
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(pwaUrl);
+      }
     })
   );
 });
