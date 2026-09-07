@@ -438,7 +438,7 @@
             const anticipacionMin = getAnticipacionMin();
             const target = new Date();
             target.setHours(h, m, 0, 0);
-            const MARGEN_CRON_MS = 60 * 1000; // Descuento de 1 minuto para compensar cron de 2 minutos
+            const MARGEN_CRON_MS = 2 * 60 * 1000; // Descuento de 2 minutos para compensar cron de 2 minutos
             target.setTime(target.getTime() + objetivoAjustado * 60 * 60 * 1000 - anticipacionMin * 60 * 1000 - MARGEN_CRON_MS);
             return target.getTime();
         }
