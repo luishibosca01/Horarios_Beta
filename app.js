@@ -306,6 +306,7 @@
         const WORKER_URL = 'https://horarios-push.l-lus.workers.dev';
         const VAPID_PUBLIC_KEY = 'BMU-iLslFVrTxUKMHRUn8r_CtyCLX41ppVTUgdATAdPYE8ayJ0U_ew6d50CmvghkIdv34fGuXvf-KP5W62rs3ms';
         const APP_SECRET = '487e4c492604b653b56e9ba234cb9eda007fc149c66650e9';
+        const MARGEN_CRON_MS = 60 * 1000; //Descuento de 1 minuto en el pair kv
 
         function _headersWorker() {
             const headers = { 'Content-Type': 'application/json' };
@@ -438,7 +439,6 @@
             const anticipacionMin = getAnticipacionMin();
             const target = new Date();
             target.setHours(h, m, 0, 0);
-            const MARGEN_CRON_MS = 2 * 60 * 1000;
             target.setTime(target.getTime() + objetivoAjustado * 60 * 60 * 1000 - anticipacionMin * 60 * 1000 - MARGEN_CRON_MS);
             return target.getTime();
         }
@@ -490,7 +490,6 @@
             const activa = esHoy ? obtenerInfoActiva() : null;
             if (esHoy) _borrarInfoActiva();
 
-            const MARGEN_CRON_MS = 2 * 60 * 1000;
             if (activa?.targetTimeMs && (Date.now() > activa.targetTimeMs + MARGEN_CRON_MS)) {
                 return;
             }
@@ -504,11 +503,9 @@
 
         return {
             programarFinDeJornada, cancelarFinDeJornada, limpiarNotificacionVisible,
-            getAnticipacionMin, setAnticipacionMin,
-            getUsarBufferSemanal, setUsarBufferSemanal,
-            getBufferSoloUltimoDia, setBufferSoloUltimoDia,
-            getHabilitado, setHabilitado,
-            calcularTarget: _calcularTarget,
+            getAnticipacionMin, setAnticipacionMin, setBufferSoloUltimoDia,
+            getUsarBufferSemanal, setUsarBufferSemanal, getHabilitado, setHabilitado,
+            getBufferSoloUltimoDia, calcularTarget: _calcularTarget,
             targetProgramadoParaHoy: () => obtenerInfoActiva()?.targetTimeMs ?? null,
         };
     })();
