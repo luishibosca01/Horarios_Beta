@@ -438,7 +438,7 @@
             const anticipacionMin = getAnticipacionMin();
             const target = new Date();
             target.setHours(h, m, 0, 0);
-            const MARGEN_CRON_MS = 2 * 60 * 1000; // Descuento de 2 minutos para compensar cron de 2 minutos
+            const MARGEN_CRON_MS = 2 * 60 * 1000;
             target.setTime(target.getTime() + objetivoAjustado * 60 * 60 * 1000 - anticipacionMin * 60 * 1000 - MARGEN_CRON_MS);
             return target.getTime();
         }
@@ -470,15 +470,40 @@
             }
         }
 
+        function limpiarNotificacionVisible() {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+                navigator.serviceWorker.ready.then(reg => {
+                    if (reg && typeof reg.getNotifications === 'function') {
+                        reg.getNotifications({ tag: 'horarios-recordatorio' })
+                            .then(notifs => notifs.forEach(n => n.close()))
+                            .catch(() => { /* noop */ });
+                    }
+                }).catch(() => { /* noop */ });
+            }
+        }
+
         function cancelarFinDeJornada(fechaISO) {
             if (!fechaISO) return;
-            if (fechaISO === TimeUtils.obtenerFechaHoy()) _borrarInfoActiva();
+            limpiarNotificacionVisible();
+
+            const esHoy = fechaISO === TimeUtils.obtenerFechaHoy();
+            const activa = esHoy ? obtenerInfoActiva() : null;
+            if (esHoy) _borrarInfoActiva();
+
+            const MARGEN_CRON_MS = 2 * 60 * 1000;
+            if (activa?.targetTimeMs && (Date.now() > activa.targetTimeMs + MARGEN_CRON_MS)) {
+                return;
+            }
+            if (!esHoy && fechaISO < TimeUtils.obtenerFechaHoy()) {
+                return;
+            }
+
             _postWorker('/api/cancel', { id: _claveRecordatorio(fechaISO) })
                 .catch(err => console.error('No se pudo cancelar el recordatorio:', err));
         }
 
         return {
-            programarFinDeJornada, cancelarFinDeJornada,
+            programarFinDeJornada, cancelarFinDeJornada, limpiarNotificacionVisible,
             getAnticipacionMin, setAnticipacionMin,
             getUsarBufferSemanal, setUsarBufferSemanal,
             getBufferSoloUltimoDia, setBufferSoloUltimoDia,
