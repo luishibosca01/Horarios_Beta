@@ -314,11 +314,12 @@
             return headers;
         }
 
-        function _postWorker(path, payload) {
+        function _postWorker(path, payload, keepalive = false) {
             return fetch(`${WORKER_URL}${path}`, {
                 method: 'POST',
                 headers: _headersWorker(),
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
+                keepalive: !!keepalive
             });
         }
 
@@ -357,41 +358,61 @@
             return `${_idInstalacion()}:${_perfilActivo()}:${fechaISO}`;
         }
 
+        function _getLegacyOPerfil(key, defaultValue, parseFn) {
+            const val = StorageHelper.getItem(key, null, true);
+            if (val !== null) return parseFn ? parseFn(val) : val;
+            const legacyVal = StorageHelper.getItem(key, null, false);
+            if (legacyVal !== null) {
+                const parsed = parseFn ? parseFn(legacyVal) : legacyVal;
+                StorageHelper.setItem(key, parsed, true);
+                StorageHelper.removeItem(key, false);
+                return parsed;
+            }
+            return defaultValue;
+        }
+
         function getAnticipacionMin() {
-            return StorageHelper.getNumber(STORAGE_KEYS.PUSH_ANTICIPACION_MIN, 0);
+            return _getLegacyOPerfil(STORAGE_KEYS.PUSH_ANTICIPACION_MIN, 0, v => {
+                const n = parseFloat(v);
+                return isNaN(n) ? 0 : n;
+            });
         }
         function setAnticipacionMin(minutos) {
             const n = Number(minutos);
             const seguro = Number.isFinite(n) ? Math.min(60, Math.max(0, n)) : 0;
-            StorageHelper.setItem(STORAGE_KEYS.PUSH_ANTICIPACION_MIN, seguro);
+            StorageHelper.setItem(STORAGE_KEYS.PUSH_ANTICIPACION_MIN, seguro, true);
         }
         function getUsarBufferSemanal() {
-            return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL, false);
+            return _getLegacyOPerfil(STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL, false, v => v === 'true');
         }
         function setUsarBufferSemanal(valor) {
-            StorageHelper.setItem(STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL, !!valor);
+            StorageHelper.setItem(STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL, !!valor, true);
         }
         function getBufferSoloUltimoDia() {
-            return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, false);
+            return _getLegacyOPerfil(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, false, v => v === 'true');
         }
         function setBufferSoloUltimoDia(valor) {
-            StorageHelper.setItem(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, !!valor);
+            StorageHelper.setItem(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, !!valor, true);
         }
         function getHabilitado() {
-            return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_HABILITADO, false);
+            return _getLegacyOPerfil(STORAGE_KEYS.PUSH_HABILITADO, false, v => v === 'true');
         }
         function setHabilitado(valor) {
-            StorageHelper.setItem(STORAGE_KEYS.PUSH_HABILITADO, !!valor);
+            StorageHelper.setItem(STORAGE_KEYS.PUSH_HABILITADO, !!valor, true);
         }
 
         function _guardarInfoActiva(fechaISO, targetTimeMs) {
-            StorageHelper.setItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, JSON.stringify({ fechaISO, targetTimeMs }));
+            StorageHelper.setItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, JSON.stringify({ fechaISO, targetTimeMs }), true);
         }
         function _borrarInfoActiva() {
-            try { localStorage.removeItem(STORAGE_KEYS.PUSH_INFO_ACTIVA); } catch { /* noop */ }
+            try {
+                StorageHelper.removeItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, true);
+                StorageHelper.removeItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, false);
+            } catch { /* noop */ }
         }
         function obtenerInfoActiva() {
-            const raw = StorageHelper.getItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, null);
+            const raw = StorageHelper.getItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, null, true)
+                ?? StorageHelper.getItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, null, false);
             if (!raw) return null;
             try {
                 const info = JSON.parse(raw);
@@ -490,6 +511,11 @@
             const activa = esHoy ? obtenerInfoActiva() : null;
             if (esHoy) _borrarInfoActiva();
 
+            // Si es hoy pero no había nada agendado en la nube, evitamos el request innecesario
+            if (esHoy && !activa) {
+                return;
+            }
+
             if (activa?.targetTimeMs && (Date.now() > activa.targetTimeMs + MARGEN_CRON_MS)) {
                 return;
             }
@@ -497,8 +523,22 @@
                 return;
             }
 
-            _postWorker('/api/cancel', { id: _claveRecordatorio(fechaISO) })
+            _postWorker('/api/cancel', { id: _claveRecordatorio(fechaISO) }, true)
                 .catch(err => console.error('No se pudo cancelar el recordatorio:', err));
+        }
+
+        function restablecer() {
+            cancelarFinDeJornada(TimeUtils.obtenerFechaHoy());
+            [
+                STORAGE_KEYS.PUSH_HABILITADO,
+                STORAGE_KEYS.PUSH_ANTICIPACION_MIN,
+                STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL,
+                STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA,
+                STORAGE_KEYS.PUSH_INFO_ACTIVA
+            ].forEach(k => {
+                StorageHelper.removeItem(k, true);
+                StorageHelper.removeItem(k, false);
+            });
         }
 
         return {
@@ -507,6 +547,7 @@
             getUsarBufferSemanal, setUsarBufferSemanal, getHabilitado, setHabilitado,
             getBufferSoloUltimoDia, calcularTarget: _calcularTarget,
             targetProgramadoParaHoy: () => obtenerInfoActiva()?.targetTimeMs ?? null,
+            restablecer,
         };
     })();
 
@@ -2040,7 +2081,7 @@
             historialDiasHabiles = [];
             registros.splice(0, registros.length);
             ignorarTiempoFuera = false;
-            _sincronizarPushHoy();
+            PushReminder.restablecer();
 
             const perfilId = _obtenerPerfilIdActual();
             StorageHelper.removeItem(STORAGE_KEYS.BREAK_TIME(perfilId));
@@ -3404,7 +3445,8 @@
 
         function _limpiarClavesPerfil(pid) {
             ['breakStartTime', STORAGE_KEYS.HISTORY, STORAGE_KEYS.FONDO_CARD, STORAGE_KEYS.IGNORAR_TF, STORAGE_KEYS.IGNORAR_LOGICA_CUBIERTO, STORAGE_KEYS.IGNORAR_OBJETIVO_POR_REGISTRO,
-                'cardVisible_registrar', 'cardVisible_estadisticas', 'cardVisible_historico', STORAGE_KEYS.ORDEN_CARDS
+                'cardVisible_registrar', 'cardVisible_estadisticas', 'cardVisible_historico', STORAGE_KEYS.ORDEN_CARDS,
+                STORAGE_KEYS.PUSH_HABILITADO, STORAGE_KEYS.PUSH_ANTICIPACION_MIN, STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL, STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, STORAGE_KEYS.PUSH_INFO_ACTIVA
             ].forEach(k => StorageHelper.removeItem(`${k}_${pid}`));
         }
 
