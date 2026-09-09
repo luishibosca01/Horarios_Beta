@@ -372,7 +372,7 @@
             StorageHelper.setItem(STORAGE_KEYS.PUSH_USAR_BUFFER_SEMANAL, !!valor);
         }
         function getBufferSoloUltimoDia() {
-            return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, true);
+            return StorageHelper.getBoolean(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, false);
         }
         function setBufferSoloUltimoDia(valor) {
             StorageHelper.setItem(STORAGE_KEYS.PUSH_BUFFER_SOLO_ULTIMO_DIA, !!valor);
@@ -2943,7 +2943,7 @@
                 const nuevo = !getVal();
                 setVal(nuevo);
                 actualizarEstado();
-                mostrarToast(nuevo ? mensajeOn : mensajeOff, 'info');
+                mostrarToast(nuevo ? mensajeOn : mensajeOff, 'info', 4000);
                 onAfterToggle?.(nuevo);
             }
             return { toggle, actualizarEstado };
@@ -8228,8 +8228,8 @@
                 getVal: () => PushReminder.getUsarBufferSemanal(),
                 setVal: (v) => PushReminder.setUsarBufferSemanal(v),
                 btnId: 'btn-toggle-push-buffer',
-                mensajeOn: 'El recordatorio de fin de jornada descuenta tu saldo semanal a favor',
-                mensajeOff: 'El recordatorio de fin de jornada usa el objetivo diario tal cual',
+                mensajeOn: 'El banco de horas se aplica en las notificaciones',
+                mensajeOff: 'El banco de horas no se aplica en las notificaciones',
                 onAfterToggle: () => {
                     actualizarEstadoBotonPushBufferUltimoDia();
                     _actualizarDisponibilidadBotonesPush();
@@ -8242,8 +8242,8 @@
                 getVal: () => PushReminder.getBufferSoloUltimoDia(),
                 setVal: (v) => PushReminder.setBufferSoloUltimoDia(v),
                 btnId: 'btn-toggle-push-buffer-ultimo-dia',
-                mensajeOn: 'El saldo semanal solo se descuenta en el recordatorio del último día hábil de la semana',
-                mensajeOff: 'El saldo semanal se descuenta en el recordatorio de todos los días',
+                mensajeOn: 'El banco de horas se aplica el último día hábil de la semana en las notificaciones',
+                mensajeOff: 'El banco de horas se aplica todos los días en las notificaciones',
                 onAfterToggle: () => _sincronizarPushHoyDebounced(),
             });
 
@@ -8252,8 +8252,8 @@
                 getVal: () => PushReminder.getHabilitado(),
                 setVal: (v) => PushReminder.setHabilitado(v),
                 btnId: 'btn-toggle-push-habilitado',
-                mensajeOn: 'Notificaciones de fin de jornada activadas',
-                mensajeOff: 'Notificaciones de fin de jornada desactivadas',
+                mensajeOn: 'Notificaciones de horario cumplido activadas',
+                mensajeOff: 'Notificaciones de horario cumplido desactivadas',
                 onAfterToggle: () => {
                     _actualizarDisponibilidadBotonesPush();
                     _sincronizarPushHoyDebounced();
