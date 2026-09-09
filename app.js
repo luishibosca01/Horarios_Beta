@@ -2720,6 +2720,7 @@
         let toastTimeout = null;
         let _toastQueue = [];
         let _toastRunning = false;
+        const MAX_TOAST_QUEUE = 4;
 
         function formatoDiferencia(tiempoTotal, objetivo = D.horasDiarias()) {
             return TimeUtils.formatoDiferencia(tiempoTotal, objetivo);
@@ -2844,6 +2845,9 @@
             const actual = _toastRunning ? $('toast')?.textContent : null;
             if ((ultimo && ultimo.mensaje === textoLimpio) || actual === textoLimpio) return;
             _toastQueue.push({ mensaje: textoLimpio, tipo, duracionBase: duracion });
+            if (_toastQueue.length > MAX_TOAST_QUEUE) {
+                _toastQueue.splice(0, _toastQueue.length - MAX_TOAST_QUEUE);
+            }
             if (!_toastRunning) _procesarToastQueue();
         }
 
@@ -2872,6 +2876,26 @@
                     setTimeout(() => _procesarToastQueue(), 350);
                 }, duracionFinal);
             }, 10);
+        }
+
+        function _cerrarToastActual() {
+            if (toastTimeout) { clearTimeout(toastTimeout); toastTimeout = null; }
+            const toast = $('toast');
+            if (!toast || !toast.classList.contains('show')) return;
+            toast.classList.remove('show');
+            setTimeout(() => _procesarToastQueue(), 350);
+        }
+
+        function _habilitarCierreToast() {
+            const toast = $('toast');
+            if (!toast || toast.dataset.cierreInit) return;
+            toast.dataset.cierreInit = '1';
+
+            // Desktop: un click alcanza para descartarlo.
+            toast.addEventListener('click', () => _cerrarToastActual());
+
+            // Mobile: swipe en cualquier dirección (registrarSwipe solo escucha eventos touch).
+            registrarSwipe(toast, () => _cerrarToastActual(), { minX: 40 });
         }
 
         function resetearBoton(btn) {
@@ -3225,6 +3249,8 @@
             obtenerNombrePerfilSafe,
             descargarJSON,
             mostrarToast,
+            _cerrarToastActual,
+            _habilitarCierreToast,
             resetearBoton,
             restaurarBotonGuardarEdicion,
             _getCSSdur,
@@ -8150,7 +8176,7 @@
             formatoDiferencia, registrarSwipe, debounce, _crearPressHold, _abrirModalConPadre, _cerrarModalConPadre,
             _actualizarOffsetsStickyMes, actualizarOffsetsStickyMesDebounced,
             mostrarError, limpiarError, obtenerNombrePerfilSafe, descargarJSON,
-            mostrarToast, resetearBoton, restaurarBotonGuardarEdicion,
+            mostrarToast, _habilitarCierreToast, resetearBoton, restaurarBotonGuardarEdicion,
             _getCSSdur, DUR_ANIM, DUR_CALENDARIO, _crearToggleConfig, _setBtnActivo,
             _crearOpcion, _poblarSelect, setIconoBtn, _setBtnDisabled,
             _posicionarPopup, _registrarCierrePopup, _flashCampo, _flashCampoTipo,
@@ -8732,6 +8758,7 @@
         }
 
         function _initSwipesYStats() {
+            _habilitarCierreToast();
             registrarSwipe(document.getElementById('stats-card'), () => alternarVista());
             registrarSwipe(document.getElementById('form-registro'), dir => toggleModoLote(dir), { ignoreInputs: true });
 
