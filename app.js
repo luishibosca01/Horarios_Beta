@@ -354,8 +354,8 @@
             return (window.PerfilManager ? PerfilManager.obtenerPerfilActual() : null) || 'default';
         }
 
-        function _claveRecordatorio(fechaISO) {
-            return `${_idInstalacion()}:${_perfilActivo()}:${fechaISO}`;
+        function _claveRecordatorio(fechaISO, perfilId) {
+            return `${_idInstalacion()}:${perfilId || _perfilActivo()}:${fechaISO}`;
         }
 
         function _getLegacyOPerfil(key, defaultValue, parseFn) {
@@ -404,15 +404,21 @@
         function _guardarInfoActiva(fechaISO, targetTimeMs) {
             StorageHelper.setItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, JSON.stringify({ fechaISO, targetTimeMs }), true);
         }
-        function _borrarInfoActiva() {
+        function _borrarInfoActiva(perfilId) {
             try {
-                StorageHelper.removeItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, true);
-                StorageHelper.removeItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, false);
+                if (perfilId) {
+                    StorageHelper.removeItem(`${STORAGE_KEYS.PUSH_INFO_ACTIVA}_${perfilId}`);
+                } else {
+                    StorageHelper.removeItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, true);
+                    StorageHelper.removeItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, false);
+                }
             } catch { /* noop */ }
         }
-        function obtenerInfoActiva() {
-            const raw = StorageHelper.getItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, null, true)
-                ?? StorageHelper.getItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, null, false);
+        function obtenerInfoActiva(perfilId) {
+            const raw = perfilId
+                ? StorageHelper.getItem(`${STORAGE_KEYS.PUSH_INFO_ACTIVA}_${perfilId}`)
+                : (StorageHelper.getItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, null, true)
+                    ?? StorageHelper.getItem(STORAGE_KEYS.PUSH_INFO_ACTIVA, null, false));
             if (!raw) return null;
             try {
                 const info = JSON.parse(raw);
@@ -503,13 +509,14 @@
             }
         }
 
-        function cancelarFinDeJornada(fechaISO) {
+        function cancelarFinDeJornada(fechaISO, perfilId) {
             if (!fechaISO) return;
-            limpiarNotificacionVisible();
+            const esPerfilActivo = !perfilId || perfilId === _perfilActivo();
+            if (esPerfilActivo) limpiarNotificacionVisible();
 
             const esHoy = fechaISO === TimeUtils.obtenerFechaHoy();
-            const activa = esHoy ? obtenerInfoActiva() : null;
-            if (esHoy) _borrarInfoActiva();
+            const activa = esHoy ? obtenerInfoActiva(perfilId) : null;
+            if (esHoy) _borrarInfoActiva(perfilId);
 
             // Si es hoy pero no había nada agendado en la nube, evitamos el request innecesario
             if (esHoy && !activa) {
@@ -523,7 +530,7 @@
                 return;
             }
 
-            _postWorker('/api/cancel', { id: _claveRecordatorio(fechaISO) }, true)
+            _postWorker('/api/cancel', { id: _claveRecordatorio(fechaISO, perfilId) }, true)
                 .catch(err => console.error('No se pudo cancelar el recordatorio:', err));
         }
 
@@ -3463,6 +3470,7 @@
                 if (!await ModalManager.confirmar(`¿Estás seguro de que querés eliminar el perfil "${perfil.nombre}"? Esta acción no se puede deshacer.`, 'Eliminar')) return;
             }
 
+            PushReminder.cancelarFinDeJornada(TimeUtils.obtenerFechaHoy(), perfilEnEdicion);
             _limpiarClavesPerfil(perfilEnEdicion);
             delete perfiles[perfilEnEdicion];
             if (!_guardarPerfilesConManejo(perfiles, 'Error al eliminar perfil:')) return;
