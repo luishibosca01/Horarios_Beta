@@ -333,21 +333,17 @@
 
         function _idInstalacion() {
             const KEY = 'pushInstallId';
-            try {
-                let id = localStorage.getItem(KEY);
-                if (!id) {
-                    id = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
-                    localStorage.setItem(KEY, id);
-                }
-                return id;
-            } catch {
-                if (!_idInstalacionFallback) {
-                    _idInstalacionFallback = crypto.randomUUID
-                        ? crypto.randomUUID()
-                        : `sin-storage-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-                }
-                return _idInstalacionFallback;
+            const existente = StorageHelper.getItem(KEY, null);
+            if (existente) return existente;
+
+            const nuevo = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            if (StorageHelper.setItem(KEY, nuevo)) return nuevo;
+            if (!_idInstalacionFallback) {
+                _idInstalacionFallback = crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : `sin-storage-${Date.now()}-${Math.random().toString(36).slice(2)}`;
             }
+            return _idInstalacionFallback;
         }
 
         function _perfilActivo() {
@@ -428,10 +424,6 @@
                 return null;
             }
         }
-        function _formatoHora(ms) {
-            return new Date(ms).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        }
-
         async function _asegurarSuscripcion() {
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
             if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.startsWith('PEGA_ACA')) return null;
