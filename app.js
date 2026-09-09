@@ -8221,6 +8221,13 @@
             _setBtnDisabled('btn-toggle-push-buffer-ultimo-dia', !habilitado || !usaBufferSemanal);
         }
 
+        // Solo feedback visual: el botón "Configurar notificaciones" del modal
+        // principal no es un toggle en sí (navega al submodal), pero refleja
+        // con el mismo estilo verde si las notificaciones están activadas.
+        function actualizarEstadoBotonNotificaciones() {
+            _setBtnActivo('btn-toggle-notification', PushReminder.getHabilitado());
+        }
+
         const _sincronizarPushHoyDebounced = debounce(() => D.sincronizarPushHoy(), 400);
 
         const { toggle: togglePushBuffer, actualizarEstado: actualizarEstadoBotonPushBuffer } =
@@ -8256,6 +8263,7 @@
                 mensajeOff: 'Notificaciones de horario cumplido desactivadas',
                 onAfterToggle: () => {
                     _actualizarDisponibilidadBotonesPush();
+                    actualizarEstadoBotonNotificaciones();
                     _sincronizarPushHoyDebounced();
                 },
             });
@@ -8276,6 +8284,7 @@
                 actualizarEstadoBotonPushBuffer();
                 actualizarEstadoBotonPushBufferUltimoDia();
                 _actualizarDisponibilidadBotonesPush();
+                actualizarEstadoBotonNotificaciones();
                 actualizarSelectPushAnticipacion();
             });
         }
@@ -8526,6 +8535,7 @@
             UILogic.actualizarFeedbackConfig();
             actualizarEstadoBotonIgnorarTF();
             UILogic.actualizarEstadoBotonAplicarHoras();
+            actualizarEstadoBotonNotificaciones();
             const lbl = $('hint-fondo-label');
             if (lbl) lbl.textContent = _getLabelFondo(UILogic.getFondoCard());
         }
@@ -8702,6 +8712,7 @@
             UILogic.actualizarEstadoBotonAplicarHoras();
             UILogic.actualizarEstadoBotonPushBuffer();
             UILogic.actualizarEstadoBotonPushHabilitado();
+            UILogic.actualizarEstadoBotonNotificaciones();
             UILogic.actualizarSelectPushAnticipacion();
             UILogic.aplicarVisibilidadCards();
             UILogic.aplicarOrdenCards(UILogic.obtenerOrdenCards());
@@ -9180,6 +9191,7 @@
             actualizarEstadoBotonPushBufferUltimoDia, togglePushBufferUltimoDia,
             actualizarSelectPushAnticipacion, cambiarPushAnticipacion,
             actualizarEstadoBotonPushHabilitado, togglePushHabilitado,
+            actualizarEstadoBotonNotificaciones,
             abrirModalNotificaciones, cerrarModalNotificaciones,
             actualizarEstadoBotonesGist, actualizarFeedbackConfig, actualizarListaRegistros, actualizarUI, agruparRegistrosConsecutivos, alternarFechaActual,
             alternarTema, alternarVista, aplicarFeedbackCampos, aplicarHorasConfiguradasATodos, aplicarOrdenCards, aplicarVisibilidadCards,
